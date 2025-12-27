@@ -2280,11 +2280,11 @@ class HomeFragment : Fragment(), OnClickListener {
         lastModeChangeTimeout?.cancel()
         emergencyUnlockJob?.cancel()
 
-        // Start emergency unlock timer (40 seconds - absolute max)
+        // Start emergency unlock timer (20 seconds - absolute max)
         emergencyUnlockJob = viewLifecycleOwner.lifecycleScope.launch {
-            delay(40000) // 40 seconds emergency timeout
+            delay(20000) // 20 seconds emergency timeout
             if (isModeChangeApiInProgress) {
-                Log.e(TAG, "🚨 EMERGENCY TIMEOUT - Force unlocking after 40s")
+                Log.e(TAG, "🚨 EMERGENCY TIMEOUT - Force unlocking after 20s")
                 forceResetAllFlags()
                 withContext(Dispatchers.Main) {
                     Toast.makeText(requireContext(), "Operation timed out. Please try again.", Toast.LENGTH_LONG).show()
@@ -2299,15 +2299,17 @@ class HomeFragment : Fragment(), OnClickListener {
                 withTimeout(MODE_CHANGE_TIMEOUT_MS) { // 30 second timeout
                     updateModeChange(hoursLast, mode, selectedOptionText)
 
-                    // CRITICAL: Wait for API response
+                    // CRITICAL: Wait for API response with its own timeout to prevent infinite blocking
                     Log.d(TAG, "⏳ Waiting for API response...")
-                    val success = modeChangeCompletionDeferred?.await() ?: false
+                    val success = withTimeoutOrNull(15000L) {
+                        modeChangeCompletionDeferred?.await()
+                    } ?: false
 
                     if (success) {
                         Log.d(TAG, "✅ Mode change completed successfully")
                         failedModeChangeAttempts = 0 // Reset counter on success
                     } else {
-                        Log.e(TAG, "❌ Mode change failed")
+                        Log.e(TAG, "❌ Mode change failed or timed out")
                         failedModeChangeAttempts++
                     }
                 }
@@ -2882,10 +2884,10 @@ class HomeFragment : Fragment(), OnClickListener {
             val lastEvent = appModel.mLastEvent ?: return
             val speed = lastEvent.mGeoloc.speed
             val dashboard = appModel.dashboard
-            val dashboardSpeed = dashboard?.engineSpeed ?: 0
             val rpm = dashboard?.engineRPM ?: 0
             binding.drivingSpeed.text = "Driving Speed: ${speed} km/h"
-            handleLocationUpdate(dashboardSpeed, rpm, lastEvent.mEvent.name)
+            // Use actual Bluetooth speed for mode switching (not dashboardSpeed)
+            handleLocationUpdate(speed, rpm, lastEvent.mEvent.name)
         } catch (e: Exception) {
             Log.e(TAG, "Error in checkAndPrintSpeed: ${e.message}", e)
         }

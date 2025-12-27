@@ -1,0 +1,8 @@
+<!-- res/anim/blink.xml -->
+<alpha xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="500"
+    android:fromAlpha="1.0"
+    android:toAlpha="0.0"
+    android:interpolator="@android:anim/linear_interpolator"
+    android:repeatMode="reverse"
+    android:repeatCount="infinite" />

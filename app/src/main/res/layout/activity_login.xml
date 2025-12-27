@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bgimage"
+    tools:context=".LoginActivity">
+
+    <TextView
+        android:id="@+id/welcometext"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/logintext"
+        android:layout_marginStart="12dp"
+        android:layout_marginLeft="12dp"
+        android:text="Welcome Back!"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_22sp"
+        android:textStyle="bold" />
+    <TextView
+        android:layout_marginLeft="12dp"
+        android:layout_marginBottom="@dimen/_10dp"
+        android:layout_above="@+id/cardView"
+        android:id="@+id/logintext"
+        android:textColor="@color/white_light"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:text="Please login in your account"
+        android:textSize="@dimen/_14sp"
+        />
+
+    <androidx.cardview.widget.CardView
+        android:layout_margin="@dimen/_12dp"
+        android:backgroundTint="@color/white"
+        android:id="@+id/cardView"
+        android:background="@color/white"
+
+        android:layout_centerInParent="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="@dimen/_6dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:padding="15dp">
+
+            <TextView
+                android:id="@+id/loginhead"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/login"
+                android:textColor="@color/black"
+                android:textSize="@dimen/_22sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/et_driverid"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/loginhead"
+                android:layout_marginTop="15dp"
+                android:hint="Driver ID"
+                app:endIconCheckable="true"
+                app:endIconMode="custom">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_driver"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+
+                    android:imeOptions="actionNext" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/et_password"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/et_driverid"
+                android:layout_marginTop="10dp"
+                android:hint="Password"
+                app:endIconCheckable="true"
+                app:endIconMode="custom">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_pass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:id="@+id/forgotheader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/et_password"
+                android:layout_marginTop="@dimen/_12dp"
+                android:weightSum="1">
+
+                <CheckBox
+                    android:id="@+id/rememberme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:layout_weight="0.5"
+                    android:button="@drawable/custom_checkbox"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingLeft="@dimen/_4dp"
+                    android:text="@string/remember_me"
+                    android:textSize="@dimen/_14sp" />
+                <!--                <RadioButton-->
+                <!--                    android:layout_weight="0.5"-->
+                <!--                    android:layout_marginTop="15dp"-->
+                <!--                    android:id="@+id/rememberme"-->
+                <!--                    android:layout_width="match_parent"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:layout_gravity="center_horizontal"-->
+                <!--                    android:text="Remember Me"-->
+                <!--                    android:textSize="15sp" />-->
+
+                <TextView
+                    android:id="@+id/forgotpassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+
+                    android:layout_marginTop="15dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_weight="0.5"
+                    android:gravity="end"
+                    android:text="Forgot Password?"
+                    android:textColor="@color/orange"
+                    android:textSize="@dimen/_14sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txt_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/forgotheader"
+                android:layout_centerHorizontal="true"
+                android:layout_margin="5dp"
+                android:layout_marginTop="20dp"
+                android:fontFamily="@font/sf_pro_display_regular"
+                android:text=""
+                android:textColor="@color/red"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+            <com.github.ybq.android.spinkit.SpinKitView
+                android:visibility="gone"
+                android:id="@+id/progress_bar"
+                android:indeterminate="true"
+                android:layout_centerInParent="true"
+                style="@style/SpinKitView.ThreeBounce"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                app:SpinKit_Color="@color/black" />
+
+            <TextView
+                android:id="@+id/termsofservice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/txt_error"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="15dp"
+                android:gravity="center"
+                android:justificationMode="inter_word"
+                android:text="@string/by_logging_in_you_are_agree_to_the_following"
+                android:textColor="@color/black"
+                android:textSize="@dimen/_14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/termsofservice"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="35dp"
+                android:text="@string/agree"
+                android:textColor="@color/orange"
+                android:textSize="@dimen/_14sp" />
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/submit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cardView"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="-45dp"
+        android:background="@drawable/circularshape_design"
+        android:elevation="18dp"
+        android:gravity="center" />
+
+</RelativeLayout>

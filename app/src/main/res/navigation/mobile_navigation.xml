@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.truckspot.fragment.ui.home.HomeFragment"
+        android:label="@string/menu_home"
+        tools:layout="@layout/fragment_home" >
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_gallery"
+        android:name="com.truckspot.fragment.ui.logs.LogsFragment"
+        android:label="@string/menu_gallery"
+        tools:layout="@layout/fragment_logs" />
+
+    <fragment
+        android:id="@+id/nav_slideshow"
+        android:name="com.truckspot.fragment.ui.slideshow.SlideshowFragment"
+        android:label="@string/menu_slideshow"
+        tools:layout="@layout/fragment_slideshow" />
+
+    <fragment
+        android:id="@+id/nav_reports"
+        android:name="com.truckspot.fragment.ui.reports.ReportsFragment"
+        android:label="@string/menu_reports"
+        tools:layout="@layout/fragment_reports" />
+
+    <!-- Add your fragment_certify destination -->
+    <fragment
+        android:id="@+id/fragment_certify"
+        android:name="com.truckspot.fragment.ui.certify.CertifyFragment"
+        android:label="Certify"
+        tools:layout="@layout/fragment_certify" />
+
+    <!-- Define an action to navigate from Dashboard to Certify -->
+<!--    <action-->
+<!--        android:id="@+id/action_dashboard_to_certify"-->
+<!--        app:destination="@id/fragment_certify" />-->
+
+</navigation>

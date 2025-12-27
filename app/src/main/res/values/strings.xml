@@ -1,0 +1,212 @@
+<resources>
+    <string name="app_name">Eagleeye</string>
+    <string name="by_logging_in_you_are_agree_to_the_following">By logging in, you are
+        agree to the following</string>
+    <string name="agree"><u>Terms of Service</u></string>
+    <string name="we_will_send_you_password">We will send you password.</string>
+    <string name="enter_your_email_address">Enter Email Address</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="your_password_have_been_mailed_to_your_email_account">Your password have been \n mailed to your email account</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="lovepreet">Lovepreet \n J&amp;M Cargo INC</string>
+    <string name="notconnected">Not Connected</string>
+    <string name="home">Home</string>
+    <string name="logs">Logs</string>
+    <string name="certify">Certify</string>
+    <string name="report">Reports</string>
+    <string name="spent_time_in_sleep">Spent time in sleep</string>
+    <string name="remember_me">Remember Me</string>
+    <string name="login">Login</string>
+    <string name="email_address">Email Address</string>
+    <string name="us_8">US-8</string>
+    <string name="off">Off</string>
+    <string name="sb">SB</string>
+    <string name="d">DR</string>
+    <string name="on">ON</string>
+    <string name="txt_error_message">%1$S*</string>
+
+    <string name="network_error_message_502">Internal server error.</string>
+    <string name="network_error_message_403">Authentication error</string>
+    <string name="network_message_internet_connection">Please check your internet connection.</string>
+    <string name="network_something_wrong">Something went wrong Try again</string>
+    <string name="network_error_message_time_out">Server is taking too long to respond. Please try again.</string>
+    <string name="data_is_null">Data is null from server</string>
+
+    <string name="personal_use">Personal</string>
+
+    <string name="yard_use">Yard</string>
+    <string name="_06_25_39">06:25:39</string>
+    <string name="shopping_number_2345634">Shopping Number : 2345634</string>
+    <string name="co_driver_bikramjit84">Co-Driver : Bikramjit84</string>
+    <string name="trailer_no_1234">Trailer No : 1234</string>
+    <string name="pt_name">Track Spot ELD</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="device">Device:</string>
+    <string name="no_device">&lt;Select a device&gt;</string>
+    <string name="select_device">Select a device</string>
+    <string name="status">Status</string>
+    <string name="llsWrite">LinkLossAlert</string>
+    <string name="iasWrite">ImmediateAlert</string>
+    <string name="scanning">Scanning for devices...</string>
+    <string name="no_ble_devices">No LE devices found.</string>
+    <string name="no_required_permission">Permission denied.</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Not connected</string>
+    <string name="ready">Ready</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connect">Connect</string>
+    <string name="connecting">Cancel</string>
+    <string name="disconnecting">Cancel</string>
+    <string name="RadioButton1">Alert level high</string>
+    <string name="RadioButton2">Alert level mid</string>
+    <string name="RadioButton3">Stop alerting</string>
+    <string name="SystemId">SystemId</string>
+    <string name="ModelNumber">ModelNumber</string>
+    <string name="SerialNumber">SerialNumber</string>
+    <string name="FirmwareRevision">FirmwareRevision</string>
+    <string name="HardwareRevision">HardwareRevision</string>
+    <string name="SoftwareRevision">SoftwareRevision</string>
+    <string name="ManufactureName">ManufactureName</string>
+    <string name="RegCertDataList">RegCertDataList</string>
+    <string name="ManufactureId">    ManufactureId</string>
+    <string name="BatteryLevel">    Battery Level</string>
+    <string name="OrgId">    OrganizationId</string>
+    <string name="Txpower">    Txpower Level</string>
+    <string name="Noupdate">    No Update</string>
+    <string name="ReadTxPower">ReadTxPower</string>
+    <string name="high_alert">HIGH Alert triggered!</string>
+    <string name="low_alert">LOW Alert triggered!</string>
+    <string name="writeTxnoti">TxNoti</string>
+    <string name="readRssi">Read Rssi Value</string>
+    <string name="Readdummy">D Read</string>
+    <string name="removeBond">Remove Bond</string>
+    <string name="paired">paired</string>
+    <string name="popup_title">Quit EldMan</string>
+    <string name="popup_message">Do you want to quit this Application?</string>
+    <string name="popup_yes">YES</string>
+    <string name="popup_no">NO</string>
+    <string name="ble_not_supported">Bluetooth Low Energy not supported</string>
+    <string name="scan">Scan</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_fup">Update Firmware</string>
+    <string name="action_chk_fup">Chk For Update</string>
+    <string name="action_sd">Run Diags</string>
+    <string name="action_fup_file">Select Firmware</string>
+    <string name="action_sv">System Vars</string>
+    <string name="action_demo_spn">Register Fuel Level SPN</string>
+    <string name="action_get_ctrl_fw">Controller Firmware</string>
+    <string name="action_get_ble_fw">BLE Firmware</string>
+
+    <string name="action_adv">Commands</string>
+    <string name="action_get_dtc">Get DTC</string>
+    <string name="action_clear_dtc">Clear DTC</string>
+
+    <string name="scanner_title">Select device:</string>
+    <string name="scanner_empty">No device found</string>
+    <string name="scanner_action_scan">Scan</string>
+    <string name="scanner_action_cancel">Cancel</string>
+    <string name="scanner_subtitle_bonded">BONDED DEVICES:</string>
+    <string name="scanner_subtitle_not_bonded">AVAILABLE DEVICES:</string>
+    <string name="scanner_permission_rationale">Since Android 6.0 Marshmallow system requires granting access to device\'s location in order to scan for Bluetooth Smart devices. Bluetooth beacons may be used to determine the phone\'s and user\'s location.</string>
+    <string name="not_available">n/a</string>
+    <string name="title_activity_test">TestActivity</string>
+    <string name="title_activity_dev_settings">Settings</string>
+    <string name="title_activity_sv_settings">Device Settings</string>
+    <!-- Strings related to Settings -->
+
+    <!-- Example General settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_title_devmode">Dev mode</string>
+    <string name="pref_description_devmode">Enable/Disable Development mode</string>
+
+    <string name="pref_title_ver_override">Override Device Version</string>
+    <string name="pref_description_ver_override">Enable/Disable version Override</string>
+
+    <string name="pref_title_version_user">Device Version in xxxx,nn</string>
+
+
+    <string name="upgrade_in_progress">Upgrading ...</string>
+    <string name="upgrade_uptodate">Done</string>
+    <string name="perf_file">com.pt.devicemanager.perf</string>
+
+    <!--System variables -->
+    <string name="pref_description_sv_pe">Time(sec) between periodic events</string>
+    <string name="pref_title_sv_pe">PE/HUC</string>
+
+    <string name="pref_description_sv_be">Enable/Disable BLE events</string>
+    <string name="pref_title_sv_be">BE</string>
+
+    <string name="pref_description_sv_ue">Enable/Disable UART events</string>
+    <string name="pref_title_sv_ue">UE</string>
+
+    <!-- Privacy -->
+    <string name="privacy_policy"><a href="https://www.pacifictrack.com/privacy-policy/eldman">Privacy Policy</a></string>
+    <string name="privacy_notice">I have read and agree to the Privacy Policy.</string>
+    <string name="privacy_accept">Accept</string>
+
+    <string name="channel_connected_devices_title">Tracking in progress ...</string>
+    <string name="channel_update_title">Update in progress ...</string>
+    <string name="channel_connected_devices_description">Shows a notification when a tracker is connected in background.</string>
+    <string name="channel_update_description">Shows a notification when an update is being performed.</string>
+    <string name="title_activity_tracker_manager">EldMan</string>
+
+    <!-- Disclosure -->
+    <string name="disclosure">Eldman collects location data to enable telemetry even when the app is closed or not in use.</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="tracker_running">Tracking in progress ...</string>
+    <string name="title_activity_dashboard">Dashboard</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+
+    <string name="menu_home">Home</string>
+    <string name="menu_gallery">Gallery</string>
+    <string name="menu_slideshow">Slideshow</string>
+    <string name="menu_reports">Reports</string>
+    <string name="connect_a_device">Connect a device</string>
+    <string name="m">m</string>
+    <string name="_1">1</string>
+    <string name="_2">2</string>
+    <string name="_3">3</string>
+    <string name="_4">4</string>
+    <string name="_5">5</string>
+    <string name="_6">6</string>
+    <string name="_7">7</string>
+    <string name="_8">8</string>
+    <string name="_9">9</string>
+    <string name="_10">10</string>
+    <string name="_11">11</string>
+    <string name="_12">12</string>
+    <string name="_13">13</string>
+    <string name="_14">14</string>
+    <string name="_15">15</string>
+    <string name="_16">16</string>
+    <string name="_17">17</string>
+    <string name="_18">18</string>
+    <string name="_19">19</string>
+    <string name="_20">20</string>
+    <string name="_21">21</string>
+    <string name="_22">22</string>
+    <string name="_23">23</string>
+    <string name="_24">24</string>
+    <string name="_0">0</string>
+    <string name="time">Time</string>
+    <string name="location">Location</string>
+    <string name="odo">Odo</string>
+    <string name="eng_hours">Eng hours</string>
+    <string name="origin">Origin</string>
+    <string name="event_logs">event_logs</string>
+    <string name="event_logs_settings">Settings</string>
+    <string name="event_logs_offset">filter</string>
+    <string name="shipping_number">Shipping Number : </string>
+    <string name="trailer_number">Trailer Number : </string>
+    <string name="logout">Logout</string>
+
+</resources>

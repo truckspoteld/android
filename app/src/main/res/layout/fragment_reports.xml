@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/colorPrimary">
+
+    <!-- Title -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DOT Inspection"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+
+
+    <!-- Button Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWeb"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="WEB"
+            android:textAllCaps="true"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@android:color/transparent"
+            app:strokeColor="@android:color/white"
+            app:strokeWidth="1dp"
+            app:cornerRadius="5dp"/>
+<!--        <Button-->
+<!--            android:id="@+id/btnWeb"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_weight="1"-->
+<!--            android:text="WEB"-->
+<!--            android:textColor="@color/black"-->
+<!--            android:backgroundTint="@color/colorWhite"-->
+<!--            android:textAllCaps="true"/>-->
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="EMAIL"
+            android:textAllCaps="true"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@android:color/transparent"
+            app:strokeColor="@android:color/white"
+            app:strokeWidth="1dp"
+            app:cornerRadius="5dp"/>
+    </LinearLayout>
+
+    <!-- Date Time -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/btnStartDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Start Date"
+            android:textColor="@color/black"
+            android:backgroundTint="@color/colorWhite"
+            android:textAllCaps="true"/>
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/btnEndDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="End Date"
+            android:textColor="@color/black"
+            android:backgroundTint="@color/colorWhite"
+            android:textAllCaps="true"/>
+    </LinearLayout>
+
+    <!-- Submission Code Input -->
+        <EditText
+            android:id="@+id/et_emailid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_5dp"
+            android:hint="Submission Code (eRODS code/email)"
+            android:textColorHint="@color/colorWhite"
+            android:textColor="@color/colorWhite"
+            android:textSize="@dimen/_14sp"
+            android:backgroundTint="#FFFF"
+            android:layout_marginBottom="@dimen/_20sdp"
+           />
+    <!-- Send Button -->
+    <Button
+        android:id="@+id/btnSend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SEND"
+        android:textAllCaps="true"
+        android:backgroundTint="@color/blue"
+        android:textColor="#FFFFFF" />
+
+    <!-- PDF Download Button -->
+    <Button
+        android:id="@+id/btnDownloadPdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="DOWNLOAD PDF REPORT"
+        android:textAllCaps="true"
+        android:backgroundTint="@color/green"
+        android:textColor="#FFFFFF" />
+
+    <!-- Test PDF Button -->
+    <Button
+        android:id="@+id/btnTestPdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="80dp"
+        android:text="view User Manual"
+        android:textAllCaps="true"
+        android:backgroundTint="@color/blue"
+        android:textColor="#FFFFFF" />
+
+
+</LinearLayout>

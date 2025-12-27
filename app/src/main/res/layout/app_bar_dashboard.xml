@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragment.Dashboard">
+
+<!--    <com.google.android.material.appbar.AppBarLayout-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:theme="@style/AppTheme.AppBarOverlay">-->
+
+<!--        <androidx.appcompat.widget.Toolbar-->
+<!--            android:id="@+id/toolbar"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="?attr/actionBarSize"-->
+<!--            android:background="?attr/colorPrimary"-->
+<!--            app:popupTheme="@style/AppTheme.PopupOverlay" />-->
+
+<!--    </com.google.android.material.appbar.AppBarLayout>-->
+    >
+    <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/appbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+        android:visibility="gone"
+    android:background="@color/dark_background"
+    android:theme="@style/AppTheme.AppBarOverlay">
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?android:attr/actionBarSize"
+        android:background="@color/dark_background"
+        app:popupTheme="@style/AppTheme.PopupOverlay">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="?android:attr/actionBarSize">
+<!--            <ImageView-->
+<!--                android:id="@+id/menuicon"-->
+<!--                android:layout_centerVertical="true"-->
+<!--                android:layout_width="@dimen/_25dp"-->
+<!--                android:layout_height="@dimen/_25dp"-->
+<!--                android:src="@drawable/menuicon"/>-->
+
+            <TextView
+                android:id="@+id/dashboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginStart="@dimen/_10dp"
+
+                android:layout_marginEnd="@dimen/_10dp"
+                android:gravity="center"
+                android:text="@string/dashboard"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_18sp"
+                android:textStyle="bold" />
+
+<!--            <ImageView-->
+<!--                android:layout_marginEnd="@dimen/_12dp"-->
+<!--                android:id="@+id/refresh"-->
+<!--                android:layout_centerVertical="true"-->
+<!--                android:layout_width="@dimen/_25dp"-->
+<!--                android:layout_alignParentEnd="true"-->
+<!--                android:layout_height="@dimen/_25dp"-->
+<!--                android:src="@drawable/refresh"/>-->
+
+        </RelativeLayout>
+    </androidx.appcompat.widget.Toolbar>
+</com.google.android.material.appbar.AppBarLayout>
+    <include android:id="@+id/contant_dashboard"
+        layout="@layout/content_dashboard" />
+
+<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
+<!--        android:id="@+id/fab"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="bottom|end"-->
+<!--        android:layout_marginEnd="@dimen/fab_margin"-->
+<!--        android:layout_marginBottom="16dp"-->
+<!--        app:srcCompat="@android:drawable/ic_dialog_email" />-->
+
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab"
+        style="@style/Widget.MaterialComponents.ExtendedFloatingActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:layout_marginBottom="@dimen/_80dp"
+        android:textColor="@color/colorWhite"
+        app:backgroundTint="@color/dark_progress_blue"
+        app:icon="@drawable/ic_action_disconnect"
+        app:iconTint="@color/white"
+        app:iconSize="@dimen/_26sdp"
+        />
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

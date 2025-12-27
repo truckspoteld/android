@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="_5dp">5dp</dimen>
+    <dimen name="_280dp">280dp</dimen>
+    <dimen name="_18sp">18sp</dimen>
+    <dimen name="_12dp">12dp</dimen>
+    <dimen name="_8dp">8dp</dimen>
+    <dimen name="_10dp">10dp</dimen>
+    <dimen name="_22sp">22sp</dimen>
+    <dimen name="_3dp">3dp</dimen>
+    <dimen name="_15dp">15dp</dimen>
+    <dimen name="_2dp">2dp</dimen>
+    <dimen name="_60dp">60dp</dimen>
+
+    <dimen name="_14ssp">14.00sp</dimen>
+    <dimen name="_15sp">15sp</dimen>
+    <dimen name="_16sp">16sp</dimen>
+    <dimen name="_20dp">20dp</dimen>
+    <dimen name="_4dp">4dp</dimen>
+    <dimen name="_14sp">14sp</dimen>
+    <dimen name="_12sp">12sp</dimen>
+    <dimen name="_24dp">24dp</dimen>
+    <dimen name="_30dp">30dp</dimen>
+    <dimen name="_38dp">38dp</dimen>
+    <dimen name="_1dp">1dp</dimen>
+    <dimen name="_40dp">40dp</dimen>
+    <dimen name="_45dp">45dp</dimen>
+    <dimen name="_13sp">13sp</dimen>
+    <dimen name="_25dp">25dp</dimen>
+    <dimen name="_120dp">125dp</dimen>
+    <dimen name="_10sp">10sp</dimen>
+    <dimen name="dp_18dp">18dp</dimen>
+    <dimen name="dp_35dp">35dp</dimen>
+    <dimen name="_17sp">17sp</dimen>
+    <dimen name="dp_150dp">150dp</dimen>
+    <dimen name="dp_90dp">90dp</dimen>
+    <dimen name="dp_32dp">32dp</dimen>
+    <dimen name="dp_100dp">100dp</dimen>
+    <dimen name="dp_180dp">180dp</dimen>
+    <dimen name="sp_32sp">32sp</dimen>
+    <dimen name="sp_40sp">40sp</dimen>
+    <dimen name="dp_200dp">200dp</dimen>
+    <dimen name="dp_160dp">160dp</dimen>
+    <dimen name="dp_135dp">135dp</dimen>
+    <dimen name="dp_75dp">75dp</dimen>
+    <dimen name="dp_125dp">125dp</dimen>
+    <dimen name="dp_250dp">250dp</dimen>
+    <dimen name="dp_350dp">350dp</dimen>
+    <dimen name="_6dp">6dp</dimen>
+    <dimen name="_80dp">80dp</dimen>
+    <dimen name="pdf_size">9sp</dimen>
+
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_header_height">180dp</dimen>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="alert_dialog_padding">24dp</dimen>
+    <dimen name="alert_dialog_padding_top">18dp</dimen>
+    <dimen name="alert_dialog_padding_bottom">0dp</dimen>
+
+    <!-- Modern circular progress indicator dimensions -->
+    <dimen name="circular_progress_size">140dp</dimen>
+    <dimen name="circular_indicator_size">150dp</dimen>
+    <dimen name="circular_track_thickness">16dp</dimen>
+    <dimen name="circular_text_size">26sp</dimen>
+    <dimen name="circular_heading_size">18sp</dimen>
+    <dimen name="circular_card_elevation">8dp</dimen>
+    <dimen name="circular_card_corner_radius">16dp</dimen>
+    <dimen name="circular_card_padding">20dp</dimen>
+
+</resources>

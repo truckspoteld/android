@@ -1,0 +1,102 @@
+<!-- log_modal.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:orientation="vertical"
+    android:layout_marginStart="32dp"
+    android:layout_marginEnd="32dp"
+    android:layout_marginLeft="20dp"
+    android:layout_marginRight="20dp"
+    android:paddingTop="16dp"
+    android:paddingLeft="50dp"
+    android:paddingRight="50dp"    >
+
+     <!-- Other views and elements in your modal layout -->
+
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Time:"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        />
+    <EditText
+        android:id="@+id/editTextTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Time"
+        android:layout_marginBottom="8dp"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mode Name:"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        />
+
+    <EditText
+        android:id="@+id/editTextModename"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Modename"
+        android:layout_marginBottom="8dp"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Location : "
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        />
+
+    <EditText
+        android:id="@+id/editTextlocation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Location"
+        android:layout_marginBottom="8dp"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Odometer Reading"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        />
+    <EditText
+    android:id="@+id/editTextodometer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:hint="Odometer reading"
+        android:layout_marginBottom="8dp"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Engine Hours :"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"/>
+    <EditText
+    android:id="@+id/editTextenginehours"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:hint="engine hourse"
+        android:layout_marginBottom="8dp"
+        />
+
+
+        <!-- Other views displaying log details -->
+
+        <!-- Add an OK button -->
+    <Button
+        android:id="@+id/btnEdit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Edit" />
+
+</LinearLayout>

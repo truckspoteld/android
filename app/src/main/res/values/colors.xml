@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dark Theme Colors -->
+    <color name="colorPrimary">#1A1A1A</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorAccent">#2196F3</color>
+    <color name="white_greyish">#E8FFFFFF</color>
+    <color name="white_light">#D3DFDFDF</color>
+    <color name="purple_500">#800080</color>
+    <color name="purple_700">#4B0082</color>
+    <color name="teal_200">#008080</color>
+    <color name="purple_200">#7B1FA2</color>
+
+    <color name="colorLtPrimary">#64b5f6</color>
+
+    <color name="button_selectorcolor">#9E9E9E</color>
+    <color name="colorWhite">#ffffff</color>
+    <color name="lightcolorBlack">#C9000000</color>
+    <color name="colorTest">#FF3B5C</color>
+    <color name="colorButtonRed">#FF3B5C</color>
+    <color name="colorAccentTransparent">#00ADC5</color>
+
+    <color name="background_color">#009688</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="background">#0091cd</color>
+    <color name="orange">#F59E1C</color>
+    <color name="float_transparent">#00000000</color>
+    <color name="blue_btn_bg_pressed_color">#96BFD2</color>
+    <color name="blue_btn_bg_color">#AEDEF4</color>
+    <color name="button_text_color">#FFFFFF</color>
+    <color name="darkgry">#aaa</color>
+    <color name="red">#FF0000</color>
+    <color name="green">#228B22</color>
+    <color name="yellow">#FFFF00</color>
+    <color name="colorFontDarkExtra">#566A89</color>
+
+    <color name="colorRed">#FF2E2E</color>
+    <color name="colorWhiteLess">#F8F6F6</color>
+    <color name="blue">#3498DB</color>
+    <color name="paygrtyellowcolor">#f3c500</color>
+    <color name="colorSbSuccess">#FF8BC34A</color>
+    <color name="colorSbWarn">#FFFF9800</color>
+    <color name="colorAlert">#FFFF0000</color>
+
+    <color name="ptBackground">@color/whitegrey</color>
+    <color name="backgroundColor">#FFF5F5F5</color>
+    <color name="headerBackgroundColor">@color/colorPrimary</color>
+    <color name="headerBackgroundColorDark">@color/colorPrimaryDark</color>
+    <color name="headerTextColor">#ffffffff</color>
+    <color name="actionBarMenuTextColor">#ffffffff</color>
+    <color name="actionBarColor">@color/colorPrimary</color>
+    <color name="actionBarColorDark">@color/colorPrimaryDark</color>
+
+    <color name="whitegrey">#FFF2F2F2</color>
+
+
+    <color name="colorBlack">#000000</color>
+    <color name="litecolorBlack">#5c5c5c</color>
+    <color name="verylitecolorBlack">#A2A3AA</color>
+    <color name="veryverylitecolorBlack">#CFCFCF</color>
+
+
+    <color name="colorDarkGrey">#757575</color>
+    <color name="grassgreen">#24B40E</color>
+
+    //Snackbar Colors
+    <color name="colorSnackbarErrorBg">#FFAFB9</color>
+    <color name="colorSnackbarErrorText">#D0021B</color>
+    <color name="colorSnackbarSuccessBg">#D3FFCA</color>
+    <color name="colorSnackbarSuccessText">#3F7E31</color>
+    <color name="today_summary_header_bg">#17A3B7</color>
+    <color name="lightgrey">#ced4da</color>
+    <color name="verylightgrey">#E6E8EA</color>
+    <color name="lytgrey">#9AF4F4F4</color>
+
+    <color name="lightgreen">#FFF8DC</color>
+
+    <color name="lightblue">#39B4D5E4</color>
+    <color name="orangecolor">#FF9F10</color>
+    <color name="thinlightgrey">#2D959494</color>
+
+    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true">#fff</color>
+    <color name="lightorange">#FEE9CE</color>
+
+
+    <color name="colorFabConnect">#FFCDDC39</color>
+    <color name="colorFabConnecting">#FFFFeb3b</color>
+    <color name="colorFabDisconnecting">#FFFFeb3b</color>
+    <color name="colorFabDisconnect">#FFFF9800</color>
+
+    <color name="highlight_text_color">#2196F3</color>
+    
+    <!-- Modern gauge colors -->
+    <color name="gauge_drive_color">#4CAF50</color>
+    <color name="gauge_shift_color">#2196F3</color>
+    <color name="gauge_cycle_color">#FF9800</color>
+    <color name="gauge_break_color">#9C27B0</color>
+    <color name="gauge_track_color">#404040</color>
+    <color name="gauge_text_color">@color/dark_text_primary</color>
+    <color name="gauge_card_background">@color/dark_card_background</color>
+    <color name="gauge_shadow_color">#20000000</color>
+    
+    <!-- ON DUTY section colors -->
+    <color name="onduty_primary">#1976D2</color>
+    <color name="onduty_secondary">#42A5F5</color>
+    <color name="onduty_timer_bg">#4CAF50</color>
+    <color name="onduty_timer_text">#FFFFFF</color>
+    <color name="onduty_detail_bg">@color/dark_card_background</color>
+    <color name="onduty_detail_border">@color/dark_divider</color>
+    <color name="onduty_detail_text">@color/dark_text_primary</color>
+    <color name="onduty_icon_tint">#1976D2</color>
+    <color name="onduty_header_text">@color/dark_text_primary</color>
+    
+    <!-- Modern logs colors -->
+    <color name="log_header_bg">@color/dark_surface</color>
+    <color name="log_header_text">@color/dark_text_primary</color>
+    <color name="log_item_bg">@color/dark_card_background</color>
+    <color name="log_item_text">@color/dark_text_primary</color>
+    <color name="log_item_border">@color/dark_divider</color>
+    <color name="log_date_bg">@color/dark_surface</color>
+    <color name="log_date_text">@color/dark_text_primary</color>
+    <color name="log_arrow_bg">@color/dark_surface</color>
+    <color name="log_arrow_tint">@color/dark_text_secondary</color>
+    
+    <!-- Dark Theme Colors -->
+    <color name="dark_background">#0A0F1C</color>
+    <color name="dark_card_background">#1A1A2E</color>
+    <color name="dark_surface">#2D2D2D</color>
+    <color name="dark_text_primary">#FFFFFF</color>
+    <color name="dark_text_secondary">#B3B3B3</color>
+    <color name="dark_text_hint">#808080</color>
+    <color name="dark_divider">#404040</color>
+    <color name="dark_icon_color">#FFFFFF</color>
+    <color name="dark_progress_blue">#2196F3</color>
+    <color name="dark_progress_red">#F44336</color>
+    <color name="dark_progress_orange">#FF9800</color>
+    <color name="dark_progress_green">#4CAF50</color>
+    <color name="dark_progress_violation">#FF2E2E</color>
+
+</resources>

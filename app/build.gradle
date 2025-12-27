@@ -1,0 +1,159 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'com.google.dagger.hilt.android'
+}
+
+android {
+    namespace 'com.truckspot'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.eagleeye"
+        minSdk 24
+        targetSdk 36
+        versionCode 4
+        versionName "1.3.14"
+        //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField('String', 'API_KEY', "\"sSUmrxH9rS2q6LOL38WXXFgXhLKAf9e34cRv5Xn5\"")
+    }
+
+//    dataBinding
+//            {
+//                enabled = true
+//            }
+    buildFeatures {
+        viewBinding true
+        dataBinding true
+    }
+    
+    signingConfigs {
+        release {
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+        }
+    }
+    
+    buildTypes {
+        release {
+            minifyEnabled false
+            debuggable false
+            signingConfig signingConfigs.release
+
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def SEP = "-"
+            def project = "Eagleye"
+            def version = variant.versionName
+            def newApkName = project + SEP + version + ".apk"
+
+            outputFileName = new File(newApkName)
+        }
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
+    implementation "androidx.fragment:fragment-ktx:1.5.5"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:2.3.1"
+    implementation "androidx.lifecycle:lifecycle-livedata:2.3.1"
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation('io.socket:socket.io-client:2.0.0') {
+        exclude group: 'org.json', module: 'json'
+    }
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    implementation "androidx.lifecycle:lifecycle-runtime:2.3.1"
+    implementation "androidx.lifecycle:lifecycle-common-java8:2.3.1"
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+
+
+    implementation 'com.google.android.material:material:1.11.0'
+
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    //testImplementation 'junit:junit:4.13.2'
+//    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+//    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation 'com.jjoe64:graphview:4.2.2'
+//    implementation 'com.jjoe64:graphview:4.2.2'
+    implementation 'androidx.preference:preference:1.2.0'
+
+    implementation 'joda-time:joda-time:2.10.12'
+
+
+    implementation 'no.nordicsemi.android.support.v18:scanner:1.6.0'
+    implementation 'no.nordicsemi.android:log:2.3.0'
+    implementation 'no.nordicsemi.android:ble-common:2.3.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+
+    implementation 'commons-net:commons-net:20030805.205232'
+    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    // TODO: Upgrading this generating an error; dex #methods
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0-beta01'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // USB
+    implementation 'com.github.mik3y:usb-serial-for-android:3.4.1'
+//    implementation files('F:\\Truck Spot\\SDK\\Sample App\\pt-sdk-release\\pt-sdk-release.aar')
+    implementation 'androidx.navigation:navigation-ui-ktx:2.5.3'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.6.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.5.3'
+    implementation 'com.github.ybq:Android-SpinKit:1.4.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
+
+    /*  implementation files('F:\\Truck Spot\\Truckspot_Android\\app\\libs\\pt-sdk-debug.aar')*/
+    implementation files('libs/pt-sdk-release.aar')
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'androidx.activity:activity:1.8.2'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    def hilt_version = '2.44'
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-compiler:$hilt_version"
+
+    def lifecycle_version = '2.6.0'
+    // ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
+    def refrofit_version = '2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+
+    implementation 'com.github.codekidX:storage-chooser:2.0.4.4'
+
+
+    def coroutine_version = '1.6.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
+    implementation "com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.1"
+//Gson
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation 'com.intuit.sdp:sdp-android:1.1.0'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.0.1"
+    implementation 'com.daimajia.androidanimations:library:2.4@aar'
+    implementation 'com.itextpdf:itextg:5.5.10'
+    implementation 'com.github.whizpool:smartlogs-android:1.8'
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Responsive circular progress indicator dimensions for large tablets -->
+    <dimen name="circular_progress_size">180dp</dimen>
+    <dimen name="circular_indicator_size">170dp</dimen>
+    <dimen name="circular_track_thickness">12dp</dimen>
+    <dimen name="circular_text_size">28sp</dimen>
+    <dimen name="circular_heading_size">20sp</dimen>
+</resources>

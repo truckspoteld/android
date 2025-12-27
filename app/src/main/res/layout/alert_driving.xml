@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/drawable_icon"
+        android:layout_width="@dimen/_30dp"
+        android:layout_height="@dimen/_30dp"
+        android:layout_marginTop="@dimen/_20dp"
+        android:src="@drawable/user"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/alert_tittle"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.038" />
+
+    <TextView
+        android:id="@+id/alert_tittle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_20dp"
+        android:text="Continuous Driving"
+        android:textColor="@color/black"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/drawable_icon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/drawable_icon"
+        app:layout_constraintTop_toTopOf="@+id/drawable_icon" />
+
+    <TextView
+        android:id="@+id/alert_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginStart="@dimen/_30dp"
+        android:layout_marginTop="@dimen/_20dp"
+        android:layout_marginEnd="@dimen/_30dp"
+        android:text="Change your duty status to driving to start with"
+        android:textColor="@color/black"
+        android:textSize="@dimen/_16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/drawable_icon" />
+
+    <TextView
+        android:id="@+id/maxHoursText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_30dp"
+        android:text="Max hours : "
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/tv_maxhours"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="@+id/alert_message"
+        app:layout_constraintTop_toBottomOf="@+id/alert_message" />
+
+    <TextView
+        android:id="@+id/tv_maxhours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=" 8 hours"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/maxHoursText"
+        app:layout_constraintEnd_toEndOf="@+id/alert_message"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/maxHoursText"
+        app:layout_constraintTop_toTopOf="@+id/maxHoursText" />
+
+    <TextView
+        android:id="@+id/hoursSpentText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_10dp"
+        android:text="Hours spent : "
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/tv_spenthours"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="@+id/maxHoursText"
+        app:layout_constraintTop_toBottomOf="@+id/maxHoursText" />
+
+    <TextView
+        android:id="@+id/tv_spenthours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="20 sec"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/hoursSpentText"
+        app:layout_constraintEnd_toEndOf="@+id/tv_maxhours"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/hoursSpentText"
+        app:layout_constraintTop_toTopOf="@+id/hoursSpentText" />
+
+    <TextView
+        android:id="@+id/hoursLeftText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_10dp"
+        android:text="Hours left :"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/tv_hoursleft"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="@+id/hoursSpentText"
+        app:layout_constraintTop_toBottomOf="@+id/hoursSpentText" />
+
+    <TextView
+        android:id="@+id/tv_hoursleft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="7 hours 59 min"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/hoursLeftText"
+        app:layout_constraintEnd_toEndOf="@+id/tv_spenthours"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/hoursLeftText"
+        app:layout_constraintTop_toTopOf="@+id/hoursLeftText" />
+
+    <TextView
+        android:id="@+id/hoursInViolationText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_20dp"
+        android:layout_marginBottom="@dimen/_20dp"
+        android:text="Hours in violation :"
+        android:textColor="@color/red"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/tv_violationhours"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="@+id/hoursLeftText"
+        app:layout_constraintTop_toBottomOf="@+id/hoursLeftText" />
+
+    <TextView
+        android:id="@+id/tv_violationhours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 hour"
+        android:textColor="@color/red"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/hoursInViolationText"
+        app:layout_constraintEnd_toEndOf="@+id/tv_hoursleft"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/hoursInViolationText"
+        app:layout_constraintTop_toTopOf="@+id/hoursInViolationText" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_30dp"
+        app:layout_constraintTop_toBottomOf="@+id/hoursInViolationText"
+        tools:layout_editor_absoluteX="0dp" />
+</androidx.constraintlayout.widget.ConstraintLayout>

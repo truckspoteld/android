@@ -1,0 +1,87 @@
+package com.truckspot.di
+
+import android.content.Context
+import com.google.gson.GsonBuilder
+import com.truckspot.BooleanTypeAdapter
+import com.truckspot.BuildConfig
+//import com.truckspot.BuildConfig
+//import com.truckspot.BuildConfig.API_KEY
+import com.truckspot.api.TruckSpotAPI
+import com.truckspot.utils.Constants.BASE_URL
+import com.truckspot.utils.PrefRepository
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
+
+@InstallIn(SingletonComponent::class)
+@Module
+class NetworkModule {
+
+    @Singleton
+    @Provides
+    fun provideRetrofit(client: OkHttpClient): Retrofit {
+
+        val loggingInterceptor = HttpLoggingInterceptor()
+        loggingInterceptor.setLevel(if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE)
+        val clientBuilder = client.newBuilder()
+        clientBuilder.addInterceptor(loggingInterceptor)
+
+        return Retrofit.Builder().client(clientBuilder.build())
+            .addConverterFactory(GsonConverterFactory.create(gson)).baseUrl(BASE_URL).build()
+    }
+
+    val gson = GsonBuilder()
+        .registerTypeAdapter(Boolean::class.java, BooleanTypeAdapter())
+        .create()
+
+    @Singleton
+    @Provides
+    fun provideGeIdeaAPI(retrofit: Retrofit):TruckSpotAPI{
+        return  retrofit.create(TruckSpotAPI::class.java)
+
+    }
+
+
+    @Singleton
+    @Provides
+    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
+        val token = PrefRepository(context)
+
+        val loggingInterceptor = HttpLoggingInterceptor()
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
+
+        val requestInterceptor = Interceptor { chain ->
+            val request = chain.request()
+                .newBuilder()
+                .addHeader("Authorization", "Bearer ${token.getToken()}")
+                .build()
+            chain.proceed(request)
+        }
+
+        return OkHttpClient.Builder()
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120L, TimeUnit.SECONDS)
+            .writeTimeout(120L, TimeUnit.SECONDS)
+            .addInterceptor(requestInterceptor)
+            .apply {
+                if (BuildConfig.DEBUG) addInterceptor(loggingInterceptor)
+            }
+            .build()
+    }
+
+
+
+
+}

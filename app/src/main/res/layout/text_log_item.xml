@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/logTIle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/modern_log_card"
+    android:elevation="1dp"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:weightSum="4">
+
+    <!--    android:tag="layout/adapter_log_data_0"-->
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_1"
+        android:text="dfdsfdsf"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_2"
+        android:textColor="@color/white"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="1.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_3"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_4"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_5"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_6"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+</LinearLayout>

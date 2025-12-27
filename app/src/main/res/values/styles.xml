@@ -1,0 +1,185 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+
+    <style name="TextInputLayoutStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/colorWhite</item>
+        <item name="boxStrokeWidth">1dp</item>
+
+    </style>
+
+    <style name="TextInputLayoutStyleGrey" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/veryverylitecolorBlack</item>
+        <item name="boxStrokeWidth">1dp</item>
+
+    </style>
+    <!-- Style ot the Toolbar -->
+    <style name="HeaderBar">
+        <item name="android:background">?colorPrimary</item>
+    </style>
+
+    <style name="HeaderShadow">
+        <item name="android:foreground">@drawable/action_bar_shadow</item>
+    </style>
+
+    <!-- Style used by the Toolbar -->
+    <style name="ActionBarThemeOverlay" parent="@style/ThemeOverlay.MaterialComponents.ActionBar">
+        <item name="android:textColorPrimary">#FFF</item>
+        <item name="android:textColorSecondary">#8fff</item>
+        <item name="colorControlNormal">#fff</item>
+        <item name="colorControlHighlight">#3fff</item>
+    </style>
+
+    <!-- Style used by the Toolbar's overflow menu -->
+    <style name="ActionBarPopupThemeOverlay" parent="ThemeOverlay.MaterialComponents.Light">
+        <item name="colorControlNormal">@color/actionBarColorDark</item>
+    </style>
+
+    <!-- Style used by the Toolbar -->
+    <style name="ActionBar.TitleText" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">#fff</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="ActionBar.SpinnerTitle" parent="@style/Widget.AppCompat.TextView.SpinnerItem">
+        <item name="android:textColor">#fff</item>
+    </style>
+
+    <style name="Widget"/>
+
+    <style name="Widget.List">
+        <item name="android:background">@color/backgroundColor</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+
+    <style name="Widget.ListTitle">
+        <item name="android:background">@color/headerBackgroundColor</item>
+        <item name="android:textColor">@color/headerTextColor</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="Widget.ScannerSubtitle">
+        <item name="android:textColor">?attr/colorAccent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.Button" parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:minWidth">160dip</item>
+    </style>
+
+    <style name="TextAppearanceTitle" parent="@style/TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">?attr/colorAccent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="AppTheme.DialogTheme" parent="@style/Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppThemeBase" parent="@style/Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ptBackground</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+
+        <item name="android:spinnerItemStyle">@style/ActionBar.SpinnerTitle</item>
+        <item name="actionMenuTextColor">@color/actionBarMenuTextColor</item>
+        <item name="alertDialogTheme">@style/AppTheme.DialogTheme</item>
+        <item name="buttonStyle">@style/Widget.Button</item>
+        <item name="android:spinnerStyle">@style/Widget.AppCompat.Spinner</item> <!-- Required on pre-Lollipop to draw new spinner. -->
+    </style>
+
+    <!-- Base application theme. -->
+<!--    <style name="AppTheme" parent="@style/AppThemeBase">-->
+<!--        &lt;!&ndash; Customize your theme here. &ndash;&gt;-->
+<!--        <item name="android:selectableItemBackground">@drawable/abc_item_background_holo_light</item>-->
+<!--    </style>-->
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" >
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <!--
+        Base application theme, dependent on API level. This theme is replaced
+        by AppBaseTheme from res/values-vXX/styles.xml on newer devices.
+    -->
+
+
+
+    <!-- AlertDialog text color fix thanks to Shawn Castrianni, see: http://groups.google.com/group/android-developers/browse_thread/thread/f0b34621d3a70c4b -->
+    <style name="DialogLight" parent="@android:style/Theme.Dialog">
+        <item name="android:windowBackground">@color/whitegrey</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="DeviceDisplayLabel">
+        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:layout_marginLeft">4dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="DeviceDisplayValue">
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <style name="DisplayLabel">
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginLeft">4dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="DisplayValue">
+        <item name="android:layout_marginLeft">4dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@android:color/holo_blue_dark</item>
+    </style>
+
+    <style name="DeviceSelectionItemName">
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="DeviceSelectionItemValue">
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="EngineDisplayValue">
+        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:textAlignment">viewEnd</item>
+        <item name="android:textColor">@android:color/holo_blue_dark</item>
+    </style>
+
+    <style name="EngineDisplayUnits">
+        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:layout_marginLeft">2dp</item>
+        <item name="android:layout_marginRight">4dp</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textColor">@android:color/holo_blue_dark</item>
+    </style>
+<!--    <style name="AppTheme.NoActionBar">-->
+<!--        <item name="windowActionBar">false</item>-->
+<!--        <item name="windowNoTitle">true</item>-->
+<!--    </style>-->
+
+<!--    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />-->
+
+<!--    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />-->
+</resources>

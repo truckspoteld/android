@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="@android:color/white"
+    >
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:id="@+id/telemetry_panel"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Event:"
+                android:id="@+id/tEvent"
+                style="@style/DisplayLabel"
+                />
+
+
+            <TextView
+                android:id="@+id/tvSeq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentTop="false"
+                android:text="##"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_alignTop="@+id/tv_se_Event"
+                android:textSize="23dp"
+                android:textColor="@android:color/holo_blue_dark" />
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Date/Time:"
+                android:id="@+id/tDateTime"
+                android:layout_below="@+id/tEvent"
+                style="@style/DisplayLabel"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Lat/Long:"
+                android:id="@+id/tGeoloc"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tDateTime"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Heading:"
+                android:id="@+id/tGeolocExtra"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tGeoloc"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Sat. Status:"
+                android:id="@+id/tSatStatus"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tGeolocExtra"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Odometer:"
+                android:id="@+id/tOdo"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tSatStatus"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Velocity:"
+                android:id="@+id/tVelo"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tOdo"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Engine Hours:"
+                android:id="@+id/tEh"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tVelo"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="RPM:"
+                android:id="@+id/tRpm"
+                style="@style/DisplayLabel"
+                android:layout_below="@+id/tEh"
+                android:layout_alignParentStart="true" />
+
+            <!-- Text Fields -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Event"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tEvent"
+                android:layout_alignBaseline="@+id/tEvent"
+                android:layout_alignBottom="@+id/tEvent"
+                android:layout_alignStart="@+id/tv_se_Eh"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_DateTime"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tDateTime"
+                android:layout_alignBaseline="@+id/tDateTime"
+                android:layout_alignBottom="@+id/tDateTime"
+                android:layout_alignStart="@+id/tv_se_Eh"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Geoloc"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tGeoloc"
+                android:layout_alignBaseline="@+id/tGeoloc"
+                android:layout_alignBottom="@+id/tGeoloc"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_GeolocExtra"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tGeolocExtra"
+                android:layout_alignBaseline="@+id/tGeolocExtra"
+                android:layout_alignBottom="@+id/tGeolocExtra"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_SatStatus"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tSatStatus"
+                android:layout_alignBaseline="@+id/tSatStatus"
+                android:layout_alignBottom="@+id/tSatStatus"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Odo"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tOdo"
+                android:layout_alignBaseline="@+id/tOdo"
+                android:layout_alignBottom="@+id/tOdo"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+
+            <Switch
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textOff="K"
+                android:textOn="M"
+                android:showText="true"
+                android:id="@+id/se_swOdoUnit"
+                android:layout_gravity="right"
+                android:layout_alignBaseline="@+id/tv_se_Odo"
+                android:layout_alignBottom="@+id/tv_se_Odo"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="17dp" />
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Velo"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tVelo"
+                android:layout_alignBaseline="@+id/tVelo"
+                android:layout_alignBottom="@+id/tVelo"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+
+            <!-- Being the farthest, all fields are left aligned to this -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Eh"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tEh"
+                android:layout_alignBaseline="@+id/tEh"
+                android:layout_alignBottom="@+id/tEh"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="--"
+                android:id="@+id/tv_se_Rpm"
+                style="@style/DisplayValue"
+                android:layout_gravity="center_horizontal"
+                android:layout_toRightOf="@+id/tRpm"
+                android:layout_alignBaseline="@+id/tRpm"
+                android:layout_alignBottom="@+id/tRpm"
+                android:layout_alignStart="@+id/tv_se_Eh" />
+
+        </RelativeLayout>
+
+</RelativeLayout>

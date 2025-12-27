@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_background"
+    android:padding="@dimen/_4sdp"
+    android:tag="layout/fragment_logs_0">
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/date_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:background="@drawable/modern_circular_card"
+        android:gravity="center"
+        android:paddingStart="@dimen/_16sdp"
+        android:paddingTop="@dimen/_8sdp"
+        android:paddingEnd="@dimen/_16sdp"
+        android:paddingBottom="@dimen/_8sdp"
+        android:singleLine="true"
+        android:tag="binding_1"
+        android:text="27/03/2023"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/left_arrow"
+        android:layout_width="@dimen/_32sdp"
+        android:layout_height="@dimen/_32sdp"
+        android:layout_marginStart="@dimen/_8sdp"
+        android:layout_marginEnd="@dimen/_8sdp"
+        android:background="@drawable/modern_circular_card"
+        android:elevation="@dimen/_8sdp"
+        android:padding="@dimen/_6sdp"
+        android:src="@drawable/back"
+        android:tint="@color/white"
+        android:tag="binding_2"
+        app:layout_constraintBottom_toBottomOf="@+id/date_txt"
+        app:layout_constraintEnd_toStartOf="@+id/date_txt"
+        app:layout_constraintTop_toTopOf="@+id/date_txt" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/right_arrow"
+        android:layout_width="@dimen/_32sdp"
+        android:layout_height="@dimen/_32sdp"
+        android:layout_marginStart="@dimen/_8sdp"
+        android:layout_marginEnd="@dimen/_4sdp"
+        android:background="@drawable/modern_circular_card"
+        android:elevation="@dimen/_8sdp"
+        android:padding="@dimen/_6sdp"
+        android:src="@drawable/forward"
+        android:tint="@color/white"
+        android:tag="binding_3"
+        app:layout_constraintBottom_toBottomOf="@+id/date_txt"
+        app:layout_constraintStart_toEndOf="@+id/date_txt"
+        app:layout_constraintTop_toTopOf="@+id/date_txt" />
+
+    <include
+        android:id="@+id/eld_plot"
+        layout="@layout/layout_eld_graph"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_8sdp"
+        app:layout_constraintTop_toBottomOf="@+id/date_txt" />
+
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/event_logs_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:gravity="center"
+        android:paddingStart="@dimen/_8sdp"
+        android:paddingTop="@dimen/_3sdp"
+        android:paddingEnd="@dimen/_8sdp"
+        android:paddingBottom="@dimen/_3sdp"
+        android:singleLine="true"
+        android:text="@string/event_logs"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_16sdp"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintEnd_toStartOf="@+id/event_logs_settings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/eld_plot" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/event_logs_settings"
+        android:layout_width="@dimen/_36sdp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/white_curved_bg"
+        android:gravity="center"
+        android:paddingStart="@dimen/_2sdp"
+        android:paddingTop="@dimen/_3sdp"
+        android:paddingEnd="@dimen/_2sdp"
+        android:paddingBottom="@dimen/_3sdp"
+        android:singleLine="true"
+        android:text="@string/event_logs_settings"
+        android:textColor="@color/black"
+        android:textSize="@dimen/_12sdp"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@+id/event_logs_text"
+        app:layout_constraintEnd_toStartOf="@+id/event_logs_offset"
+        app:layout_constraintStart_toEndOf="@+id/event_logs_text"
+        app:layout_constraintTop_toTopOf="@+id/event_logs_text" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/event_logs_offset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/white_curved_bg"
+        android:gravity="center"
+        android:paddingStart="@dimen/_2sdp"
+        android:paddingTop="@dimen/_3sdp"
+        android:paddingEnd="@dimen/_2sdp"
+        android:paddingBottom="@dimen/_3sdp"
+        android:singleLine="true"
+        android:tag="binding_4"
+        android:text="@string/event_logs_offset"
+        android:textColor="@color/black"
+        android:textSize="@dimen/_12sdp"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@+id/event_logs_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/event_logs_settings"
+        app:layout_constraintTop_toTopOf="@+id/event_logs_text" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/error_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/error_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Error loading logs"
+            android:textColor="@android:color/holo_red_dark"
+            android:gravity="center"
+            android:padding="@dimen/_16sdp" />
+
+        <Button
+            android:id="@+id/retry_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Retry"
+            android:layout_marginTop="@dimen/_8sdp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/event_log_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/modern_log_header_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:weightSum="4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/event_logs_text">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"
+            android:gravity="center"
+            android:text="@string/time"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"
+            android:gravity="center"
+            android:text="@string/status"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1.5"
+            android:gravity="center"
+            android:text="@string/location"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"
+            android:gravity="center"
+            android:text="@string/odo"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"
+            android:gravity="center"
+            android:text="@string/eng_hours"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="0.5"
+            android:gravity="center"
+            android:text="@string/origin"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+    </LinearLayout>
+    <!--    <RelativeLayout-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:layout_marginTop="@dimen/_16sdp"-->
+    <!--        app:layout_constraintTop_toBottomOf="@+id/event_logs_text"-->
+    <!--        android:layout_below="@+id/event_logs_text"-->
+    <!--        android:id="@+id/legend_layout">-->
+
+    <!--        &lt;!&ndash; Authorized Logs Legend &ndash;&gt;-->
+    <!--        <TextView-->
+    <!--            android:layout_width="wrap_content"-->
+    <!--            android:layout_height="wrap_content"-->
+    <!--            android:layout_centerHorizontal="true"-->
+    <!--            android:background="@drawable/ic_launcher_background"-->
+    <!--            android:paddingStart="@dimen/_8sdp"-->
+    <!--            android:paddingTop="@dimen/_3sdp"-->
+    <!--            android:paddingEnd="@dimen/_8sdp"-->
+    <!--            android:paddingBottom="@dimen/_3sdp"-->
+    <!--            android:text="Authorized"-->
+    <!--            android:textColor="#FFFFFF"-->
+    <!--            android:gravity="center"/>-->
+
+    <!--        <TextView-->
+    <!--            android:layout_width="wrap_content"-->
+    <!--            android:layout_height="wrap_content"-->
+    <!--            android:layout_centerHorizontal="true"-->
+    <!--            android:layout_below="@+id/unauthorized_log_legend"-->
+    <!--            android:background="@drawable/unauthorized_log_legend"-->
+    <!--            android:paddingStart="@dimen/_8sdp"-->
+    <!--            android:paddingTop="@dimen/_3sdp"-->
+    <!--            android:paddingEnd="@dimen/_8sdp"-->
+    <!--            android:paddingBottom="@dimen/_3sdp"-->
+    <!--            android:text="Unauthorized"-->
+    <!--            android:textColor="#FFFFFF"-->
+    <!--            android:gravity="center"-->
+    <!--            tools:ignore="UnknownId" />-->
+    <!--    </RelativeLayout>-->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/event_log_header">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/event_log_rv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="16dp" />
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

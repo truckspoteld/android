@@ -1,0 +1,23 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:defaultValue="n/a"
+        android:key="sv_pe"
+        android:inputType="number"
+        android:title="@string/pref_title_sv_pe"
+        android:summary="@string/pref_description_sv_pe"
+    />
+
+    <!--<SwitchPreference-->
+        <!--android:defaultValue="10"-->
+        <!--android:key="sv_be"-->
+        <!--android:title="@string/pref_title_sv_be"-->
+        <!--android:summary="@string/pref_description_sv_be" />-->
+
+    <!--<SwitchPreference-->
+        <!--android:defaultValue="10"-->
+        <!--android:key="sv_ue"-->
+        <!--android:title="@string/pref_title_sv_ue"-->
+        <!--android:summary="@string/pref_description_sv_ue" />-->
+
+</PreferenceScreen>

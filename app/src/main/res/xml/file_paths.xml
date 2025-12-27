@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path
+        name="shared_files"
+        path="." />
+
+    <files-path
+        name="files"
+        path="NewZip/" />
+
+    <external-files-path
+        name="external_files"
+        path="." />
+
+    <external-files-path name="downloads" path="Downloads/" />
+    <!-- For root external storage if needed -->
+    <external-path name="external_storage_root" path="." />
+    <!-- For Downloads folder access -->
+    <external-path name="downloads" path="Download/" />
+    <files-path name="pdfs" path="." />
+</paths>

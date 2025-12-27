@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:id="@+id/upgrade_feature">
+        <item
+            android:id="@+id/action_chk_fup"
+            android:orderInCategory="100"
+            android:title="@string/action_chk_fup"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_fup"
+            android:orderInCategory="101"
+            android:title="@string/action_fup"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/action_fup_file"
+            android:orderInCategory="102"
+            android:title="@string/action_fup_file"
+            app:showAsAction="never">
+
+            <menu>
+                <item android:id="@+id/action_fup_file_ctrl"
+                    android:title="@string/action_get_ctrl_fw" />
+                <item android:id="@+id/action_fup_file_ble"
+                    android:title="@string/action_get_ble_fw" />
+            </menu>
+        </item>
+    </group>
+
+    <group android:id="@+id/util_feature">
+<!--        <item-->
+<!--            android:id="@+id/action_sd"-->
+<!--            android:orderInCategory="200"-->
+<!--            android:title="@string/action_sd"-->
+<!--            app:showAsAction="never" />-->
+
+
+
+        <item
+            android:id="@+id/action_adv"
+            android:orderInCategory="206"
+            android:title="@string/action_adv">
+
+            <menu>
+                <item
+                    android:id="@+id/action_sv"
+                    android:orderInCategory="205"
+                    android:title="@string/action_sv"
+                    app:showAsAction="never" />
+
+                <item android:id="@+id/action_get_dtc"
+                    android:title="@string/action_get_dtc" />
+                <item android:id="@+id/action_clear_dtc"
+                    android:title="@string/action_clear_dtc" />
+                <item android:id="@+id/action_demo_spn"
+                    android:orderInCategory="210"
+                    android:title="Fuel Level SPN"
+                    app:showAsAction="never"
+                />
+
+            </menu>
+        </item>
+    </group>
+</menu>

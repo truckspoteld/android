@@ -1,0 +1,133 @@
+<!-- custom_menu_layout.xml -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"> <!-- Adding padding to the entire menu -->
+
+    <TextView
+        android:id="@+id/sb1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pre-Trip"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+
+    <TextView
+        android:id="@+id/sb2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DOT Inspection"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+
+    <TextView
+        android:id="@+id/sb3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fueling"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Loading"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Un-Loading"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/sb6"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pre-Trip and unloading"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb7"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pre-Trip and Loading"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb8"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pre-Trip and Fueling"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb9"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hooking"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb10"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dropping"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb11"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Repairing"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+    <TextView
+        android:id="@+id/sb12"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Border-Crossing"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="?android:attr/selectableItemBackground" />
+
+</LinearLayout>

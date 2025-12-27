@@ -1,0 +1,1071 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".TrackerViewTabEngineFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+
+    <TableLayout
+        android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+
+        <TableRow android:background="#d1d1d1" android:padding="5dp">
+
+            <TextView
+                style="@style/DisplayLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="6"
+                android:text="Parameters" />
+
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:text="Value"
+                />
+
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="Last Updated" />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Bus" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvBus"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvBusLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Gear" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvGear"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvGearLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="SeatBelt" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvSeatBelt"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvSeatBeltLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Brake Pedal" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvBrakePedal"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvBrakePedalLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Speed" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineSpeed"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="km/h" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineSpeedLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Retarder" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvRetarder"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="-%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvRetarderLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="RPM" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineRPM"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineRPMLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="DTC #" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvDtcNo"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvDtcNoLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Oil Pressure" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvOilPressure"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="kPa" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvOilPressureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Oil Level" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvOilLevelPercent"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvoilLevelPercentLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Oil Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvOilTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvOilTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Coolant Level" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvCoolantLevelPercent"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvCoolantLevelPercentLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Coolant Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvCoolantTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvCoolantTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Fuel Level" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvFuelLevelPercent"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvFuelLevelPercentLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Fuel Level (Tank 2)" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvFuelLevel2Percent"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvFuelLevel2PercentLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="DEF Level" />
+
+            <TextView
+                android:id="@+id/tvDefLevelPercent"
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvDefLevelPercentLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Load" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineLoad"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="%" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineLoadLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Amb. Pressure" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvAmbientPressure"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="kPa" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvAmbientPressureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Intake Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvIntakeTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvIntakeTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Intake Pressure" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvIntakePressure"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="kPa" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvIntakePressureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Fuel Tank Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvFuelTankTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvFuelTankTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Intercooler Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvIntercoolerTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvIntercoolerTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Turbo Oil Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTurboOilTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTurboOilTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Transm. Oil Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTransmissionOilTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTransmissionOilTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Fuel Rate" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineFuelRate"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="L/h" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineFuelRateLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Fuel Economy" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineFuelEconomy"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="km/lx" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineFuelEconomyLup"
+                />
+        </TableRow>
+
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Amb. Temp." />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvAmbientTemperature"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvAmbientTemperatureLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Odometer" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvEngineOdometer"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Km" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvEngineOdometerLup"
+                />
+        </TableRow>
+
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Engine Hours" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTotalEngineHours"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hr" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTotalEngineHoursLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Idle Hours" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTotalEngineIdleTime"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hr" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTotalEngineIdleTimeLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="PTO" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTotalPtoTime"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hr" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTotalPtoTimeLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Total Fuel Idle" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTotalEngineIdleFuel"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="L" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTotalEngineIdleFuelLup"
+                />
+        </TableRow>
+
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="Total Fuel Used" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvTotalFuelUsed"
+                android:text="--" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="L" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvTotalFuelUsedLup"
+                />
+        </TableRow>
+        <TableRow android:background="#DAE8FC" android:padding="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/DisplayLabel"
+                android:layout_weight="6"
+                android:text="" />
+            <TextView
+                style="@style/EngineDisplayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:id="@+id/tvDummy1"
+                android:text="" />
+            <TextView
+                style="@style/EngineDisplayUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="L" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="--"
+                android:id="@+id/tvDummy1Lup"
+                />
+        </TableRow>
+
+    </TableLayout >
+</ScrollView>

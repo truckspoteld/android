@@ -1,0 +1,1355 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_background"
+    tools:context=".HomeActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:paddingBottom="20dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="80dp"
+                android:orientation="vertical">
+                <!-- Top Header with Settings -->
+
+                <!-- Modern Connection Status Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:orientation="horizontal"
+                    android:weightSum="3">
+                    
+                    <!-- Modern Profile Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:padding="20dp"
+                        android:gravity="center_vertical">
+
+                        <!-- Profile Avatar with First Character -->
+                        <FrameLayout
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_marginEnd="16dp">
+                            
+                            <View
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:background="@drawable/profile_avatar_bg" />
+                            
+                            <TextView
+                                android:id="@+id/profile_initial"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:text="A"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+                            
+                        </FrameLayout>
+
+                        <!-- User Info Section -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <!-- Name and Date Row -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <TextView
+                                    android:id="@+id/name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Adam H."
+                                    android:textColor="@color/dark_text_primary"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginEnd="8dp" />
+
+<!--                                <TextView-->
+<!--                                    android:id="@+id/userName"-->
+<!--                                    android:layout_width="wrap_content"-->
+<!--                                    android:layout_height="wrap_content"-->
+<!--                                    android:text="Jan 1"-->
+<!--                                    android:textColor="@color/dark_text_secondary"-->
+<!--                                    android:textSize="16sp" />-->
+
+                            </LinearLayout>
+
+                            <!-- Vehicle Info -->
+                            <TextView
+                                android:id="@+id/vin_number"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Vehicle 123"
+                                android:textColor="@color/dark_text_secondary"
+                                android:textSize="14sp" />
+
+                            <!-- Company Name -->
+                            <TextView
+                                android:id="@+id/ManufactureName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Company Name"
+                                android:textColor="@color/dark_text_secondary"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                        <!-- Settings Gear Icon -->
+                        <ImageView
+                            android:id="@+id/settings_icon"
+                            android:layout_width="32dp"
+                            android:layout_height="35dp"
+                            android:layout_marginStart="16dp"
+                            android:src="@drawable/ic_menu_manage"
+                            android:padding="6dp"
+                            app:tint="@color/dark_text_primary" />
+
+                    </LinearLayout>
+
+                    <!-- Connection Status Section (Right - 1/3 width) -->
+                    <LinearLayout
+                        android:visibility="gone"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/modern_connection_status"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tvConected"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/notconnected"
+                            android:textColor="@color/dark_text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/live_clock"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/notconnected"
+                            android:textColor="@color/dark_text_secondary"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:layout_marginTop="@dimen/_1dp"
+                    android:layout_marginLeft="@dimen/_10sdp"
+                    android:layout_marginRight="@dimen/_10sdp"
+                    android:orientation="horizontal"
+                    android:weightSum="4">
+
+                    <LinearLayout
+                        android:id="@+id/btnOff"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/home_bg_deign"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/power_icon"
+                            app:tint="@color/red" />
+
+                        <TextView
+                            android:id="@+id/tvOff"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/off"
+                            android:textColor="@color/dark_text_primary"
+                            android:textSize="@dimen/_14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/offDropdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/btnSleep"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:orientation="vertical"
+                        android:background="@drawable/home_bg_deign"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/moon_icon" />
+
+                        <TextView
+                            android:id="@+id/tvSb"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/sb"
+                            android:textColor="@color/dark_text_primary"
+                            android:textSize="@dimen/_14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/sBdropdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/btnDrive"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:orientation="vertical"
+                        android:background="@drawable/home_bg_deign"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            app:tint="@color/green"
+                            android:src="@drawable/bus_icon" />
+
+                        <TextView
+                            android:id="@+id/tvD"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/d"
+                            android:textColor="@color/dark_text_primary"
+                            android:textSize="@dimen/_14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/Ddropdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/btnOn"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:layout_marginStart="4dp"
+                        android:orientation="vertical"
+                        android:background="@drawable/home_bg_deign"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/power_icon"
+                            app:tint="@color/orange" />
+
+                        <TextView
+                            android:id="@+id/tvOn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/on"
+                            android:textColor="@color/dark_text_primary"
+                            android:textSize="@dimen/_14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/Ondropdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+<!--                <LinearLayout-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="?android:attr/actionBarSize"-->
+<!--                    android:layout_margin="@dimen/_12dp"-->
+<!--                    android:orientation="horizontal"-->
+<!--                    android:weightSum="4">-->
+
+<!--                    <TextView-->
+<!--                        android:id="@+id/tvOff"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_gravity="center"-->
+<!--                        android:layout_marginEnd="@dimen/_3dp"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:background="@drawable/home_bg_deign"-->
+<!--                        android:gravity="center"-->
+<!--                        android:paddingStart="@dimen/_10dp"-->
+<!--                        android:paddingTop="@dimen/_8dp"-->
+<!--                        android:paddingEnd="@dimen/_10dp"-->
+<!--                        android:paddingBottom="@dimen/_8dp"-->
+<!--                        android:text="@string/off"-->
+<!--                        android:textColor="@color/dark_text_primary"-->
+<!--                        android:textSize="@dimen/_14sp"-->
+<!--                        android:textStyle="bold" />-->
+
+<!--                    <Spinner-->
+<!--                        android:id="@+id/offDropdown"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:visibility="gone" />-->
+
+<!--                    <TextView-->
+<!--                        android:id="@+id/tvSb"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_gravity="center"-->
+<!--                        android:layout_marginStart="@dimen/_3dp"-->
+<!--                        android:layout_marginEnd="@dimen/_3dp"-->
+<!--                        android:layout_weight="1"-->
+
+<!--                        android:background="@drawable/home_bg_deign"-->
+<!--                        android:gravity="center"-->
+<!--                        android:paddingLeft="@dimen/_10dp"-->
+<!--                        android:paddingTop="@dimen/_8dp"-->
+<!--                        android:paddingRight="@dimen/_10dp"-->
+<!--                        android:paddingBottom="@dimen/_8dp"-->
+<!--                        android:text="@string/sb"-->
+<!--                        android:textColor="@color/dark_text_primary"-->
+<!--                        android:textSize="@dimen/_14sp"-->
+<!--                        android:textStyle="bold" />-->
+
+<!--                    <Spinner-->
+<!--                        android:id="@+id/sBdropdown"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:visibility="gone" />-->
+<!--                    />-->
+
+<!--                    <TextView-->
+<!--                        android:id="@+id/tvD"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_gravity="center"-->
+<!--                        android:layout_marginLeft="@dimen/_3dp"-->
+<!--                        android:layout_marginRight="@dimen/_3dp"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:background="@drawable/home_bg_deign"-->
+<!--                        android:gravity="center"-->
+<!--                        android:paddingLeft="@dimen/_10dp"-->
+<!--                        android:paddingTop="@dimen/_8dp"-->
+<!--                        android:paddingRight="@dimen/_10dp"-->
+<!--                        android:paddingBottom="@dimen/_8dp"-->
+<!--                        android:text="@string/d"-->
+<!--                        android:textColor="@color/dark_text_primary"-->
+<!--                        android:textSize="@dimen/_14sp"-->
+<!--                        android:textStyle="bold" />-->
+
+<!--                    <Spinner-->
+<!--                        android:id="@+id/Ddropdown"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:visibility="gone" />-->
+
+<!--                    <TextView-->
+<!--                        android:id="@+id/tvOn"-->
+
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_gravity="center"-->
+<!--                        android:layout_marginStart="@dimen/_3dp"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:background="@drawable/home_bg_deign"-->
+<!--                        android:gravity="center"-->
+<!--                        android:paddingLeft="@dimen/_10dp"-->
+<!--                        android:paddingTop="@dimen/_8dp"-->
+<!--                        android:paddingRight="@dimen/_10dp"-->
+<!--                        android:paddingBottom="@dimen/_8dp"-->
+<!--                        android:text="@string/on"-->
+<!--                        android:textColor="@color/dark_text_primary"-->
+<!--                        android:textSize="@dimen/_14sp"-->
+<!--                        android:textStyle="bold" />-->
+
+<!--                    <Spinner-->
+<!--                        android:id="@+id/Ondropdown"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:visibility="gone" />-->
+
+<!--                </LinearLayout>-->
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="?android:attr/actionBarSize"
+                    android:layout_marginLeft="@dimen/_12dp"
+                    android:layout_marginRight="@dimen/_12dp"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+
+                    <TextView
+                        android:id="@+id/tvPerosnaluse"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginEnd="@dimen/_5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/home_bg_deign"
+                        android:gravity="center"
+                        android:paddingLeft="@dimen/_10dp"
+                        android:paddingTop="@dimen/_8dp"
+                        android:paddingRight="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/personal_use"
+                        android:textColor="#FFFFFF"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/tvYarduse"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="@dimen/_5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/home_bg_deign"
+                        android:gravity="center"
+                        android:paddingStart="@dimen/_10dp"
+                        android:paddingTop="@dimen/_8dp"
+                        android:paddingEnd="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/yard_use"
+                        android:textColor="#FFFFFF"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                </LinearLayout>
+
+<!--                <LinearLayout-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_margin="@dimen/_15dp"-->
+<!--                    android:orientation="vertical">-->
+
+<!--                    <LinearLayout-->
+                        <!--                        android:layout_width="match_parent"-->
+                        <!--                        android:layout_height="wrap_content"-->
+<!--                        android:background="@drawable/home_bg_deign"-->
+
+<!--                        android:orientation="vertical">-->
+<!--                        &lt;!&ndash;                    <TextView&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_margin="@dimen/_12dp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_width="match_parent"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_height="wrap_content"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:text="@string/spent_time_in_sleep"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:textSize="@dimen/_16sp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:textStyle="bold"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:textColor="@color/dark_text_primary"/>&ndash;&gt;-->
+
+<!--                        &lt;!&ndash;                    <com.jjoe64.graphview.GraphView&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_marginStart="@dimen/_15dp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:id="@+id/idGraphView"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_width="match_parent"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_height="@dimen/dp_135dp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_alignParentTop="true" />&ndash;&gt;-->
+<!--                        <com.github.mikephil.charting.charts.LineChart-->
+<!--                            android:id="@+id/idGraphView"-->
+<!--                            android:layout_width="match_parent"-->
+<!--                            android:layout_height="230dp"-->
+<!--                            android:layout_marginLeft="16dp"-->
+<!--                            android:layout_marginRight="16dp"-->
+<!--                            android:background="@color/white"-->
+<!--                            android:elevation="10dp"-->
+<!--                            android:visibility="gone" />-->
+
+<!--                        <include-->
+<!--                            android:id="@+id/eld_graph"-->
+<!--                            layout="@layout/layout_eld_graph"-->
+<!--                            android:layout_width="match_parent"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:visibility="gone"-->
+<!--                            app:layout_constraintTop_toBottomOf="@+id/personal_use" />-->
+
+<!--                    </LinearLayout>-->
+
+<!--                </LinearLayout>-->
+
+<!--                <FrameLayout-->
+<!--                    android:layout_width="110dp"-->
+<!--                    android:layout_height="110dp"-->
+<!--                    android:layout_gravity="center"-->
+<!--                    android:gravity="center">-->
+
+<!--                    &lt;!&ndash; Circular Progress Indicator &ndash;&gt;-->
+<!--                    <com.google.android.material.progressindicator.CircularProgressIndicator-->
+<!--                        android:id="@+id/progressCircular"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="match_parent"-->
+<!--                        app:indicatorSize="90dp"-->
+<!--                        app:trackThickness="6dp"-->
+<!--                        android:progress="75"-->
+<!--                        app:indicatorColor="@color/orange"-->
+
+<!--                    />-->
+
+<!--                    &lt;!&ndash; Text Inside Circle &ndash;&gt;-->
+<!--                    <LinearLayout-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="match_parent"-->
+<!--                        android:gravity="center"-->
+<!--                        android:orientation="vertical">-->
+
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvTime"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="08:00"-->
+<!--                            android:textColor="@android:color/black"-->
+<!--                            android:textSize="22sp"-->
+<!--                            android:textStyle="bold"-->
+<!--                            android:gravity="center"/>-->
+
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvLabel"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="Break"-->
+<!--                            android:textColor="@android:color/darker_gray"-->
+<!--                            android:textSize="14sp"-->
+<!--                            android:gravity="center"/>-->
+<!--                    </LinearLayout>-->
+
+<!--                </FrameLayout>-->
+
+                <!-- Closest Violation Alert Card -->
+                <LinearLayout
+                    android:id="@+id/closest_violation_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginHorizontal="14dp"
+                    android:background="@drawable/modern_circular_card"
+                    android:padding="20dp"
+                    android:elevation="8dp"
+                    android:visibility="gone">
+
+                    <!-- Section Header -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️ Violation Alert"
+                        android:textColor="@color/dark_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:layout_marginBottom="20dp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <!-- Closest Violation Bar -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:id="@+id/closest_violation_type"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Drive Time"
+                                android:textColor="@color/dark_text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                            <TextView
+                                android:id="@+id/closest_violation_time"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="02:00"
+                                android:textColor="@color/dark_text_secondary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+                        </LinearLayout>
+
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/closest_violation_progress"
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            app:trackColor="@color/dark_divider"
+                            app:indicatorColor="@color/dark_progress_red"
+                            android:progress="85" />
+
+                        <!-- Violation Message -->
+                        <TextView
+                            android:id="@+id/closest_violation_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="Violation due in 2 hours"
+                            android:textColor="@color/dark_progress_red"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:fontFamily="sans-serif-medium" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Modern Duty Status Gauges Section -->
+                <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="@dimen/_10dp"
+                    android:background="@drawable/modern_circular_card"
+                    android:padding="12dp"
+                    android:elevation="8dp">
+
+
+                    <!-- First Row: Two Circular Progress Bars -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="20dp"
+                        android:weightSum="2">
+
+                        <!-- First Circular Progress Bar - Drive -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:layout_marginEnd="12dp"
+                            android:elevation="4dp">
+
+
+<!--                            <ProgressBar-->
+<!--                                android:id="@+id/progressBarMain"-->
+<!--                                style="?android:attr/progressBarStyleHorizontal"-->
+<!--                                android:layout_width="150dp"-->
+<!--                                android:layout_height="15dp"-->
+<!--                                android:max="100"-->
+<!--                                android:progressDrawable="@drawable/progress_bar"-->
+<!--                                android:secondaryProgress="100"-->
+<!--                                android:visibility="visible" />-->
+                            <FrameLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:gravity="center">
+                                <com.google.android.material.progressindicator.CircularProgressIndicator
+                                    android:id="@+id/progressBarMain"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    app:indicatorSize="@dimen/_120dp"
+                                    app:trackThickness="@dimen/_10dp"
+                                    android:progress="0"
+                                    app:trackColor="@color/gauge_track_color"
+                                    app:indicatorColor="@color/gauge_drive_color"
+                                    />
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:orientation="vertical"
+                                    android:layout_height="wrap_content">
+                                    <TextView
+                                        android:id="@+id/timeText1"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textColor="@color/gauge_drive_color"
+                                        android:textSize="@dimen/_20sdp"
+                                        android:layout_gravity="center"
+                                        android:textStyle="bold"
+                                        android:gravity="center"
+                                        android:text="00:00"
+                                        android:fontFamily="sans-serif-medium"
+                                        />
+                                    <TextView
+                                        android:id="@+id/headingtextdrive"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:text="Drive"
+                                        android:textSize="@dimen/circular_heading_size"
+                                        android:textColor="@color/gauge_text_color"
+                                        android:textStyle="bold"
+                                        android:fontFamily="sans-serif-medium" />
+                                </LinearLayout>
+
+                            </FrameLayout>
+
+
+
+                        </LinearLayout>
+
+                        <!-- Second Circular Progress Bar - Shift -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp"
+                            android:elevation="4dp">
+                            <FrameLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:gravity="center">
+                                <com.google.android.material.progressindicator.CircularProgressIndicator
+                                    android:id="@+id/progressBarShift"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    app:indicatorSize="@dimen/_120dp"
+                                    app:trackThickness="@dimen/_10dp"
+                                    android:progress="0"
+                                    app:trackColor="@color/gauge_track_color"
+                                    app:indicatorColor="@color/gauge_shift_color"
+                                    />
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:id="@+id/timeText2"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textColor="@color/gauge_shift_color"
+                                        android:textSize="@dimen/_20sdp"
+                                        android:layout_gravity="center"
+                                        android:textStyle="bold"
+                                        android:gravity="center"
+                                        android:text="00:00"
+                                        android:fontFamily="sans-serif-medium"
+                                        />
+                                    <TextView
+                                        android:id="@+id/headingtextshift"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:text="Shift"
+                                        android:textSize="@dimen/circular_heading_size"
+                                        android:textColor="@color/gauge_text_color"
+                                        android:textStyle="bold"
+                                        android:fontFamily="sans-serif-medium" />
+                                </LinearLayout>
+
+                            </FrameLayout>
+
+
+
+<!--                            <TextView-->
+<!--                                android:id="@+id/headingtextshift"-->
+<!--                                android:layout_width="wrap_content"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_gravity="center"-->
+<!--                                android:textSize="12sp" />-->
+
+<!--                            <ProgressBar-->
+<!--                                android:id="@+id/progressBarShift"-->
+<!--                                style="?android:attr/progressBarStyleHorizontal"-->
+<!--                                android:layout_width="150dp"-->
+<!--                                android:layout_height="15dp"-->
+<!--                                android:max="100"-->
+<!--                                android:progress="20"-->
+<!--                                android:progressDrawable="@drawable/progress_bar"-->
+<!--                                android:secondaryProgress="100"-->
+<!--                                android:visibility="visible" />-->
+
+<!--                            <TextView-->
+<!--                                android:id="@+id/timeText2"-->
+<!--                                android:layout_width="wrap_content"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_gravity="center"-->
+<!--                                android:textSize="13sp" />-->
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Second Row: Cycle and Break -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginTop="8dp">
+
+                        <!-- Cycle Circular Progress Bar -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:layout_marginEnd="12dp"
+                            android:elevation="4dp">
+
+                            <FrameLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:gravity="center">
+                                <com.google.android.material.progressindicator.CircularProgressIndicator
+                                    android:id="@+id/progressBarCycle"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    app:indicatorSize="@dimen/_120dp"
+                                    app:trackThickness="@dimen/_10dp"
+                                    android:progress="0"
+                                    app:trackColor="@color/gauge_track_color"
+                                    app:indicatorColor="@color/gauge_cycle_color"
+                                    />
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:id="@+id/timeText3"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textColor="@color/gauge_cycle_color"
+                                        android:textSize="@dimen/_20sdp"
+                                        android:layout_gravity="center"
+                                        android:textStyle="bold"
+                                        android:gravity="center"
+                                        android:text="00:00"
+                                        android:fontFamily="sans-serif-medium"
+                                        />
+                                    <TextView
+                                        android:id="@+id/headingtextcycle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:text="Cycle"
+                                        android:textSize="@dimen/circular_heading_size"
+                                        android:textColor="@color/gauge_text_color"
+                                        android:textStyle="bold"
+                                        android:fontFamily="sans-serif-medium" />
+                                </LinearLayout>
+                            </FrameLayout>
+                        </LinearLayout>
+
+                        <!-- Break Circular Progress Bar -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp"
+                            android:elevation="4dp">
+
+                            <FrameLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:gravity="center">
+                                <com.google.android.material.progressindicator.CircularProgressIndicator
+                                    android:id="@+id/progressBarBreak"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    app:indicatorSize="@dimen/_120dp"
+                                    app:trackThickness="@dimen/_10dp"
+                                    android:progress="0"
+                                    app:trackColor="@color/gauge_track_color"
+                                    app:indicatorColor="@color/gauge_break_color"
+                                    />
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:id="@+id/timeTextBreak"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textColor="@color/gauge_break_color"
+                                        android:textSize="@dimen/_20sdp"
+                                        android:layout_gravity="center"
+                                        android:textStyle="bold"
+                                        android:gravity="center"
+                                        android:text="00:00"
+                                        android:fontFamily="sans-serif-medium"
+                                        />
+                                    <TextView
+                                        android:id="@+id/headingTextBreak"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:text="Break"
+                                        android:textSize="@dimen/circular_heading_size"
+                                        android:textColor="@color/gauge_text_color"
+                                        android:textStyle="bold"
+                                        android:fontFamily="sans-serif-medium" />
+                                </LinearLayout>
+                            </FrameLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+
+<!--                    &lt;!&ndash; Second Row: Two Circular Progress Bars &ndash;&gt;-->
+<!--                    <LinearLayout-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:gravity="center"-->
+<!--                        android:orientation="horizontal">-->
+
+<!--                    -->
+<!--                    </LinearLayout>-->
+                </LinearLayout>
+
+
+
+                <!-- Modern ON DUTY Timer Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/modern_circular_card"
+                    android:padding="24dp"
+                    android:elevation="8dp">
+
+                    <!-- Section Header -->
+
+
+                    <!-- Time Display Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginBottom="28dp">
+
+                        <TextView
+                            android:id="@+id/timer_label_tv"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Time spent in ON DUTY"
+                            android:textColor="@color/onduty_secondary"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="16dp"
+                            android:fontFamily="sans-serif-medium" />
+
+                        <TextView
+                            android:id="@+id/timer_tv"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="00:02:36"
+                            android:textColor="@color/onduty_timer_text"
+                            android:textSize="36sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/modern_timer_background"
+                            android:fontFamily="sans-serif-medium" />
+
+                    </LinearLayout>
+
+                    <!-- Details Section Header -->
+
+                    <!-- Details Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Shipping Number -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:layout_marginBottom="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+                            <ImageView
+                                android:id="@+id/editShipping"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginEnd="16dp"
+                                android:src="@drawable/baseline_edit_24"
+                                android:tint="@color/onduty_icon_tint" />
+
+                            <TextView
+                                android:id="@+id/shipping_number"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Shipping Number : "
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                        <!-- Co-Driver -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:layout_marginBottom="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+                            <ImageView
+                                android:id="@+id/editCoDriver"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginEnd="16dp"
+                                android:src="@drawable/baseline_edit_24"
+                                android:tint="@color/onduty_icon_tint" />
+
+                            <TextView
+                                android:id="@+id/co_driver"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Co-Driver : No Co-driver"
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                        <!-- Trailer Number -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+                            <ImageView
+                                android:id="@+id/editTrailerNo"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginEnd="16dp"
+                                android:src="@drawable/baseline_edit_24"
+                                android:tint="@color/onduty_icon_tint" />
+
+                            <TextView
+                                android:id="@+id/trailer_number"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Trailer No : 812"
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/modern_circular_card"
+                    android:padding="24dp"
+                    android:elevation="8dp">
+
+                    <!-- Section Header -->
+
+
+                    <!-- Time Display Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                    </LinearLayout>
+
+                    <!-- Details Section Header -->
+
+                    <!-- Details Section -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Shipping Number -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:layout_marginBottom="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+                            <TextView
+                                android:id="@+id/drivingSpeed"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Driving Speed : "
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                        <!-- Co-Driver -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:layout_marginBottom="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+
+                            <TextView
+                                android:id="@+id/companyName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Company Name :"
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                        <!-- Trailer Number -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/modern_detail_item_background"
+                            android:padding="16dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground">
+
+                            <TextView
+                                android:id="@+id/userName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="User Name :"
+                                android:textColor="@color/onduty_detail_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_12dp"
+                    android:background="@drawable/home_bg_deign"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginEnd="@dimen/_3dp"
+                        android:gravity="center"
+                        android:paddingLeft="@dimen/_10dp"
+
+                        android:paddingTop="@dimen/_4dp"
+                        android:paddingRight="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/_06_25_39"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:layout_marginLeft="@dimen/_30dp"
+                        android:layout_marginTop="@dimen/_3dp"
+                        android:layout_marginRight="@dimen/_30dp"
+                        android:background="@color/verylightgrey" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginLeft="@dimen/_3dp"
+                        android:layout_marginRight="@dimen/_3dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/colorPrimary"
+
+                        android:gravity="center"
+                        android:paddingLeft="@dimen/_10dp"
+                        android:paddingTop="@dimen/_3dp"
+                        android:paddingRight="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/shopping_number_2345634"
+                        android:textColor="@color/dark_text_primary"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:layout_marginLeft="@dimen/_30dp"
+                        android:layout_marginTop="@dimen/_3dp"
+                        android:layout_marginRight="@dimen/_30dp"
+                        android:background="@color/verylightgrey" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginLeft="@dimen/_3dp"
+                        android:layout_marginTop="3dp"
+                        android:layout_marginRight="@dimen/_3dp"
+                        android:gravity="center"
+                        android:paddingLeft="@dimen/_10dp"
+                        android:paddingTop="@dimen/_8dp"
+
+                        android:paddingRight="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/co_driver_bikramjit84"
+                        android:textColor="@color/dark_text_primary"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:layout_marginLeft="@dimen/_30dp"
+                        android:layout_marginTop="@dimen/_3dp"
+                        android:layout_marginRight="@dimen/_30dp"
+                        android:background="@color/verylightgrey" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="@dimen/_3dp"
+                        android:layout_marginTop="@dimen/_3dp"
+                        android:layout_marginBottom="@dimen/_3dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:paddingLeft="@dimen/_10dp"
+                        android:paddingTop="@dimen/_8dp"
+                        android:paddingRight="@dimen/_10dp"
+                        android:paddingBottom="@dimen/_8dp"
+                        android:text="@string/trailer_no_1234"
+                        android:textColor="@color/dark_text_primary"
+                        android:textSize="@dimen/_16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+</RelativeLayout>

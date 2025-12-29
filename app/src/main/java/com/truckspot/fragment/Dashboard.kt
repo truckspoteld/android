@@ -176,10 +176,16 @@ class Dashboard : AppCompatActivity() {
     }
     private fun checkAndRequestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12+
-            val permissions = arrayOf(
+            val permissions = mutableListOf(
                 android.Manifest.permission.BLUETOOTH_CONNECT,
                 android.Manifest.permission.BLUETOOTH_SCAN
             )
+            
+            // Add POST_NOTIFICATIONS for Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            
             val missingPermissions = permissions.filter {
                 ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
             }
@@ -308,10 +314,12 @@ class Dashboard : AppCompatActivity() {
     }
 
     private fun createLocRequest() {
-        mRequest = LocationRequest()
-        mRequest?.interval = 8000 //time in ms; every ~10 seconds
-        mRequest?.fastestInterval = 8000
-        mRequest?.priority = com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
+        mRequest = LocationRequest.Builder(
+            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+            8000L // interval in ms
+        )
+            .setMinUpdateIntervalMillis(8000L) // fastestInterval
+            .build()
     }
 
     override fun onRequestPermissionsResult(

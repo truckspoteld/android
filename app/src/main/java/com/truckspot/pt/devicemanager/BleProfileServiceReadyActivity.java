@@ -302,7 +302,11 @@ public abstract class BleProfileServiceReadyActivity<E extends BleProfileService
 
 		final IntentFilter usbEvFilter = new IntentFilter();
 		usbEvFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-		registerReceiver(mUSBEventReceiver, usbEvFilter);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			registerReceiver(mUSBEventReceiver, usbEvFilter, Context.RECEIVER_EXPORTED);
+		} else {
+			registerReceiver(mUSBEventReceiver, usbEvFilter);
+		}
 	}
 
 	@Override

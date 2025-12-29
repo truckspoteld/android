@@ -231,12 +231,7 @@ class HomeViewModel @Inject constructor(
             if (internetAvailable) {
                 try {
                     Log.d("HomeViewModel", "Making API call to getHome")
-                    CoroutineScope(Dispatchers.IO).launch {
-                        while (true) { // Ensures the loop stops if coroutine is cancelled
-                            dashboardRespository.getHome()
-                            delay(60_000) // Wait 1 second before next call
-                        }
-                    }
+                    dashboardRespository.getHome()
                     Log.d("HomeViewModel", "API call to getHome completed")
                 } catch (e: Exception) {
                     Log.e("HomeViewModel", "Network error in getHome: ${e.message}", e)

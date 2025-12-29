@@ -559,7 +559,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         // when the activity closes we need to show the notification that user is connected to the peripheral sensor
         // We start the service as a foreground service as Android 8.0 (Oreo) onwards kills any running background services
         final Notification notification = createNotification(R.string.tracker_running, 0);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(CONNECTION_NOTI_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForeground(CONNECTION_NOTI_ID, notification);
         } else {
             final NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

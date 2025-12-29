@@ -163,11 +163,7 @@ public class DevicesFragment extends ListFragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireActivity().registerReceiver(usbPi, piIf, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            requireActivity().registerReceiver(usbPi, piIf);
-        }
+        requireActivity().unregisterReceiver(usbPi);
     }
 
     @Override

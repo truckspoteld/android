@@ -1726,9 +1726,7 @@ class HomeFragment : Fragment(), OnClickListener {
         tmIf.addAction("REFRESH")
         tmIf.addAction("TRACKER-REFRESH")
 
-        getInstance(requireContext()).registerReceiver(tmRefresh, tmIf)
-        getInstance(requireContext()).registerReceiver(svcRefresh, svcIf)
-        getInstance(requireContext()).registerReceiver(speedRefresh, speedIf)
+        // NOTE: Receivers are registered in onResume() to avoid duplicate registration
 
         progressBar = rootView.findViewById(R.id.progressBarMain)
         progressBarShift = rootView.findViewById(R.id.progressBarShift)
@@ -2092,11 +2090,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 mostRecentLogWithValidOdometer.time,
                 0
             )
-            SLog.detailLogs(
-                "UPDATING LOG FROM DIALOG",
-                Gson().toJson(updateLogRequest) + "\n",
-                true
-            )
+            Log.d(TAG, "Unidentified driving hours: $unIdentifiedDrivingHours")
             homeViewModel.updateLog(updateLogRequest, shouldHandleResponse = true, requireContext())
             dialog.dismiss()
         }
@@ -2140,16 +2134,12 @@ class HomeFragment : Fragment(), OnClickListener {
 
         instance.registerReceiver(tmRefresh, tmIf)
         instance.registerReceiver(svcRefresh, svcIf)
-        val speedIf = IntentFilter()
-        speedIf.addAction("REFRESH")
-        instance.registerReceiver(speedRefresh, speedIf)
 
         // Debounce and prevent concurrent API calls
         val currentTime = System.currentTimeMillis()
         if (!isFetchingLogs && currentTime - lastApiCallTime > API_CALL_DEBOUNCE_MS) {
             isFetchingLogs = true
             lastApiCallTime = currentTime
-            SLog.detailLogs("GETTING LOGS FROM HOME FRAGMENT ", "onResume\n", true)
             homeViewModel.getHome(context)
         }
 
@@ -2365,7 +2355,6 @@ class HomeFragment : Fragment(), OnClickListener {
     @SuppressLint("SuspiciousIndentation", "DefaultLocale")
     private fun updateModeChange(hoursLast: Double, mode: String, selectedOptionText: String) {
         try {
-            SLog.detailLogs("UPDATE MODE CHANGE FROM HOME FRAGMENT", mode + "\n", true)
             if (mode == TRUCK_MODE_DRIVING) {
                 prefRepository.setShowUnidentifiedDialog(false)
             }
@@ -2439,7 +2428,7 @@ class HomeFragment : Fragment(), OnClickListener {
         try {
             getInstance(requireContext()).unregisterReceiver(tmRefresh)
             getInstance(requireContext()).unregisterReceiver(svcRefresh)
-            getInstance(requireContext()).unregisterReceiver(viRefresh)
+            // viRefresh is not registered, so don't unregister it
             getInstance(requireContext()).unregisterReceiver(speedRefresh)
         } catch (e: Exception) {
             Log.e(TAG, "Error unregistering receivers: ${e.message}")
@@ -2456,6 +2445,10 @@ class HomeFragment : Fragment(), OnClickListener {
         lastModeChangeTimeout?.cancel()
         emergencyUnlockJob?.cancel()
         modeChangeCompletionDeferred?.complete(false)
+        // Release MediaPlayer to prevent memory leak
+        if (::mediaPlayer.isInitialized) {
+            mediaPlayer.release()
+        }
         _binding = null
     }
 
@@ -2488,33 +2481,29 @@ class HomeFragment : Fragment(), OnClickListener {
         return dateTime.toString("yyyy-MM-dd")
     }
 
+    private val timezoneMappings = mapOf(
+        "PST" to "America/Los_Angeles",
+        "AKST" to "America/Anchorage",
+        "MST" to "America/Denver",
+        "HST" to "Pacific/Honolulu",
+        "CST" to "America/Chicago",
+        "EST" to "America/New_York"
+    )
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateClockDisplay() {
         if (timeZone.isEmpty()) {
-            Log.d(TAG, "No timezone set, using fallback clock")
             binding.liveClock.text = getCurrentTime()
             return
         }
         try {
-            val currentTimezoneTime = if (timeZone.isNotEmpty()) {
-                val timezoneMappings = mapOf(
-                    "PST" to "America/Los_Angeles",
-                    "AKST" to "America/Anchorage",
-                    "MST" to "America/Denver",
-                    "HST" to "Pacific/Honolulu",
-                    "CST" to "America/Chicago",
-                    "EST" to "America/New_York"
-                )
-                val mappedTimezone = timezoneMappings[timeZone] ?: "America/Los_Angeles"
-                val currentDateTime = LocalDateTime.now()
-                val systemZoneId = ZoneId.systemDefault()
-                val companyZoneId = ZoneId.of(mappedTimezone)
-                val zonedDateTime = currentDateTime.atZone(systemZoneId).withZoneSameInstant(companyZoneId)
-                val companyTime = zonedDateTime.toLocalTime()
-                String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)
-            } else {
-                getCurrentTime()
-            }
+            val mappedTimezone = timezoneMappings[timeZone] ?: "America/Los_Angeles"
+            val currentDateTime = LocalDateTime.now()
+            val systemZoneId = ZoneId.systemDefault()
+            val companyZoneId = ZoneId.of(mappedTimezone)
+            val zonedDateTime = currentDateTime.atZone(systemZoneId).withZoneSameInstant(companyZoneId)
+            val companyTime = zonedDateTime.toLocalTime()
+            val currentTimezoneTime = String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)
             binding.liveClock.text = currentTimezoneTime
 
             val lastLog = getLastRelevantLog()
@@ -2691,7 +2680,7 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun modeChangeLog(mode: String) {
-        SLog.detailLogs("UPDATE MODE FROM CLICK", mode + "\n", true)
+        Log.d(TAG, "UPDATE MODE FROM CLICK: $mode")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -2835,7 +2824,6 @@ class HomeFragment : Fragment(), OnClickListener {
 
     private fun updateTelemetryInfo() {
         if (bluetoothConnectionJob?.isActive == true) {
-            Log.d(TAG, "Telemetry update already in progress")
             return
         }
         try {

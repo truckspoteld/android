@@ -43,6 +43,9 @@ class LogsFragment : Fragment() {
     private var autoRefreshHandler: Handler? = null
     private var autoRefreshRunnable: Runnable? = null
     private val AUTO_REFRESH_INTERVAL = 30000L // 30 seconds
+    
+    // Flag to prevent duplicate data loading
+    private var isDataLoaded = false
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
@@ -53,31 +56,42 @@ class LogsFragment : Fragment() {
         requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         prefRepository = PrefRepository(requireContext())
 
-
-        homeViewModel.company.observe(viewLifecycleOwner){
-            timeZone = it.data?.results?.company_timezone ?:""
-            // Update the date display when timezone changes
-            updateDateDisplay()
-            loadInitialData()
-        }
-
         date = Date()
         _binding = FragmentLogsBinding.inflate(inflater, container, false)
 
-        // Initialize with default timezone if not set
-        if(prefRepository.getTimeZone().isEmpty()){
-            homeViewModel.getCompanyName(requireContext())
-        }else{
+        // Initialize with timezone from preferences first
+        if(prefRepository.getTimeZone().isNotEmpty()){
             timeZone = prefRepository.getTimeZone()
             updateDateDisplay()
-            loadInitialData()
+            if (!isDataLoaded) {
+                isDataLoaded = true
+                loadInitialData()
+            }
         }
+        
+        // Observer for company data - only load if not already loaded
+        homeViewModel.company.observe(viewLifecycleOwner) {
+            val newTimeZone = it.data?.results?.company_timezone ?: ""
+            if (newTimeZone.isNotEmpty() && newTimeZone != timeZone) {
+                timeZone = newTimeZone
+                updateDateDisplay()
+                if (!isDataLoaded) {
+                    isDataLoaded = true
+                    loadInitialData()
+                }
+            }
+        }
+
+        // Fetch company name if timezone not set
+        if(prefRepository.getTimeZone().isEmpty()){
+            homeViewModel.getCompanyName(requireContext())
+        }
+        
         updateDateDisplay()
 
         val root: View = binding.root
         setupClickListeners()
         setupObservers()
-//        loadInitialData()
 
         return root
     }
@@ -338,6 +352,7 @@ class LogsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         stopAutoRefresh()
+        isDataLoaded = false  // Reset so data loads when fragment is recreated
         _binding = null
     }
     

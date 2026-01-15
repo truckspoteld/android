@@ -1024,7 +1024,7 @@ private fun overallHours(
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun setDateAndTimeBasedOnTimezone(selectedTimezone: String): Map<String, String> {
-        println("$selectedTimezone the timezone being selected")
+        // Removed println to prevent log spam during resume
 
         val timezoneMappings = mapOf(
             "PST" to "America/Los_Angeles",

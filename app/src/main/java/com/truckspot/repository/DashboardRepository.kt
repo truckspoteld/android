@@ -187,14 +187,21 @@ class DashboardRepository @Inject constructor(
         SocketManager.initialize()
     }
 
+    // Flag to prevent duplicate socket listeners
+    private var isListeningForLogs = false
 
     fun connectSocket( id : Int) {
         SocketManager.connect(id)
-        listenNewLogs()
+        // Only add listener once to prevent duplicates
+        if (!isListeningForLogs) {
+            isListeningForLogs = true
+            listenNewLogs()
+        }
     }
 
     fun disconnectSocket() {
         SocketManager.disconnect()
+        isListeningForLogs = false  // Reset flag when disconnecting
     }
 
     @SuppressLint("SuspiciousIndentation")

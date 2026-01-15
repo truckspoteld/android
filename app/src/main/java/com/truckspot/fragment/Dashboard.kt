@@ -41,8 +41,6 @@ import com.truckspot.utils.PrefRepository
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 
 
 @AndroidEntryPoint
@@ -78,25 +76,35 @@ class Dashboard : AppCompatActivity() {
         navController = findNavController(R.id.nav_host_fragment_content_dashboard)
         binding.appBarDashboard.dashboard.setText("Dashboard $VERSION_NAME")
         binding.appBarDashboard.contantDashboard.bottomNav.setOnItemSelectedListener {
+            // Use NavOptions to prevent duplicate fragments and back stack issues
+            val navOptions = androidx.navigation.NavOptions.Builder()
+                .setLaunchSingleTop(true)  // Prevent duplicate instances
+                .setPopUpTo(R.id.nav_home, false)  // Clear intermediate fragments
+                .build()
+            
             when (it.itemId) {
                 R.id.home -> {
-                    navController.navigate(R.id.nav_home)
+                    // For home, pop everything to go back to root
+                    val homeOptions = androidx.navigation.NavOptions.Builder()
+                        .setLaunchSingleTop(true)
+                        .setPopUpTo(R.id.nav_home, true)  // Pop including home to reset
+                        .build()
+                    navController.navigate(R.id.nav_home, null, homeOptions)
                     true
                 }
 
                 R.id.logs -> {
-                    navController.navigate(R.id.nav_gallery)
-                    //loadFragment(GalleryFragment())
+                    navController.navigate(R.id.nav_gallery, null, navOptions)
                     true
                 }
 
                 R.id.report -> {
-                    navController.navigate(R.id.nav_reports)
+                    navController.navigate(R.id.nav_reports, null, navOptions)
                     true
                 }
 
                 R.id.certify -> {
-                    navController.navigate(R.id.fragment_certify)
+                    navController.navigate(R.id.fragment_certify, null, navOptions)
                     true
                 }
 
@@ -106,7 +114,7 @@ class Dashboard : AppCompatActivity() {
                 }
 
                 else -> {
-                    navController.navigate(R.id.nav_home)
+                    navController.navigate(R.id.nav_home, null, navOptions)
                     true
                 }
             }
@@ -238,8 +246,6 @@ class Dashboard : AppCompatActivity() {
     var glat: Double? = null
     var glong: Double? = null
     var gSpeed: Float = 0f
-    val gnsChannel = Channel<Location>()
-    val locationFlow = gnsChannel.receiveAsFlow()
 
     @SuppressLint("MissingPermission")
     private fun locationWizardry() {
@@ -285,8 +291,6 @@ class Dashboard : AppCompatActivity() {
     }
 
     private fun insertInDrive(location: Location) {
-        scope.launch { gnsChannel.send(location) }
-
         Log.d(TAG, "location updates ---> ${location.speed}")
 
 //        if (gSpeed > 20 && CurrentMode != "d") navController.navigate(R.id.nav_home)

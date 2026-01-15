@@ -70,7 +70,10 @@ class HomeViewModel @Inject constructor(
     val reportsLiveData: LiveData<NetworkResult<ReportsDataResponse>>
         get() = _reportsLiveData
 
-
+    // Cache management - data is considered stale after 30 seconds
+    private var lastHomeDataFetchTime: Long = 0
+    private val CACHE_VALIDITY_MS = 30000L // 30 seconds
+    
     private var refinedUserLogs: MutableList<UserLog>? = null
 
     fun getDriverId() = prefRepository.getDriverId()
@@ -223,15 +226,26 @@ class HomeViewModel @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun getHome( context: Context) {
+    fun getHome(context: Context, forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        val hasExistingData = homeLiveData.value is NetworkResult.Success
+        val isDataStale = (currentTime - lastHomeDataFetchTime) > CACHE_VALIDITY_MS
+        
+        // Skip API call if data is fresh and not forced
+        if (!forceRefresh && hasExistingData && !isDataStale) {
+            Log.d("HomeViewModel", "Using cached data (age: ${(currentTime - lastHomeDataFetchTime)/1000}s)")
+            return
+        }
+        
         viewModelScope.launch {
             val internetAvailable = isInternetAvailable(context)
             Log.d("HomeViewModel", "Internet available for getHome: $internetAvailable")
             
             if (internetAvailable) {
                 try {
-                    Log.d("HomeViewModel", "Making API call to getHome")
+                    Log.d("HomeViewModel", "Making API call to getHome (forceRefresh=$forceRefresh)")
                     dashboardRespository.getHome()
+                    lastHomeDataFetchTime = System.currentTimeMillis()
                     Log.d("HomeViewModel", "API call to getHome completed")
                 } catch (e: Exception) {
                     Log.e("HomeViewModel", "Network error in getHome: ${e.message}", e)
@@ -246,6 +260,12 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+    
+    // Force refresh data (called after mode change or manual refresh)
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun refreshHome(context: Context) {
+        getHome(context, forceRefresh = true)
     }
 
 

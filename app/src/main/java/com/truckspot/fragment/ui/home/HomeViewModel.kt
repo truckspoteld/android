@@ -38,12 +38,14 @@ import com.truckspot.utils.NetworkResult
 import com.truckspot.utils.PrefRepository
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import retrofit2.Response
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -51,8 +53,13 @@ class HomeViewModel @Inject constructor(
     var dashboardRespository: DashboardRepository,
     private val prefRepository: PrefRepository,
     private val truckSpotAPI: TruckSpotAPI,
-
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "HomeViewModel"
+        private const val API_TIMEOUT_MS = 15000L // 15 seconds timeout for API calls
+        private const val CACHE_VALIDITY_MS = 30000L // 30 seconds cache
+    }
 
     val logResponseLiveData: LiveData<NetworkResult<LogResponse>>
         get() = dashboardRespository.logResponseLiveData
@@ -63,217 +70,284 @@ class HomeViewModel @Inject constructor(
     val addLogReponse: LiveData<NetworkResult<AddLogSuccessResponse>> get() = dashboardRespository.addlogResponse
     val company: LiveData<NetworkResult<GetCompanyById>> get() = dashboardRespository.getCompanyById
 
-
     private val _reportsLiveData = MutableLiveData<NetworkResult<ReportsDataResponse>>()
-
-
     val reportsLiveData: LiveData<NetworkResult<ReportsDataResponse>>
         get() = _reportsLiveData
 
-    // Cache management - data is considered stale after 30 seconds
+    // Cache management
     private var lastHomeDataFetchTime: Long = 0
-    private val CACHE_VALIDITY_MS = 30000L // 30 seconds
     
+    // Prevent concurrent API calls - use AtomicBoolean for thread safety
+    private val isHomeApiInProgress = AtomicBoolean(false)
+    private val isCompanyApiInProgress = AtomicBoolean(false)
+    private val isLogUserApiInProgress = AtomicBoolean(false)
+    
+    // Jobs for cancellation
+    private var homeApiJob: Job? = null
+    private var companyApiJob: Job? = null
+    private var logUserApiJob: Job? = null
+
     private var refinedUserLogs: MutableList<UserLog>? = null
 
     fun getDriverId() = prefRepository.getDriverId()
 
     fun getUserLogs() = refinedUserLogs ?: mutableListOf()
 
-    fun connectSocket(id : Int ){
-        dashboardRespository.connectSocket(id);
+    fun connectSocket(id: Int) {
+        dashboardRespository.connectSocket(id)
     }
 
-    fun discconecttSocket(){
-        dashboardRespository.disconnectSocket();
+    fun discconecttSocket() {
+        dashboardRespository.disconnectSocket()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-     fun logUser(logRequest: AddLogRequest, context: Context ) {
-        try {
-            Log.d("checkDate", "latest data : ${logRequest}")
-            viewModelScope.launch {
-                val internetAvailable = isInternetAvailable(context)
-                Log.d("HomeViewModel", "Internet available for logUser: $internetAvailable")
-                
-                if (internetAvailable) {
-                    try {
-                        Log.d("HomeViewModel", "Making API call to addLog")
-                        dashboardRespository.addLog(logRequest)
-                        Log.d("HomeViewModel", "API call to addLog completed")
-                    } catch (e: Exception) {
-                        Log.e("HomeViewModel", "Network error in logUser: ${e.message}", e)
-                        withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } else {
-                    // Handle no internet connection scenario
-                    Log.d("HomeViewModel", "No internet available, showing toast")
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-            }
-        } catch (e: Exception) {
-            Log.e("HomeViewModel", "Exception in logUser: ${e.message}", e)
-//            withContext(kotlinx.coroutines.Dispatchers.Main) {
-//                android.widget.Toast.makeText(context, "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-//            }
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun getCompanyName( context: Context ) {
-        viewModelScope.launch {
-            if (isInternetAvailable(context)) {
-                try {
-                    dashboardRespository.getCompany()
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Network error in getCompanyName: ${e.message}", e)
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-        }
-    }
-
-    fun addOffset(prefRepository: PrefRepository, offset: AddOffsetRequest , context: Context) {
-        viewModelScope.launch {
-            if (isInternetAvailable(context)) {
-                try {
-                    dashboardRespository.addOffSet(prefRepository, offset)
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Network error in addOffset: ${e.message}", e)
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                // Handle no internet connection scenario
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-        }
-    }
-
-    fun getOffSet(prefRepository: PrefRepository, vin: String , context: Context) {
-        viewModelScope.launch {
-            if (isInternetAvailable(context)) {
-                try {
-                    val data = dashboardRespository.getOffSet(vin)
-                    val item =
-                        data.body()?.results?.unidentifiedRecords?.firstOrNull { it?.vinNo.equals(vin) }
-                    prefRepository.setDifferenceinOdo(item?.odometer.toString())
-                    prefRepository.setDifferenceinEnghours(item?.engHour.toString())
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Network error in getOffSet: ${e.message}", e)
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                // Handle no internet connection scenario
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-        }
-
-    }
-
-    fun logUserunauth(logRequest: AddLogRequestunauth) {
-        viewModelScope.launch {
-            try {
-                dashboardRespository.addLogUnauth(logRequest)
-            } catch (e: Exception) {
-                Log.e("HomeViewModel", "Network error in logUserunauth: ${e.message}", e)
-            }
-        }
-    }
-
-    @SuppressLint("LongLogTag")
-    fun updateLog(updateLogReq: updateLogRequest, shouldHandleResponse: Boolean = true , context: Context) {
-        Log.d("updateapibeingimplemented", updateLogReq.toString())
-
-        viewModelScope.launch {
-            if (isInternetAvailable(context)) {
-                try {
-                    dashboardRespository.updateLog(updateLogReq, shouldHandleResponse)
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Network error in updateLog: ${e.message}", e)
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-        }
-    }
-
+    /**
+     * Fetch home data with timeout and single call guarantee
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun getHome(context: Context, forceRefresh: Boolean = false) {
+        // Check cache first (unless force refresh)
         val currentTime = System.currentTimeMillis()
         val hasExistingData = homeLiveData.value is NetworkResult.Success
         val isDataStale = (currentTime - lastHomeDataFetchTime) > CACHE_VALIDITY_MS
         
-        // Skip API call if data is fresh and not forced
         if (!forceRefresh && hasExistingData && !isDataStale) {
-            Log.d("HomeViewModel", "Using cached data (age: ${(currentTime - lastHomeDataFetchTime)/1000}s)")
+            Log.d(TAG, "getHome: Using cached data")
             return
         }
         
-        viewModelScope.launch {
-            val internetAvailable = isInternetAvailable(context)
-            Log.d("HomeViewModel", "Internet available for getHome: $internetAvailable")
-            
-            if (internetAvailable) {
-                try {
-                    Log.d("HomeViewModel", "Making API call to getHome (forceRefresh=$forceRefresh)")
+        // Prevent multiple concurrent calls
+        if (!isHomeApiInProgress.compareAndSet(false, true)) {
+            Log.d(TAG, "getHome: Already in progress, skipping")
+            return
+        }
+        
+        // Cancel any existing job
+        homeApiJob?.cancel()
+        
+        homeApiJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                Log.d(TAG, "getHome: Starting API call")
+                
+                // Use timeout to prevent infinite hang
+                withTimeout(API_TIMEOUT_MS) {
                     dashboardRespository.getHome()
-                    lastHomeDataFetchTime = System.currentTimeMillis()
-                    Log.d("HomeViewModel", "API call to getHome completed")
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Network error in getHome: ${e.message}", e)
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Network error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
                 }
-            } else {
-                Log.d("HomeViewModel", "No internet available for getHome, showing toast")
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
-                }
+                
+                lastHomeDataFetchTime = System.currentTimeMillis()
+                Log.d(TAG, "getHome: API call completed successfully")
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "getHome: Cancelled")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e(TAG, "getHome: Timeout after ${API_TIMEOUT_MS}ms")
+                // Silent timeout - don't show toast to user
+            } catch (e: Exception) {
+                Log.e(TAG, "getHome: Error - ${e.message}", e)
+                showToast(context, "Network error: ${e.message}")
+            } finally {
+                isHomeApiInProgress.set(false)
             }
         }
     }
-    
-    // Force refresh data (called after mode change or manual refresh)
+
+    /**
+     * Force refresh home data
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun refreshHome(context: Context) {
         getHome(context, forceRefresh = true)
     }
 
+    /**
+     * Get company name with timeout protection
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCompanyName(context: Context) {
+        // Prevent multiple concurrent calls
+        if (!isCompanyApiInProgress.compareAndSet(false, true)) {
+            Log.d(TAG, "getCompanyName: Already in progress, skipping")
+            return
+        }
+        
+        // Cancel any existing job
+        companyApiJob?.cancel()
+        
+        companyApiJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                Log.d(TAG, "getCompanyName: Starting API call")
+                
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.getCompany()
+                }
+                
+                Log.d(TAG, "getCompanyName: API call completed successfully")
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "getCompanyName: Cancelled")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e(TAG, "getCompanyName: Timeout")
+                showToast(context, "Request timeout")
+            } catch (e: Exception) {
+                Log.e(TAG, "getCompanyName: Error - ${e.message}", e)
+            } finally {
+                isCompanyApiInProgress.set(false)
+            }
+        }
+    }
+
+    /**
+     * Log user with timeout protection
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun logUser(logRequest: AddLogRequest, context: Context) {
+        // Prevent multiple concurrent calls
+        if (!isLogUserApiInProgress.compareAndSet(false, true)) {
+            Log.d(TAG, "logUser: Already in progress, skipping")
+            return
+        }
+        
+        // Cancel any existing job
+        logUserApiJob?.cancel()
+        
+        logUserApiJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                Log.d(TAG, "logUser: Starting API call with request: $logRequest")
+                
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.addLog(logRequest)
+                }
+                
+                Log.d(TAG, "logUser: API call completed successfully")
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "logUser: Cancelled")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e(TAG, "logUser: Timeout")
+                showToast(context, "Request timeout")
+            } catch (e: Exception) {
+                Log.e(TAG, "logUser: Error - ${e.message}", e)
+                showToast(context, "Network error: ${e.message}")
+            } finally {
+                isLogUserApiInProgress.set(false)
+            }
+        }
+    }
+
+    /**
+     * Add offset
+     */
+    fun addOffset(prefRepository: PrefRepository, offset: AddOffsetRequest, context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.addOffSet(prefRepository, offset)
+                }
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "addOffset: Cancelled")
+            } catch (e: Exception) {
+                Log.e(TAG, "addOffset: Error - ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Get offset
+     */
+    fun getOffSet(prefRepository: PrefRepository, vin: String, context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                withTimeout(API_TIMEOUT_MS) {
+                    val data = dashboardRespository.getOffSet(vin)
+                    val item = data.body()?.results?.unidentifiedRecords?.firstOrNull { 
+                        it?.vinNo.equals(vin) 
+                    }
+                    prefRepository.setDifferenceinOdo(item?.odometer.toString())
+                    prefRepository.setDifferenceinEnghours(item?.engHour.toString())
+                }
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "getOffSet: Cancelled")
+            } catch (e: Exception) {
+                Log.e(TAG, "getOffSet: Error - ${e.message}", e)
+            }
+        }
+    }
+
+    fun logUserunauth(logRequest: AddLogRequestunauth) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.addLogUnauth(logRequest)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "logUserunauth: Error - ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Update log
+     */
+    @SuppressLint("LongLogTag")
+    fun updateLog(updateLogReq: updateLogRequest, shouldHandleResponse: Boolean = true, context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!isInternetAvailable(context)) {
+                    showToast(context, "No internet connection")
+                    return@launch
+                }
+                
+                Log.d(TAG, "updateLog: Starting with request: $updateLogReq")
+                
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.updateLog(updateLogReq, shouldHandleResponse)
+                }
+                
+                Log.d(TAG, "updateLog: Completed successfully")
+                
+            } catch (e: CancellationException) {
+                Log.d(TAG, "updateLog: Cancelled")
+            } catch (e: Exception) {
+                Log.e(TAG, "updateLog: Error - ${e.message}", e)
+                showToast(context, "Network error: ${e.message}")
+            }
+        }
+    }
 
     fun getReports(param: (Any) -> Any) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = dashboardRespository.getReports()
-                _reportsLiveData.postValue(result)
+                withTimeout(API_TIMEOUT_MS) {
+                    val result = dashboardRespository.getReports()
+                    _reportsLiveData.postValue(result)
+                }
             } catch (e: Exception) {
                 _reportsLiveData.postValue(NetworkResult.Error("Exception: ${e.message}"))
             }
@@ -285,11 +359,16 @@ class HomeViewModel @Inject constructor(
         ?: AlertCalculationUtils.secondLastDayLastLog?.modename ?: ""
 
     fun deleteLog(logId: LogIdRequest) {
-        viewModelScope.launch {
-            dashboardRespository.deleteLog(logId)
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                withTimeout(API_TIMEOUT_MS) {
+                    dashboardRespository.deleteLog(logId)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteLog: Error - ${e.message}", e)
+            }
         }
     }
-
 
     suspend fun getCustomLogs(): Response<GetReportsResponse> {
         return dashboardRespository.get7DayLogs()
@@ -299,10 +378,8 @@ class HomeViewModel @Inject constructor(
         return dashboardRespository.get7DayLogs()
     }
 
-
     fun getPreviousDayLastLog() = AlertCalculationUtils.previousDayLastLog
     fun getPreviousDayLogs() = AlertCalculationUtils.previousDayLogs
-
 
     fun calculatePreviousTimeForLogs(mode: String): Double {
         return dashboardRespository.calculatePreviousTimeForLogs(mode)
@@ -313,24 +390,19 @@ class HomeViewModel @Inject constructor(
     }
 
     fun refineLogsFirstIndex(userLogs: List<UserLog>): List<UserLog> {
-//        refinedUserLogs = userLogs.toMutableList()
-        refinedUserLogs  =  userLogs.filterNot { it.modename == "yard" || it.modename == "personal" }.toMutableList()
-//        refinedUserLogs = AlertCalculationUtils.currentDay.toMutableList()
+        refinedUserLogs = userLogs.filterNot { it.modename == "yard" || it.modename == "personal" }.toMutableList()
 
         SLog.detailLogs("REPLACING CURRENT DAY FIRST LOG WITH PREVIOUS DAY LAST LOG ", "\n", true)
 
-        getPreviousDayLastLog()
-            ?.let { lastDayLastLog ->
-                val newUserLog = UserLog(
-//                    id = lastDayLastLog.id,
-                    time = "00:00",
-                    modename = lastDayLastLog.modename,
-                    is_autoinsert = "1",
-                    hours = lastDayLastLog.hours
-                )
-                refinedUserLogs?.add(0, newUserLog)
-            }
-
+        getPreviousDayLastLog()?.let { lastDayLastLog ->
+            val newUserLog = UserLog(
+                time = "00:00",
+                modename = lastDayLastLog.modename,
+                is_autoinsert = "1",
+                hours = lastDayLastLog.hours
+            )
+            refinedUserLogs?.add(0, newUserLog)
+        }
 
         SLog.detailLogs(
             "PREVIOUS DAY LAST LOG ",
@@ -338,35 +410,54 @@ class HomeViewModel @Inject constructor(
             true
         )
 
-
         return getUserLogs()
-
     }
+
+    /**
+     * Check internet availability
+     */
     fun isInternetAvailable(context: Context): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network: Network? = connectivityManager.activeNetwork
-            val networkCapabilities: NetworkCapabilities? = connectivityManager.getNetworkCapabilities(network)
-            
-            val result = networkCapabilities != null && (
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-            )
-            
-            Log.d("HomeViewModel", "Network check result: $result")
-            result
-        } else {
-            @Suppress("DEPRECATION")
-            val networkInfo = connectivityManager.activeNetworkInfo
-            val result = networkInfo?.isConnected == true
-            Log.d("HomeViewModel", "Network check result (legacy): $result")
-            result
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network: Network? = connectivityManager.activeNetwork
+                val networkCapabilities: NetworkCapabilities? = connectivityManager.getNetworkCapabilities(network)
+
+                networkCapabilities != null && (
+                    networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                connectivityManager.activeNetworkInfo?.isConnected == true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "isInternetAvailable: Error - ${e.message}")
+            false
         }
     }
 
+    /**
+     * Helper to show toast on main thread
+     */
+    private suspend fun showToast(context: Context, message: String) {
+        withContext(Dispatchers.Main) {
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
+    /**
+     * Cancel all ongoing API calls when ViewModel is cleared
+     */
+    override fun onCleared() {
+        super.onCleared()
+        homeApiJob?.cancel()
+        companyApiJob?.cancel()
+        logUserApiJob?.cancel()
+        Log.d(TAG, "ViewModel cleared, all jobs cancelled")
+    }
 }
 
 fun validateCredentials(
@@ -374,16 +465,9 @@ fun validateCredentials(
 ): Pair<Boolean, String> {
 
     var result = Pair(true, "")
-    if (TextUtils.isEmpty(emailAddress) || (!isLogin && TextUtils.isEmpty(userName)) || TextUtils.isEmpty(
-            password
-        )
-    ) {
+    if (TextUtils.isEmpty(emailAddress) || (!isLogin && TextUtils.isEmpty(userName)) || TextUtils.isEmpty(password)) {
         result = Pair(false, "Please provide the credentials")
-    }
-//        else if(!Helper.isValidEmail(emailAddress)){
-//            result = Pair(false, "Email is invalid")
-//        }
-    else if (!TextUtils.isEmpty(password) && password.length <= 2) {
+    } else if (!TextUtils.isEmpty(password) && password.length <= 2) {
         result = Pair(false, "Password length should be greater than 3")
     }
     return result

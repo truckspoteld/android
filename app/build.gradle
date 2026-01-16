@@ -14,7 +14,7 @@ android {
         minSdk 24
         targetSdk 36
         versionCode 4
-        versionName "1.3.18"
+        versionName "1.3.18.4"
         //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField('String', 'API_KEY', "\"sSUmrxH9rS2q6LOL38WXXFgXhLKAf9e34cRv5Xn5\"")
     }
@@ -131,7 +131,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    def hilt_version = '2.44'
+    def hilt_version = '2.48'
     implementation "com.google.dagger:hilt-android:$hilt_version"
     kapt "com.google.dagger:hilt-compiler:$hilt_version"
 

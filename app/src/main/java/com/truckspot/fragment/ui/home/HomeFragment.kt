@@ -121,7 +121,9 @@ class HomeFragment : Fragment(), OnClickListener {
 
     // API call debouncing
     private var lastApiCallTime: Long = 0
-    private val API_CALL_DEBOUNCE_MS = 5000L // 5 seconds debounce for API calls
+    private var lastPauseTime: Long = 0
+    private val API_CALL_DEBOUNCE_MS = 30000L // 30 seconds debounce for API calls
+    private val LONG_PAUSE_THRESHOLD_MS = 60000L // 1 minute - considered long pause
     private var isFetchingLogs = false // Flag to prevent concurrent API calls
 
     var hrs_MODE_OFF = 0.0
@@ -200,6 +202,8 @@ class HomeFragment : Fragment(), OnClickListener {
 
     override fun onPause() {
         super.onPause()
+        // Track when we paused to detect long minimization
+        lastPauseTime = System.currentTimeMillis()
         // Cancel jobs when fragment is not in the foreground
         clockJob?.cancel()
         bluetoothConnectionJob?.cancel()
@@ -648,6 +652,15 @@ class HomeFragment : Fragment(), OnClickListener {
             modeChangeCompletionDeferred?.complete(false)
             modeChangeCompletionDeferred = null
             
+            // Check if we were paused for a long time (more than 1 minute)
+            val currentTime = System.currentTimeMillis()
+            val pauseDuration = if (lastPauseTime > 0) currentTime - lastPauseTime else 0
+            val wasLongPause = pauseDuration > LONG_PAUSE_THRESHOLD_MS
+            
+            if (wasLongPause) {
+                Log.d(TAG, "onResume: Long pause detected (${pauseDuration/1000}s), will refresh silently")
+            }
+            
             Log.d(TAG, "onResume: Flags reset, connecting socket...")
             
             // Connect socket (runs on background thread internally)
@@ -668,9 +681,8 @@ class HomeFragment : Fragment(), OnClickListener {
                 Log.e(TAG, "onResume: Receiver registration error: ${e.message}")
             }
             
-            // Fetch data with debounce
-            val currentTime = System.currentTimeMillis()
-            if (!isFetchingLogs && currentTime - lastApiCallTime > API_CALL_DEBOUNCE_MS) {
+            // Fetch data with debounce - but skip if long pause to avoid immediate loading
+            if (!wasLongPause && !isFetchingLogs && currentTime - lastApiCallTime > API_CALL_DEBOUNCE_MS) {
                 isFetchingLogs = true
                 lastApiCallTime = currentTime
                 Log.d(TAG, "onResume: Fetching home data...")
@@ -680,6 +692,10 @@ class HomeFragment : Fragment(), OnClickListener {
                     Log.e(TAG, "onResume: getHome error: ${e.message}")
                     isFetchingLogs = false
                 }
+            } else if (wasLongPause) {
+                // For long pauses, just use cached data - don't trigger API call
+                Log.d(TAG, "onResume: Using cached data after long pause")
+                lastApiCallTime = currentTime // Reset debounce timer
             } else {
                 Log.d(TAG, "onResume: Skipping fetch, debounce active")
             }

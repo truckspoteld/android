@@ -92,13 +92,14 @@ class HomeFragment : Fragment(), OnClickListener {
     @Inject
     lateinit var prefRepository: PrefRepository
     var mActivity: FragmentActivity? = null
-    private val binding
-        get() = _binding ?: run {
-            val inflater = LayoutInflater.from(context)
-            FragmentHomeBinding.inflate(inflater).also { _binding = it }
-        }
+    private val binding get() = _binding!!
     private val homeViewModel by viewModels<HomeViewModel>()
     private val dashboardViewModel by activityViewModels<DashboardViewModel>()
+    
+    // Cached TimeZone objects for performance
+    private var cachedTimeZoneId: ZoneId? = null
+    private var lastTimeZoneStr: String = ""
+    private var blinkAnimation: android.view.animation.Animation? = null
 
     private var clockJob: Job? = null
     private var locationJob: Job? = null
@@ -271,16 +272,18 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         homeViewModel.connectSocket(prefRepository.getDriverId())
 
-        if (!observersSet) {
-            setupObservers()
-            observersSet = true
-        }
-
         binding.editShipping.setOnClickListener { editShippingNumberPopup() }
         binding.editCoDriver.setOnClickListener { editCoDriverPopup() }
         binding.editTrailerNo.setOnClickListener { editTrailerNumberPopup() }
+        
+        // Always set observers on view creation
+        setupObservers()
+        
+        // Load animations once
+        blinkAnimation = AnimationUtils.loadAnimation(requireContext(), R.anim.blink)
+        
         updateUI()
-        return _binding!!.root
+        return binding.root
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -363,122 +366,110 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun updateGauges(data: HomeDataModel?) {
-        val driveText = view?.findViewById<TextView>(R.id.timeText1)
-        val shiftText = view?.findViewById<TextView>(R.id.timeText2)
-        val cycleText = view?.findViewById<TextView>(R.id.timeText3)
-        val breakText = view?.findViewById<TextView>(R.id.timeTextBreak)
+        if (data?.conditions == null || _binding == null) return
 
-        val driveBar = view?.findViewById<CircularProgressIndicator>(R.id.progressBarMain)
-        val shiftBar = view?.findViewById<CircularProgressIndicator>(R.id.progressBarShift)
-        val cycleBar = view?.findViewById<CircularProgressIndicator>(R.id.progressBarCycle)
-        val breakBar = view?.findViewById<CircularProgressIndicator>(R.id.progressBarBreak)
-
-        val blinkAnimation = AnimationUtils.loadAnimation(context, R.anim.blink)
-
-        if (data?.conditions != null) {
-            if (data.conditions!!.driveViolation!!) {
-                driveText!!.text = ("Voilation")
-                driveText.setTextColor(Color.RED)
-                driveBar?.startAnimation(blinkAnimation)
-                driveBar?.setIndicatorColor(Color.RED)
-                driveBar?.progress = 0
-            } else {
-                val totalMinutes = 11 * 60
-                val remaining = totalMinutes - (data.conditions?.drive ?: 0)
-                val safeSpent = remaining.coerceIn(0, totalMinutes)
-                val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
-                driveBar?.clearAnimation()
-                driveText?.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
-                driveBar?.max = 100
-                driveBar?.progress = progressPercent
-                val color = when (progressPercent) {
-                    in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
-                    in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
-                    in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                    100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
-                }
-                driveBar?.setIndicatorColor(color)
-                driveText?.text = data.conditions?.drive?.toHoursMinutesFormate()
+        if (data.conditions!!.driveViolation!!) {
+            binding.timeText1.text = ("Voilation")
+            binding.timeText1.setTextColor(Color.RED)
+            binding.progressBarMain.startAnimation(blinkAnimation)
+            binding.progressBarMain.setIndicatorColor(Color.RED)
+            binding.progressBarMain.progress = 0
+        } else {
+            val totalMinutes = 11 * 60
+            val remaining = totalMinutes - (data.conditions?.drive ?: 0)
+            val safeSpent = remaining.coerceIn(0, totalMinutes)
+            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            binding.progressBarMain.clearAnimation()
+            binding.timeText1.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
+            binding.progressBarMain.max = 100
+            binding.progressBarMain.progress = progressPercent
+            val color = when (progressPercent) {
+                in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
+                in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
+                in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
+                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
+                else -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
             }
+            binding.progressBarMain.setIndicatorColor(color)
+            binding.timeText1.text = data.conditions?.drive?.toHoursMinutesFormate()
+        }
 
-            if (data.conditions!!.cycleViolation ?: false) {
-                cycleText!!.text = ("Voilation")
-                cycleText.setTextColor(Color.RED)
-                cycleBar?.startAnimation(blinkAnimation)
-                cycleBar?.setIndicatorColor(Color.RED)
-                cycleBar?.progress = 0
-            } else {
-                val totalMinutes = 70 * 60
-                val remaining = totalMinutes - (data.conditions?.cycle ?: 0)
-                val safeSpent = remaining.coerceIn(0, totalMinutes)
-                val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
-                cycleBar?.clearAnimation()
-                cycleText?.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
-                cycleBar?.max = 100
-                cycleBar?.progress = progressPercent
-                val color = when (progressPercent) {
-                    in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
-                    in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
-                    in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                    100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
-                }
-                cycleBar?.setIndicatorColor(color)
-                cycleText?.text = data.conditions?.cycle?.toHoursMinutesFormate()
+        if (data.conditions!!.cycleViolation ?: false) {
+            binding.timeText3.text = ("Voilation")
+            binding.timeText3.setTextColor(Color.RED)
+            binding.progressBarCycle.startAnimation(blinkAnimation)
+            binding.progressBarCycle.setIndicatorColor(Color.RED)
+            binding.progressBarCycle.progress = 0
+        } else {
+            val totalMinutes = 70 * 60
+            val remaining = totalMinutes - (data.conditions?.cycle ?: 0)
+            val safeSpent = remaining.coerceIn(0, totalMinutes)
+            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            binding.progressBarCycle.clearAnimation()
+            binding.timeText3.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
+            binding.progressBarCycle.max = 100
+            binding.progressBarCycle.progress = progressPercent
+            val color = when (progressPercent) {
+                in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
+                in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
+                in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
+                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
+                else -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
             }
+            binding.progressBarCycle.setIndicatorColor(color)
+            binding.timeText3.text = data.conditions?.cycle?.toHoursMinutesFormate()
+        }
 
-            if (data.conditions!!.shiftViolation ?: false) {
-                shiftText!!.text = ("Voilation")
-                shiftText.setTextColor(Color.RED)
-                shiftBar?.startAnimation(blinkAnimation)
-                shiftBar?.setIndicatorColor(Color.RED)
-                shiftBar?.progress = 0
-            } else {
-                val totalMinutes = 14 * 60
-                val remaining = totalMinutes - (data.conditions?.shift ?: 0)
-                val safeSpent = remaining.coerceIn(0, totalMinutes)
-                val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
-                shiftBar?.clearAnimation()
-                shiftText?.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
-                shiftBar?.max = 100
-                shiftBar?.progress = progressPercent
-                val color = when (progressPercent) {
-                    in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
-                    in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
-                    in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                    100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
-                }
-                shiftBar?.setIndicatorColor(color)
-                shiftText?.text = data.conditions?.shift?.toHoursMinutesFormate()
+        if (data.conditions!!.shiftViolation ?: false) {
+            binding.timeText2.text = ("Voilation")
+            binding.timeText2.setTextColor(Color.RED)
+            binding.progressBarShift.startAnimation(blinkAnimation)
+            binding.progressBarShift.setIndicatorColor(Color.RED)
+            binding.progressBarShift.progress = 0
+        } else {
+            val totalMinutes = 14 * 60
+            val remaining = totalMinutes - (data.conditions?.shift ?: 0)
+            val safeSpent = remaining.coerceIn(0, totalMinutes)
+            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            binding.progressBarShift.clearAnimation()
+            binding.timeText2.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
+            binding.progressBarShift.max = 100
+            binding.progressBarShift.progress = progressPercent
+            val color = when (progressPercent) {
+                in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
+                in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
+                in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
+                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
+                else -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
             }
+            binding.progressBarShift.setIndicatorColor(color)
+            binding.timeText2.text = data.conditions?.shift?.toHoursMinutesFormate()
+        }
 
-            if (data.conditions!!.driveBreakViolation ?: false) {
-                breakText!!.text = ("Voilation")
-                breakText.setTextColor(Color.RED)
-                breakBar?.startAnimation(blinkAnimation)
-                breakBar?.setIndicatorColor(Color.RED)
-                breakBar?.progress = 0
-            } else {
-                val totalMinutes = 8 * 60
-                val remaining = totalMinutes - (data.conditions?.drivebreak ?: 0)
-                val safeSpent = remaining.coerceIn(0, totalMinutes)
-                val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
-                breakBar?.clearAnimation()
-                breakText?.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
-                breakBar?.max = 100
-                breakBar?.progress = progressPercent
-                val color = when (progressPercent) {
-                    in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
-                    in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
-                    in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                    100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
-                }
-                breakBar?.setIndicatorColor(color)
-                breakText?.text = data.conditions?.drivebreak?.toHoursMinutesFormate()
+        if (data.conditions!!.driveBreakViolation ?: false) {
+            binding.timeTextBreak.text = ("Voilation")
+            binding.timeTextBreak.setTextColor(Color.RED)
+            binding.progressBarBreak.startAnimation(blinkAnimation)
+            binding.progressBarBreak.setIndicatorColor(Color.RED)
+            binding.progressBarBreak.progress = 0
+        } else {
+            val totalMinutes = 8 * 60
+            val remaining = totalMinutes - (data.conditions?.drivebreak ?: 0)
+            val safeSpent = remaining.coerceIn(0, totalMinutes)
+            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            binding.progressBarBreak.clearAnimation()
+            binding.timeTextBreak.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
+            binding.progressBarBreak.max = 100
+            binding.progressBarBreak.progress = progressPercent
+            val color = when (progressPercent) {
+                in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
+                in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
+                in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
+                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
+                else -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
             }
+            binding.progressBarBreak.setIndicatorColor(color)
+            binding.timeTextBreak.text = data.conditions?.drivebreak?.toHoursMinutesFormate()
         }
     }
 
@@ -1084,15 +1075,22 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateClockDisplay() {
-        if (timeZone.isEmpty()) {
+        if (timeZone.isEmpty() || _binding == null) {
             binding.liveClock.text = getCurrentTime()
             return
         }
         try {
-            val mappedTimezone = timezoneMappings[timeZone] ?: "America/Los_Angeles"
+            // Speed optimization: Only reconstruct ZoneId if timezone string changes
+            if (timeZone != lastTimeZoneStr || cachedTimeZoneId == null) {
+                val mappedTimezone = timezoneMappings[timeZone] ?: "America/Los_Angeles"
+                cachedTimeZoneId = ZoneId.of(mappedTimezone)
+                lastTimeZoneStr = timeZone
+            }
+            
             val currentDateTime = LocalDateTime.now()
             val systemZoneId = ZoneId.systemDefault()
-            val companyZoneId = ZoneId.of(mappedTimezone)
+            val companyZoneId = cachedTimeZoneId!!
+            
             val zonedDateTime = currentDateTime.atZone(systemZoneId).withZoneSameInstant(companyZoneId)
             val companyTime = zonedDateTime.toLocalTime()
             val currentTimezoneTime = String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)

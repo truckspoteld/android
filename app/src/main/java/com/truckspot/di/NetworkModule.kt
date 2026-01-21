@@ -34,7 +34,8 @@ class NetworkModule {
     fun provideRetrofit(client: OkHttpClient): Retrofit {
 
         val loggingInterceptor = HttpLoggingInterceptor()
-        loggingInterceptor.setLevel(if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE)
+        // Use HEADERS instead of BODY to prevent OutOfMemoryError on large API responses
+        loggingInterceptor.setLevel(if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE)
         val clientBuilder = client.newBuilder()
         clientBuilder.addInterceptor(loggingInterceptor)
 
@@ -53,14 +54,17 @@ class NetworkModule {
 
     }
 
+    @Singleton
+    @Provides
+    fun provideCsvDownloadAPI(retrofit: Retrofit): com.truckspot.repository.CsvDownloadApi {
+        return retrofit.create(com.truckspot.repository.CsvDownloadApi::class.java)
+    }
+
 
     @Singleton
     @Provides
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
         val token = PrefRepository(context)
-
-        val loggingInterceptor = HttpLoggingInterceptor()
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
 
         val requestInterceptor = Interceptor { chain ->
             val request = chain.request()
@@ -71,13 +75,10 @@ class NetworkModule {
         }
 
         return OkHttpClient.Builder()
-            .connectTimeout(120, TimeUnit.SECONDS)
-            .readTimeout(120L, TimeUnit.SECONDS)
-            .writeTimeout(120L, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(requestInterceptor)
-            .apply {
-                if (BuildConfig.DEBUG) addInterceptor(loggingInterceptor)
-            }
             .build()
     }
 

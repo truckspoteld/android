@@ -69,6 +69,7 @@ import javax.inject.Inject
 
 class DashboardRepository @Inject constructor(
     private val truckSpotAPI: TruckSpotAPI,
+    private val csvApi: CsvDownloadApi,
     private val prefRepository: PrefRepository,
     @ApplicationContext val context: Context,
     private val okHttpClient: OkHttpClient
@@ -104,13 +105,8 @@ class DashboardRepository @Inject constructor(
     val getCompanyById: LiveData<NetworkResult<GetCompanyById>>
         get() = _getCompanyById
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl(Constants.BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-
-    val csvApi = retrofit.create(CsvDownloadApi::class.java)
+    // Use the injected truckSpotAPI directly
+    // Redundant retrofit and csvApi instances removed to save memory and improve initialization speed
 
 //    @RequiresApi(Build.VERSION_CODES.O)suspend fun getLogs(page: Int, pageSize: Int, days: Int) {
 //        SLog.detailLogs("GETTING LOGS OF DAY ", days.toString() + "\n", true)
@@ -472,14 +468,13 @@ class DashboardRepository @Inject constructor(
         _homeData.postValue(NetworkResult.Loading())
         try {
             val response = truckSpotAPI.getHomeData()
-            Log.d("check the add log being", response.body().toString())
             if (response.isSuccessful && response.body() != null) {
-                Log.d(TAG, "handleResponse: ${response.body()}")
+                Log.d("DashboardRepository", "getHome: Success")
                 _homeData.postValue(NetworkResult.Success(response.body()!!))
             } else if (response.errorBody() != null) {
-                val errorString = response.errorBody()?.byteStream()?.bufferedReader().use { it?.readText() }
-                Log.w(TAG, "handleResponse error: $errorString")
-                _homeData.postValue(NetworkResult.Error("Network error: ${errorString ?: "Unknown error"}"))
+                val errorString = response.errorBody()?.string() ?: "Unknown error"
+                Log.w(TAG, "getHome error: $errorString")
+                _homeData.postValue(NetworkResult.Error("Network error: $errorString"))
             } else {
                 _homeData.postValue(NetworkResult.Error("Network Error"))
             }
@@ -522,6 +517,7 @@ class DashboardRepository @Inject constructor(
         try {
             val response = truckSpotAPI.addLog(addLogRequest)
             if(response.isSuccessful && response.body() != null){
+                Log.d("DashboardRepository", "addLog: Success")
                 _addLog.postValue(NetworkResult.Success(response.body()!!))
             } else if(response.errorBody() != null){
                 val errorJson = response.errorBody()?.string()
@@ -534,8 +530,7 @@ class DashboardRepository @Inject constructor(
             } else {
                 _addLog.postValue(NetworkResult.Error("Network Error"))
             }
-            Log.d("check the add log being", response.body().toString())
-            getHome()
+            // getHome() // Removed redundant call - Fragment will handle refresh or Socket will update
         } catch (e: Exception) {
             Log.e(TAG, "Error in addLog: ${e.message}", e)
             _addLog.postValue(NetworkResult.Error("Network error: ${e.message}"))

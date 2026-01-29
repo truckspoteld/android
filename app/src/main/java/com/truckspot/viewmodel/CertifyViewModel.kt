@@ -14,7 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CertifyViewModel(private val certifyRepository: CertifyRepository) : ViewModel() {
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
+@HiltViewModel
+class CertifyViewModel @Inject constructor(private val certifyRepository: CertifyRepository) : ViewModel() {
 
     // Observe LiveData for get dates operation
     val certifyData: LiveData<NetworkResult<List<CertifyModelItem>>>

@@ -9,6 +9,7 @@ object Constants {
 //     const val BASE_URL  =   "https://qbj1gz1x-4500.euw.devtunnels.ms/"
 //     const val BASE_URL =   "https://z40vkpxm-4500.uks1.devtunnels.ms/"
     // const val BASE_URL =   "https://api.eagleye.app/"
-     const val BASE_URL =   "http://159.89.131.152:4500/"
+    const val BASE_URL =   "https://api.eagleye.app/"
+
 
 }

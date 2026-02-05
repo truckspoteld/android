@@ -106,6 +106,8 @@ class HomeFragment : Fragment(), OnClickListener {
     private var timeZone: String = ""
     private var lastLogTime: String = ""
     private var lastLogMode: String = ""
+    private var lastRelevantLog: HomeDataModel.Log? = null
+    private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastEngineApiCallTime: Long = 0
     private val ENGINE_API_DEBOUNCE_MS = 10000L // 10 seconds debounce
     private var lastSpeedCheckTime: Long = 0
@@ -118,6 +120,7 @@ class HomeFragment : Fragment(), OnClickListener {
 
     // Bluetooth connection state tracking
     private var isBluetoothConnecting = false
+    private var receiversRegistered = false
     private var bluetoothConnectionJob: Job? = null
 
     // API call debouncing
@@ -143,24 +146,12 @@ class HomeFragment : Fragment(), OnClickListener {
     val svcIf = IntentFilter()
     val tmIf = IntentFilter()
 
-    // Variables to prevent rapid mode changes - ENHANCED
-    private var lastModeChangeTime: Long = 0
-    private var isModeChangeInProgress = false
-    private var lastModeChangeTimeout: Job? = null
-    private val MODE_CHANGE_DEBOUNCE_MS = 3000L // 3 seconds debounce
-    private val MODE_CHANGE_TIMEOUT_MS = 30000L // 30 seconds timeout for API call
-
-    // NEW: Track API call completion
-    private var modeChangeCompletionDeferred: CompletableDeferred<Boolean>? = null
-    private var isModeChangeApiInProgress = false
-    private var failedModeChangeAttempts = 0
-    private val MAX_FAILED_ATTEMPTS = 3
-
-    // NEW: Emergency unlock timer
-    private var emergencyUnlockJob: Job? = null
+    // Simple last log tracking like EagleEye
+    private var lastLog: String = ""
 
     var lastEngineLogName: String = ""
     var tmRefresh: BroadcastReceiver = object : BroadcastReceiver() {
+        @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "tmRefresh broadcast")
             if (!isBluetoothConnecting) {
@@ -169,6 +160,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
     var svcRefresh: BroadcastReceiver = object : BroadcastReceiver() {
+        @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "svcRefresh broadcast")
             if (!isBluetoothConnecting) {
@@ -208,8 +200,6 @@ class HomeFragment : Fragment(), OnClickListener {
         // Cancel jobs when fragment is not in the foreground
         clockJob?.cancel()
         bluetoothConnectionJob?.cancel()
-        lastModeChangeTimeout?.cancel()
-        emergencyUnlockJob?.cancel()
         speedMonitoringJob?.cancel()  // Stop speed monitoring when paused
     }
 
@@ -308,6 +298,7 @@ class HomeFragment : Fragment(), OnClickListener {
                         Toast.makeText(context, "Logs are Empty", Toast.LENGTH_SHORT).show()
                         return@observe
                     }
+                    updateLastRelevantLog(it.data?.logs)
                     // Update UI components based on the fetched data
                     updateGauges(it.data)
                     updateViolationTimeCard(it.data?.conditions)
@@ -322,44 +313,32 @@ class HomeFragment : Fragment(), OnClickListener {
                     showValidationErrors(it.message.toString())
                 }
                 is NetworkResult.Loading<*> -> {
-                    if (binding.progressBar.visibility != View.VISIBLE && !isModeChangeInProgress) {
-                        binding.progressBar.visibility = View.VISIBLE
-                    }
+                    binding.progressBar.visibility = View.VISIBLE
                 }
             }
         }
 
-        // CRITICAL: This observer completes the deferred for mode changes
+        // Simple observer for mode change response like EagleEye
         homeViewModel.addLogReponse.observe(viewLifecycleOwner) {
             when (it) {
                 is NetworkResult.Success<*> -> {
-                    Log.d(TAG, "✅ addLogReponse SUCCESS - Completing deferred")
-
-                    // Complete the deferred with success
-                    modeChangeCompletionDeferred?.complete(true)
-
+                    Log.d(TAG, "✅ addLogReponse SUCCESS")
+                    binding.progressBar.visibility = View.GONE
+                    
                     // Update UI after mode change
                     updateUIAfterModeChange(selectedLog.ifEmpty { TRUCK_MODE_OFF })
-
-                    // Fetch updated logs after successful mode change
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        delay(500) // Small delay before fetching
-                        if (!isFetchingLogs) {
-                            isFetchingLogs = true
-                            homeViewModel.getHome(requireContext())
-                        }
-                    }
+                    
+                    // Fetch updated logs
+                    homeViewModel.getHome(requireContext())
                 }
                 is NetworkResult.Error<*> -> {
                     Log.e(TAG, "❌ addLogReponse ERROR: ${it.message}")
-
-                    // Complete the deferred with failure
-                    modeChangeCompletionDeferred?.complete(false)
-
+                    binding.progressBar.visibility = View.GONE
                     showValidationErrors(it.message.toString())
                 }
                 is NetworkResult.Loading<*> -> {
                     Log.d(TAG, "⏳ addLogReponse LOADING")
+                    binding.progressBar.visibility = View.VISIBLE
                 }
             }
         }
@@ -537,7 +516,7 @@ class HomeFragment : Fragment(), OnClickListener {
         val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" }
 
         if (filterForSelection != null && filterForSelection.isNotEmpty()) {
-            when (filterForSelection.last()?.status) {
+            when (filterForSelection.last().status) {
                 TRUCK_MODE_OFF -> updateUI(binding.btnOff)
                 TRUCK_MODE_ON -> updateUI(binding.btnOn)
                 TRUCK_MODE_SLEEPING -> updateUI(binding.btnSleep)
@@ -627,21 +606,12 @@ class HomeFragment : Fragment(), OnClickListener {
             // CRITICAL: Cancel all running jobs first to prevent zombie coroutines
             clockJob?.cancel()
             bluetoothConnectionJob?.cancel()
-            lastModeChangeTimeout?.cancel()
-            emergencyUnlockJob?.cancel()
             
-            // Reset ALL flags on resume to prevent stuck states
+            // Reset flags on resume to prevent stuck states
             isFetchingLogs = false
-            isModeChangeInProgress = false
-            isModeChangeApiInProgress = false
-            failedModeChangeAttempts = 0
             
             // Hide progress bar immediately
             binding.progressBar.visibility = View.GONE
-            
-            // Complete any pending deferred to unblock waiting coroutines
-            modeChangeCompletionDeferred?.complete(false)
-            modeChangeCompletionDeferred = null
             
             // Check if we were paused for a long time (more than 1 minute)
             val currentTime = System.currentTimeMillis()
@@ -661,16 +631,8 @@ class HomeFragment : Fragment(), OnClickListener {
                 Log.e(TAG, "onResume: Socket connection error: ${e.message}")
             }
             
-            // Register receivers
-            try {
-                val context = requireContext()
-                val instance = getInstance(context)
-                logVinState()
-                instance.registerReceiver(tmRefresh, tmIf)
-                instance.registerReceiver(svcRefresh, svcIf)
-            } catch (e: Exception) {
-                Log.e(TAG, "onResume: Receiver registration error: ${e.message}")
-            }
+            // Register receivers (guarded to prevent duplicate registrations)
+            registerLocalReceivers()
             
             // Fetch data with debounce - but skip if long pause to avoid immediate loading
             if (!wasLongPause && !isFetchingLogs && currentTime - lastApiCallTime > API_CALL_DEBOUNCE_MS) {
@@ -711,8 +673,6 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.e(TAG, "onResume: CRITICAL ERROR: ${e.message}", e)
             // Ensure we're in a clean state even if something fails
             isFetchingLogs = false
-            isModeChangeInProgress = false
-            isModeChangeApiInProgress = false
             binding.progressBar.visibility = View.GONE
         }
     }
@@ -729,195 +689,46 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun handleLocationUpdate(speed: Int, rpm: Int, name: String) {
         Log.d(TAG, "📍 handleLocationUpdate: Speed=$speed, RPM=$rpm, Event=$name")
 
-        // STRICT CHECK: Block ALL auto-switches if mode change in progress
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Log.d(TAG, "🚫 Blocked location update - mode change in progress")
-            return
-        }
+        val currentMode = lastLog
 
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastSpeedCheckTime < SPEED_CHECK_THROTTLE_MS) {
-            return
-        }
-        lastSpeedCheckTime = currentTime
-
-        val currentMode = getLastRelevantLogMode()
-        Log.d(TAG, "Current Mode: $currentMode")
-
-        if (name == "EV_POWER_ON") {
-            Log.d(TAG, "🔌 Power ON event")
-            performModeChangeWithTimeout(hrs_MODE_D, "power_on", "")
-            return
-        } else if (name == "EV_POWER_OFF") {
-            Log.d(TAG, "🔌 Power OFF event")
-            performModeChangeWithTimeout(hrs_MODE_D, "power_off", "")
-            return
-        }
-
-        val newEngineState = if (rpm < 1) "ENG_OFF" else "ENG_ON"
-        if (newEngineState == lastEngineLogName) {
-            engineStateStableCount++
-        } else {
-            engineStateStableCount = 1
-            lastEngineLogName = newEngineState
-        }
-
-        if (engineStateStableCount >= ENGINE_STATE_STABLE_THRESHOLD &&
-            currentTime - lastEngineApiCallTime >= ENGINE_API_DEBOUNCE_MS
-        ) {
-            val apiStateToPush = if (newEngineState == "ENG_OFF") "eng_off" else "eng_on"
-            if (apiStateToPush != lastPushedEngineState) {
-                Log.d(TAG, "🔧 Engine state changed: $newEngineState")
-                lastEngineApiCallTime = currentTime
-                lastPushedEngineState = apiStateToPush
-                performModeChangeWithTimeout(hrs_MODE_D, apiStateToPush, "")
-                return
+        // Logic adapted from EagleEye: ON for <= 0, DRIVE for > 0, with UI fixes (runOnUiThread)
+        if (speed > 0 && lastLog == "on") {
+            Log.d(TAG, "🚗 Truck is running & in on mode")
+            lastLog = "d"
+            activity?.runOnUiThread {
+                updateUI(binding.btnDrive)
             }
-        }
-
-        // Only switch if enough time has passed since last mode change
-        if (currentTime - lastModeChangeTime <= MODE_CHANGE_DEBOUNCE_MS) {
-            Log.d(TAG, "⏸️ Too soon for mode change (debounce)")
-            return
-        }
-
-        if (speed > 0 && currentMode != "d") {
-            Log.d(TAG, "🚗 Auto-switching to DRIVE mode due to speed > 0")
-            performModeChangeWithTimeout(hrs_MODE_D, "d", "Auto-switched due to speed > 0 km/h")
-        } else if (speed <= 0 && currentMode == "d") {
-            Log.d(TAG, "🛑 Auto-switching from DRIVE to ON mode due to speed <= 0")
-            performModeChangeWithTimeout(hrs_MODE_ON, "on", "Auto-switched due to speed <= 0 km/h")
-        }
-    }
-
-    private fun getLastRelevantLogMode(): String {
-        val logs = homeViewModel.homeLiveData.value?.data?.logs ?: emptyList()
-        val relevantLogTypes = listOf("d", "off", "sb", "on", "yard", "personal")
-        return logs.filter { relevantLogTypes.contains(it.modename?.lowercase()) }
-            .lastOrNull()?.modename?.lowercase() ?: ""
-    }
-
-    /**
-     * ENHANCED: Performs a mode change with timeout and completion tracking
-     * This prevents the 5-minute hang issue by:
-     * 1. Using CompletableDeferred to wait for actual API response
-     * 2. Having dual timeout system (30s normal, 40s emergency)
-     * 3. Always cleaning up in finally block
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun performModeChangeWithTimeout(hoursLast: Double, mode: String, selectedOptionText: String) {
-        // Check if already in progress
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Log.d(TAG, "❌ Mode change blocked - already in progress")
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Check failed attempts
-        if (failedModeChangeAttempts >= MAX_FAILED_ATTEMPTS) {
-            Log.e(TAG, "❌ Too many failed attempts ($failedModeChangeAttempts), forcing reset")
-            forceResetAllFlags()
-            Toast.makeText(requireContext(), "Too many failed attempts. Please try again.", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        Log.d(TAG, "✅ Starting mode change to: $mode")
-
-        // Set flags
-        isModeChangeInProgress = true
-        isModeChangeApiInProgress = true
-        lastModeChangeTime = System.currentTimeMillis()
-
-        // Create completion deferred for this operation
-        modeChangeCompletionDeferred = CompletableDeferred()
-
-        // Show progress bar
-        binding.progressBar.post {
-            binding.progressBar.visibility = View.VISIBLE
-        }
-
-        // Cancel previous jobs
-        lastModeChangeTimeout?.cancel()
-        emergencyUnlockJob?.cancel()
-
-        // Start emergency unlock timer (20 seconds - absolute max)
-        emergencyUnlockJob = viewLifecycleOwner.lifecycleScope.launch {
-            delay(20000) // 20 seconds emergency timeout
-            if (isModeChangeApiInProgress) {
-                Log.e(TAG, "🚨 EMERGENCY TIMEOUT - Force unlocking after 20s")
-                forceResetAllFlags()
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Operation timed out. Please try again.", Toast.LENGTH_LONG).show()
-                }
+            updateModeChange(hrs_MODE_D, "d", "")
+        } else if (speed > 0 && lastLog == "off") {
+            Log.d(TAG, "🚗 off mode found & speed is more than zero")
+            lastLog = "d"
+            activity?.runOnUiThread {
+                updateUI(binding.btnDrive)
             }
-        }
-
-        // Main operation with timeout
-        lastModeChangeTimeout = viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                // Execute mode change
-                withTimeout(MODE_CHANGE_TIMEOUT_MS) { // 30 second timeout
-                    updateModeChange(hoursLast, mode, selectedOptionText)
-
-                    // CRITICAL: Wait for API response with its own timeout to prevent infinite blocking
-                    Log.d(TAG, "⏳ Waiting for API response...")
-                    val success = withTimeoutOrNull(15000L) {
-                        modeChangeCompletionDeferred?.await()
-                    } ?: false
-
-                    if (success) {
-                        Log.d(TAG, "✅ Mode change completed successfully")
-                        failedModeChangeAttempts = 0 // Reset counter on success
-                    } else {
-                        Log.e(TAG, "❌ Mode change failed or timed out")
-                        failedModeChangeAttempts++
-                    }
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e(TAG, "⏱️ Mode change timed out after ${MODE_CHANGE_TIMEOUT_MS}ms", e)
-                failedModeChangeAttempts++
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Request timed out. Please try again.", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "💥 Error during mode change: ${e.message}", e)
-                failedModeChangeAttempts++
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            } finally {
-                // ALWAYS cleanup - This is the key fix for the hang issue
-                withContext(Dispatchers.Main) {
-                    Log.d(TAG, "🧹 Cleaning up mode change operation")
-                    isModeChangeInProgress = false
-                    isModeChangeApiInProgress = false
-                    binding.progressBar.visibility = View.GONE
-                    modeChangeCompletionDeferred = null
-                }
-                emergencyUnlockJob?.cancel()
+            updateModeChange(hrs_MODE_D, "d", "")
+        } else if (speed > 0 && lastLog == "sb") {
+            Log.d(TAG, "🚗 sb mode found & speed is more than zero")
+            lastLog = "d"
+            activity?.runOnUiThread {
+                updateUI(binding.btnDrive)
             }
-        }
-    }
-
-    /**
-     * Force reset all flags - Used for emergency recovery
-     */
-    private fun forceResetAllFlags() {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            Log.d(TAG, "🔄 Force resetting all flags")
-            isModeChangeInProgress = false
-            isModeChangeApiInProgress = false
-            isFetchingLogs = false
-            binding.progressBar.visibility = View.GONE
-            lastModeChangeTimeout?.cancel()
-            emergencyUnlockJob?.cancel()
-            modeChangeCompletionDeferred?.complete(false)
-            modeChangeCompletionDeferred = null
-
-            // Reset failed attempts after 2 seconds
-            delay(2000)
-            failedModeChangeAttempts = 0
-            Log.d(TAG, "✅ All flags reset complete")
+            updateModeChange(hrs_MODE_D, "d", "")
+        } else if (speed <= 0 && lastLog == "d") {
+            Log.d(TAG, "🛑 driving mode found & speed is zero")
+            activity?.runOnUiThread {
+                updateUI(binding.btnOn)
+            }
+            lastLog = "on"
+            updateModeChange(hrs_MODE_ON, "on", "")
+        } else if (speed <= 0 && lastLog == "") {
+            lastLog = "on"
+            updateModeChange(hrs_MODE_ON, "on", "")
+        } else if (speed > 0 && lastLog == "") {
+            lastLog = "d"
+            activity?.runOnUiThread {
+                updateUI(binding.btnDrive)
+            }
+            updateModeChange(hrs_MODE_D, "d", "")
         }
     }
 
@@ -996,32 +807,16 @@ class HomeFragment : Fragment(), OnClickListener {
     override fun onStop() {
         super.onStop()
         // Reset flags to prevent stuck loader/UI when resuming
-        isModeChangeInProgress = false
-        isModeChangeApiInProgress = false
         isFetchingLogs = false
         _binding?.progressBar?.visibility = View.GONE
-
-        try {
-            getInstance(requireContext()).unregisterReceiver(tmRefresh)
-            getInstance(requireContext()).unregisterReceiver(svcRefresh)
-            // viRefresh is not registered, so don't unregister it
-            getInstance(requireContext()).unregisterReceiver(speedRefresh)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error unregistering receivers: ${e.message}")
-        }
+        unregisterLocalReceivers()
         clockJob?.cancel()
         locationJob?.cancel()
         bluetoothConnectionJob?.cancel()
-        lastModeChangeTimeout?.cancel()
-        emergencyUnlockJob?.cancel()
-        modeChangeCompletionDeferred?.complete(false)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        lastModeChangeTimeout?.cancel()
-        emergencyUnlockJob?.cancel()
-        modeChangeCompletionDeferred?.complete(false)
         // Release MediaPlayer to prevent memory leak
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release()
@@ -1075,7 +870,10 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateClockDisplay() {
-        if (timeZone.isEmpty() || _binding == null) {
+        if (_binding == null) {
+            return
+        }
+        if (timeZone.isEmpty()) {
             binding.liveClock.text = getCurrentTime()
             return
         }
@@ -1096,7 +894,7 @@ class HomeFragment : Fragment(), OnClickListener {
             val currentTimezoneTime = String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)
             binding.liveClock.text = currentTimezoneTime
 
-            val lastLog = getLastRelevantLog()
+            val lastLog = lastRelevantLog
             if (lastLog != null) {
                 lastLogTime = lastLog.time ?: "00:00"
                 lastLogMode = lastLog.modename ?: ""
@@ -1120,14 +918,19 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
-    private fun getLastRelevantLog(): HomeDataModel.Log? {
-        val homeData = homeViewModel.homeLiveData.value?.data
-        val logs = homeData?.logs ?: emptyList()
-        val relevantLogTypes = listOf("d", "off", "sb", "on", "yard", "personal")
-        val filteredLogs = logs.filter { log ->
-            relevantLogTypes.contains(log.modename?.lowercase())
+    private fun updateLastRelevantLog(logs: List<HomeDataModel.Log>?) {
+        if (logs.isNullOrEmpty()) {
+            lastRelevantLog = null
+            return
         }
-        return filteredLogs.lastOrNull()
+        for (index in logs.size - 1 downTo 0) {
+            val mode = logs[index].modename?.lowercase() ?: continue
+            if (relevantLogTypes.contains(mode)) {
+                lastRelevantLog = logs[index]
+                return
+            }
+        }
+        lastRelevantLog = null
     }
 
     private fun calculateElapsedTime(currentTime: String, logTime: String): String {
@@ -1157,6 +960,32 @@ class HomeFragment : Fragment(), OnClickListener {
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating elapsed time: ${e.message}", e)
             "00:00:00"
+        }
+    }
+
+    private fun registerLocalReceivers() {
+        if (receiversRegistered) return
+        try {
+            val instance = getInstance(requireContext())
+            logVinState()
+            instance.registerReceiver(tmRefresh, tmIf)
+            instance.registerReceiver(svcRefresh, svcIf)
+            receiversRegistered = true
+        } catch (e: Exception) {
+            Log.e(TAG, "Receiver registration error: ${e.message}")
+        }
+    }
+
+    private fun unregisterLocalReceivers() {
+        if (!receiversRegistered) return
+        try {
+            val instance = getInstance(requireContext())
+            instance.unregisterReceiver(tmRefresh)
+            instance.unregisterReceiver(svcRefresh)
+        } catch (e: Exception) {
+            Log.e(TAG, "Receiver unregistration error: ${e.message}")
+        } finally {
+            receiversRegistered = false
         }
     }
 
@@ -1234,11 +1063,6 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun sbMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         if (homeViewModel.getLastLogModeName() == TRUCK_MODE_SLEEPING) {
             Utils.dialog(requireContext(), "Error", "Already in sleeping mode")
             return
@@ -1248,38 +1072,22 @@ class HomeFragment : Fragment(), OnClickListener {
             return
         }
         if (MODE_SB != homeViewModel.trackingMode.get()!! || isEmptyList) {
-            modeChangeLog(TRUCK_MODE_SLEEPING)
             mediaPlayer.start()
-            performModeChangeWithTimeout(hrs_MODE_SB, TRUCK_MODE_SLEEPING, "sb from click")
+            updateModeChange(hrs_MODE_SB, TRUCK_MODE_SLEEPING, "sb from click")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun drivingMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            Log.d(TAG, "🚫 Driving mode blocked - operation in progress")
-            return
-        }
-
         Log.d(TAG, "🚗 Manual switch to DRIVING mode")
-        modeChangeLog(TRUCK_MODE_DRIVING)
         updateUI(binding.btnDrive)
         mediaPlayer.start()
-        performModeChangeWithTimeout(hrs_MODE_D, TRUCK_MODE_DRIVING, "d from click")
+        updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "d from click")
     }
 
-    private fun modeChangeLog(mode: String) {
-        Log.d(TAG, "UPDATE MODE FROM CLICK: $mode")
-    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun onMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val dialog = Dialog(requireContext())
         dialog.setContentView(R.layout.menu_sb_menu)
         val optionViews = (1..12).map { i ->
@@ -1290,15 +1098,13 @@ class HomeFragment : Fragment(), OnClickListener {
                 val selectedOptionText = optionView.text.toString()
                 if (!isClickable() && prefRepository.getMode() == TRUCK_MODE_DRIVING) {
                     Log.d(TAG, "Vehicle is running unable to click")
-                    Toast.makeText(context, "Vehicle is running unable to click", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
                     return@setOnClickListener
                 }
                 mediaPlayer.start()
                 if (MODE_ON != homeViewModel.trackingMode.get()!! || isEmptyList) {
-                    modeChangeLog(TRUCK_MODE_ON)
                     updateUI(binding.btnOn)
-                    performModeChangeWithTimeout(hrs_MODE_ON, TRUCK_MODE_ON, selectedOptionText)
+                    updateModeChange(hrs_MODE_ON, TRUCK_MODE_ON, selectedOptionText)
                 }
                 dialog.dismiss()
             }
@@ -1316,11 +1122,6 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun offMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         if (homeViewModel.getLastLogModeName() == TRUCK_MODE_OFF) {
             Utils.dialog(requireContext(), "Error", "Already in off mode")
             return
@@ -1329,7 +1130,6 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.d(TAG, "Vehicle is running, unable to click")
             return
         }
-        modeChangeLog(TRUCK_MODE_OFF)
         val dialog = Dialog(requireContext())
         dialog.setContentView(R.layout.menu_of_menu)
         val optionViews = (1..3).map { i ->
@@ -1338,7 +1138,7 @@ class HomeFragment : Fragment(), OnClickListener {
         optionViews.forEach { optionView ->
             optionView?.setOnClickListener {
                 val selectedOptionText = optionView.text.toString()
-                performModeChangeWithTimeout(hrs_MODE_OFF, TRUCK_MODE_OFF, selectedOptionText)
+                updateModeChange(hrs_MODE_OFF, TRUCK_MODE_OFF, selectedOptionText)
                 dialog.dismiss()
             }
         }
@@ -1357,35 +1157,23 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun yardMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         if (MODE_YARD != homeViewModel.trackingMode.get()!! && prefRepository.getMode() == TRUCK_MODE_OFF) {
             mediaPlayer.start()
-            modeChangeLog(TRUCK_MODE_YARD)
             updateUI(binding.tvYarduse)
-            performModeChangeWithTimeout(0.0, TRUCK_MODE_YARD, "yard")
+            updateModeChange(0.0, TRUCK_MODE_YARD, "yard")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun personalMode() {
-        if (isModeChangeInProgress || isModeChangeApiInProgress) {
-            Toast.makeText(requireContext(), "Please wait, processing...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         if (!isClickable() && prefRepository.getMode() == TRUCK_MODE_PERSONAL && prefRepository.getMode() != TRUCK_MODE_ON) {
             Log.d(TAG, "Vehicle is running unable to click")
             return
         }
         if ((MODE_PERSONAL != homeViewModel.trackingMode.get()!! && prefRepository.getMode() == TRUCK_MODE_ON)) {
             mediaPlayer.start()
-            modeChangeLog(TRUCK_MODE_PERSONAL)
             updateUI(binding.tvPerosnaluse)
-            performModeChangeWithTimeout(0.0, TRUCK_MODE_PERSONAL, "personal")
+            updateModeChange(0.0, TRUCK_MODE_PERSONAL, "personal")
         }
     }
 

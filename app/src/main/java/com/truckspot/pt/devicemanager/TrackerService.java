@@ -68,11 +68,13 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private static final String TAG = "TrackerService";
 
     /**
-     * A broadcast message with this action and the message in {@link Intent#EXTRA_TEXT} will be sent t the UART device.
+     * A broadcast message with this action and the message in
+     * {@link Intent#EXTRA_TEXT} will be sent t the UART device.
      */
     public final static String ACTION_SEND = "no.nordicsemi.android.nrftoolbox.uart.ACTION_SEND";
     /**
-     * A broadcast message with this action is triggered when a message is received from the UART device.
+     * A broadcast message with this action is triggered when a message is received
+     * from the UART device.
      */
     private final static String ACTION_RECEIVE = "no.nordicsemi.android.nrftoolbox.uart.ACTION_RECEIVE";
     /**
@@ -139,7 +141,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     public void onCreate() {
         super.onCreate();
 
-
         IntentFilter disconnectFilter = new IntentFilter(ACTION_DISCONNECT);
         IntentFilter sendFilter = new IntentFilter(ACTION_SEND);
 
@@ -154,14 +155,14 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     @Override
     public void onDestroy() {
-        // when user has disconnected from the sensor, we have to cancel the notification that we've created some milliseconds before using unbindService
+        // when user has disconnected from the sensor, we have to cancel the
+        // notification that we've created some milliseconds before using unbindService
         cancelNotifications();
         unregisterReceiver(mDisconnectActionBroadcastReceiver);
         unregisterReceiver(mIntentBroadcastReceiver);
 
         super.onDestroy();
     }
-
 
     @Override
     protected void onRebind() {
@@ -172,7 +173,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     protected void onUnbind() {
         startForegroundService();
     }
-
 
     private String notNull(final String name) {
         if (!TextUtils.isEmpty(name))
@@ -213,13 +213,11 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         cancelNotifications();
     }
 
-
     @Override
     public void onDeviceConnected(@NonNull BluetoothDevice device) {
         super.onDeviceConnected(device);
 
     }
-
 
     @Override
     public void onRequest(final String address, TelemetryEventRequest tmr) {
@@ -232,7 +230,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         if (prefRepository.getLogTimeDifference() > 3600000 && mTm.mGeoloc.speed > 7) { //
             String mode = "d";
-//            AddLogRequest logRequest = new AddLogRequest(mode, mTm.mOdometer, mTm.mEngineHours, 1, location, 1, 1, 1, "1C6RREHT5NN451094", "d");
             AddLogRequest logRequest = new AddLogRequest(
                     mode,
                     mTm.mOdometer,
@@ -244,13 +241,18 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                     1,
                     1,
                     1,
-                    1,"","",
-                    ""
-            );
-            repository.addLogJava(logRequest);
-            prefRepository.setLastLogTime();
+                    1, "", "",
+                    "");
+            // Execute API call on background thread to prevent ANR
+            new Thread(() -> {
+                try {
+                    repository.addLogJava(logRequest);
+                    prefRepository.setLastLogTime();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error adding log from TrackerService: " + e.getMessage(), e);
+                }
+            }).start();
         }
-
 
         class TEventFlag {
             Boolean flag = false;
@@ -264,30 +266,28 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             }
         }
 
-
         Intent broadcast = new Intent("REFRESH");
         broadcast.putExtra(EXTRA_DEVICE, getBluetoothDevice());
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
 
-
         GeolocParam geoloc = mTm.mGeoloc;
         DateTimeParam dt = mTm.mDateTime;
-//		TEventFlag isLive = new TEventFlag(tmr);
+        // TEventFlag isLive = new TEventFlag(tmr);
 
-//		StringBuilder params = new StringBuilder();
-//		String id = "";
-//		params.append("id=").append(id)
-//				.append("&lat=").append(geoloc.latitude.toString())
-//				.append("&lon=").append(geoloc.longitude.toString())
-//				.append("&sat=").append(geoloc.satCount)
-//				.append("&speed=").append(geoloc.speed)
-//				.append("&head=").append(geoloc.heading)
-//				.append("&date=").append(dt.date)
-//				.append("&time=").append(dt.time);
-//
-//		if (isLive.isAvailable) {
-//			params.append("&live=").append(isLive.flag);
-//		}
+        // StringBuilder params = new StringBuilder();
+        // String id = "";
+        // params.append("id=").append(id)
+        // .append("&lat=").append(geoloc.latitude.toString())
+        // .append("&lon=").append(geoloc.longitude.toString())
+        // .append("&sat=").append(geoloc.satCount)
+        // .append("&speed=").append(geoloc.speed)
+        // .append("&head=").append(geoloc.heading)
+        // .append("&date=").append(dt.date)
+        // .append("&time=").append(dt.time);
+        //
+        // if (isLive.isAvailable) {
+        // params.append("&live=").append(isLive.flag);
+        // }
 
         // Do something
         Log.i(TAG, "EVENT:" + mTm.mEvent.toString() + ":" + mTm.mSeq);
@@ -381,7 +381,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         // NOP - The events shall be updated in the Stored events tile
     }
 
-
     @Override
     public void onResponse(final String address, final GetDiagTroubleCodesResponse dtcr) {
 
@@ -411,7 +410,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     public static final String EXTRA_RESP_STATUS_KEY = "status";
     public static final String EXTRA_RESP_ACTION_KEY = "action";
-
 
     @Override
     public void onResponse(final String address, final ClearDiagTroubleCodesResponse cdtcr) {
@@ -446,7 +444,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             return;
         }
 
-
         if (!TextUtils.isEmpty(gsvr.mTag) && gsvr.mTag.equals(SystemVar.PERIODIC_EVENT_GAP.mVal)) {
             // App model and shared pref
             AppModel.getInstance().mPE = gsvr.mVal;
@@ -455,7 +452,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putString("sv_pe", gsvr.mVal);
             editor.commit();
-        } else if (!TextUtils.isEmpty(gsvr.mTag) && gsvr.mTag.equals("HUC")) { //PT-40
+        } else if (!TextUtils.isEmpty(gsvr.mTag) && gsvr.mTag.equals("HUC")) { // PT-40
             // App model and shared pref
             AppModel.getInstance().mPE = gsvr.mVal;
             Log.d(TAG, "SV: HUC = " + gsvr.mVal);
@@ -485,7 +482,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
     }
 
-
     public static final String EXTRA_TRACKER_UPDATE_ACTION_KEY = "action";
     public static final String EXTRA_TRACKER_UPDATE_ARG_KEY = "arg";
 
@@ -502,7 +498,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         intent.putExtra("action", EXTRA_TRACKER_UPDATE_ACTION_UPTODATE); // UPTODATE
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
-
 
     @Override
     public void onFileUpdateStarted(final String address, final String fn) {
@@ -522,7 +517,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         intent.putExtra("arg", percentage);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
-
 
     @Override
     public void onFileUpdateCompleted(final String address) {
@@ -556,11 +550,14 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
      * Sets the service as a foreground service
      */
     private void startForegroundService() {
-        // when the activity closes we need to show the notification that user is connected to the peripheral sensor
-        // We start the service as a foreground service as Android 8.0 (Oreo) onwards kills any running background services
+        // when the activity closes we need to show the notification that user is
+        // connected to the peripheral sensor
+        // We start the service as a foreground service as Android 8.0 (Oreo) onwards
+        // kills any running background services
         final Notification notification = createNotification(R.string.tracker_running, 0);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(CONNECTION_NOTI_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            startForeground(CONNECTION_NOTI_ID, notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForeground(CONNECTION_NOTI_ID, notification);
         } else {
@@ -573,7 +570,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
      * Stops the service as a foreground service
      */
     private void stopForegroundService() {
-        // when the activity rebinds to the service, remove the notification and stop the foreground service
+        // when the activity rebinds to the service, remove the notification and stop
+        // the foreground service
         // on devices running Android 8.0 (Oreo) or above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             stopForeground(true);
@@ -582,36 +580,44 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         }
     }
 
-
     /**
      * Creates the notification
      *
-     * @param messageResId message resource id. The message must have one String parameter,<br />
-     *                     f.e. <code>&lt;string name="name"&gt;%s is connected&lt;/string&gt;</code>
+     * @param messageResId message resource id. The message must have one String
+     *                     parameter,<br />
+     *                     f.e.
+     *                     <code>&lt;string name="name"&gt;%s is connected&lt;/string&gt;</code>
      * @param defaults     signals that will be used to notify the user
      */
     private Notification createNotification(final int messageResId, final int defaults) {
         final Intent parentIntent = new Intent(this, TrackerManagerActivity.class);
         parentIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-//		final Intent disconnect = new Intent(ACTION_DISCONNECT);
-//		disconnect.putExtra(EXTRA_SOURCE, SOURCE_NOTIFICATION);
-//		final PendingIntent disconnectAction = PendingIntent.getBroadcast(this, DISCONNECT_REQ, disconnect, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // final Intent disconnect = new Intent(ACTION_DISCONNECT);
+        // disconnect.putExtra(EXTRA_SOURCE, SOURCE_NOTIFICATION);
+        // final PendingIntent disconnectAction = PendingIntent.getBroadcast(this,
+        // DISCONNECT_REQ, disconnect, PendingIntent.FLAG_UPDATE_CURRENT |
+        // PendingIntent.FLAG_IMMUTABLE);
 
-        // activity has launchMode="singleTask" , so if the task is already running, it will be resumed
-        final PendingIntent pendingIntent = PendingIntent.getActivities(this, OPEN_ACTIVITY_REQ, new Intent[]{parentIntent}, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // activity has launchMode="singleTask" , so if the task is already running, it
+        // will be resumed
+        final PendingIntent pendingIntent = PendingIntent.getActivities(this, OPEN_ACTIVITY_REQ,
+                new Intent[] { parentIntent }, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, App.CONNECTED_DEVICE_CHANNEL);
         builder.setContentIntent(pendingIntent);
         builder.setContentTitle(getString(R.string.app_name)).setContentText(getString(messageResId, getDeviceName()));
         builder.setSmallIcon(R.mipmap.ic_launcher_new);
         builder.setShowWhen(defaults != 0).setDefaults(defaults).setAutoCancel(true).setOngoing(true);
         // FIXME - Handle disconnect from noti
-        //builder.addAction(new NotificationCompat.Action(R.drawable.ic_action_bluetooth, getString(R.string.disconnect), disconnectAction));
+        // builder.addAction(new
+        // NotificationCompat.Action(R.drawable.ic_action_bluetooth,
+        // getString(R.string.disconnect), disconnectAction));
         return builder.build();
     }
 
     /**
-     * Cancels the existing notification. If there is no active notification this method does nothing
+     * Cancels the existing notification. If there is no active notification this
+     * method does nothing
      */
     private void cancelNotifications() {
         final NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -636,9 +642,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         nm.cancel(UPDATE_NOTI_ID);
     }
 
-
     /**
-     * This broadcast receiver listens for {@link #ACTION_DISCONNECT} that may be fired by pressing Disconnect action button on the notification.
+     * This broadcast receiver listens for {@link #ACTION_DISCONNECT} that may be
+     * fired by pressing Disconnect action button on the notification.
      */
     private final BroadcastReceiver mDisconnectActionBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -660,7 +666,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     };
 
     /**
-     * Broadcast receiver that listens for {@link #ACTION_SEND} from other apps. Sends the String or int content of the {@link Intent#EXTRA_TEXT} extra to the remote device.
+     * Broadcast receiver that listens for {@link #ACTION_SEND} from other apps.
+     * Sends the String or int content of the {@link Intent#EXTRA_TEXT} extra to the
+     * remote device.
      * The integer content will be sent as String (65 -> "65", not 65 -> "A").
      */
     private BroadcastReceiver mIntentBroadcastReceiver = new BroadcastReceiver() {
@@ -670,7 +678,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             if (hasMessage) {
                 String message = intent.getStringExtra(Intent.EXTRA_TEXT);
                 if (message == null) {
-                    final int intValue = intent.getIntExtra(Intent.EXTRA_TEXT, Integer.MIN_VALUE); // how big is the chance of such data?
+                    final int intValue = intent.getIntExtra(Intent.EXTRA_TEXT, Integer.MIN_VALUE); // how big is the
+                                                                                                   // chance of such
+                                                                                                   // data?
                     if (intValue != Integer.MIN_VALUE)
                         message = String.valueOf(intValue);
                 }
@@ -679,14 +689,16 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                     final int source = intent.getIntExtra(EXTRA_SOURCE, SOURCE_3RD_PARTY);
                     switch (source) {
                         case SOURCE_WEARABLE:
-                            Logger.i(getLogSession(), "[WEAR] '" + "Constants.UART.COMMAND" + "' message received with data: \"" + message + "\"");
+                            Logger.i(getLogSession(), "[WEAR] '" + "Constants.UART.COMMAND"
+                                    + "' message received with data: \"" + message + "\"");
                             break;
                         case SOURCE_3RD_PARTY:
                         default:
-                            Logger.i(getLogSession(), "[Broadcast] " + ACTION_SEND + " broadcast received with data: \"" + message + "\"");
+                            Logger.i(getLogSession(), "[Broadcast] " + ACTION_SEND + " broadcast received with data: \""
+                                    + message + "\"");
                             break;
                     }
-                    //mTracker.send(message);
+                    // mTracker.send(message);
                     return;
                 }
             }
@@ -694,7 +706,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             if (!hasMessage)
                 Logger.i(getLogSession(), "[Broadcast] " + ACTION_SEND + " broadcast received no data.");
             else
-                Logger.i(getLogSession(), "[Broadcast] " + ACTION_SEND + " broadcast received incompatible data type. Only String and int are supported.");
+                Logger.i(getLogSession(), "[Broadcast] " + ACTION_SEND
+                        + " broadcast received incompatible data type. Only String and int are supported.");
         }
     };
 }

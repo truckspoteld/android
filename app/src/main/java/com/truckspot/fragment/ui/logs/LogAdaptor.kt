@@ -124,7 +124,7 @@ class LogAdaptor  (
         viewHolder.tvTime.text = formatTimeWithTimezone(time)
         
         // Safe handling of status
-        var statusText = userLog.modename?.uppercase() ?: ""
+        var statusText = userLog.modename.uppercase() ?: ""
         if (userLog.discreption == "yard") {
             statusText = "YARD"
         } else if (userLog.discreption == "personal") {

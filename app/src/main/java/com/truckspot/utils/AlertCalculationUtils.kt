@@ -28,6 +28,7 @@ import java.util.Calendar
 import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 
 object AlertCalculationUtils {
@@ -38,6 +39,25 @@ object AlertCalculationUtils {
     private const val SB_CONDITION_KEY = "sbcond"
     private const val SB_CONDITION_PREVIOUS_KEY = "sbcondPrev"
     private const val SB_INDEX_KEY = "sbind"
+
+    private val timezoneMappings = mapOf(
+        "PST" to "America/Los_Angeles",
+        "AKST" to "America/Anchorage",
+        "MST" to "America/Denver",
+        "HST" to "Pacific/Honolulu",
+        "CST" to "America/Chicago",
+        "EST" to "America/New_York"
+    )
+
+    private val zoneIdCache = ConcurrentHashMap<String, ZoneId>()
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSXXX")
+    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    private fun resolveZoneId(selectedTimezone: String): ZoneId {
+        val zoneKey = timezoneMappings[selectedTimezone] ?: "America/Los_Angeles"
+        return zoneIdCache.getOrPut(zoneKey) { ZoneId.of(zoneKey) }
+    }
     private const val SHIFT_RESET_INDEX_KEY = "shiftResetIndex"
 
     private const val SB_INDEX_PREVIOUS_KEY = "sbindPrev"
@@ -1025,22 +1045,12 @@ private fun overallHours(
     @RequiresApi(Build.VERSION_CODES.O)
     fun setDateAndTimeBasedOnTimezone(selectedTimezone: String): Map<String, String> {
         // Removed println to prevent log spam during resume
-
-        val timezoneMappings = mapOf(
-            "PST" to "America/Los_Angeles",
-            "AKST" to "America/Anchorage",
-            "MST" to "America/Denver",
-            "HST" to "Pacific/Honolulu",
-            "CST" to "America/Chicago",
-            "EST" to "America/New_York"
-        )
-
-        val zoneId = ZoneId.of(timezoneMappings[selectedTimezone] ?: "America/Los_Angeles")
+        val zoneId = resolveZoneId(selectedTimezone)
         val zonedDateTime = ZonedDateTime.now(zoneId)
 
-        val time24HourFormat = zonedDateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-        val dateTimeFormat = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSXXX"))
-        val dateFormat = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        val time24HourFormat = zonedDateTime.format(timeFormatter)
+        val dateTimeFormat = zonedDateTime.format(dateTimeFormatter)
+        val dateFormat = zonedDateTime.format(dateFormatter)
 
         return mapOf(
             "date" to dateFormat,
@@ -1052,17 +1062,8 @@ private fun overallHours(
     @RequiresApi(Build.VERSION_CODES.O)
     fun convertTimeToTimezone(time: String, fromTimezone: String, toTimezone: String): String {
         return try {
-            val timezoneMappings = mapOf(
-                "PST" to "America/Los_Angeles",
-                "AKST" to "America/Anchorage",
-                "MST" to "America/Denver",
-                "HST" to "Pacific/Honolulu",
-                "CST" to "America/Chicago",
-                "EST" to "America/New_York"
-            )
-
-            val fromZoneId = ZoneId.of(timezoneMappings[fromTimezone] ?: "America/Los_Angeles")
-            val toZoneId = ZoneId.of(timezoneMappings[toTimezone] ?: "America/Los_Angeles")
+            val fromZoneId = resolveZoneId(fromTimezone)
+            val toZoneId = resolveZoneId(toTimezone)
 
             // Parse the time string (assuming HH:mm:ss format)
             val timeParts = time.split(":")

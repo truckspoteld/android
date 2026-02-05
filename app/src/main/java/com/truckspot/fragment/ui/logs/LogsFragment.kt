@@ -1,8 +1,6 @@
 package com.truckspot.fragment.ui.logs
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +11,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.truckspot.databinding.FragmentLogsBinding
 import com.truckspot.fragment.ui.home.HomeViewModel
@@ -24,6 +22,12 @@ import com.truckspot.utils.AlertCalculationUtils.getCurrentDateInTimezone
 import com.truckspot.utils.Utils.toHoursMinutesFormate
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Date
 
 @AndroidEntryPoint
@@ -40,8 +44,7 @@ class LogsFragment : Fragment() {
     var timeZone: String = ""
     
     // Timer variables for auto-refresh
-    private var autoRefreshHandler: Handler? = null
-    private var autoRefreshRunnable: Runnable? = null
+    private var autoRefreshJob: Job? = null
     private val AUTO_REFRESH_INTERVAL = 30000L // 30 seconds
     
     // Flag to prevent duplicate data loading
@@ -308,17 +311,24 @@ class LogsFragment : Fragment() {
         if(timeZone.isEmpty()){
             return
         }
+        val requestDate = getDateForDaysOffset(days, "")
+        loadLogsForDate(requestDate, updateAutoRefresh = true)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun loadLogsForDate(requestDate: String, updateAutoRefresh: Boolean) {
         val request = GetLogsByDateRequest(
-            prefRepository.getDriverId(), 
-            getDateForDaysOffset(days, ""),
-            getDateForDaysOffset(days, ""),
-//            getDateForDaysOffset(days, "")
+            prefRepository.getDriverId(),
+            requestDate,
+            requestDate,
+//            requestDate
         )
         logViewMode.getLogs(request, requireContext())
         updateArrowVisibility()
-        
-        // Update auto-refresh based on current date
-        updateAutoRefreshForCurrentDate()
+
+        if (updateAutoRefresh) {
+            updateAutoRefreshForCurrentDate()
+        }
     }
 
     private fun showLoading(show: Boolean) {
@@ -359,10 +369,8 @@ class LogsFragment : Fragment() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onResume() {
         super.onResume()
-        // Start auto-refresh if viewing today's logs
-        if (isViewingCurrentDay()) {
-            startAutoRefresh()
-        }
+        // Start/stop auto-refresh based on current date
+        updateAutoRefreshForCurrentDate()
     }
     
     override fun onPause() {
@@ -384,12 +392,10 @@ class LogsFragment : Fragment() {
     private fun isViewingCurrentDay(): Boolean {
         return try {
             if (timeZone.isEmpty()) return false
+            if (_binding == null) return false
             
-            val currentDate = getCurrentDateInTimezone(timeZone)
-            val viewingDate = getDateForDaysOffset(days, "")
-            
-            Log.d("LogsFragment", "Current date: $currentDate, Viewing date: $viewingDate, Days offset: $days")
-            currentDate == viewingDate && days == 0
+            // Simple check based on days offset - today is always days == 0
+            days == 0
         } catch (e: Exception) {
             Log.e("LogsFragment", "Error checking if viewing current day: ${e.message}")
             false
@@ -399,28 +405,48 @@ class LogsFragment : Fragment() {
     /**
      * Start the auto-refresh timer for current day logs
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun startAutoRefresh() {
-        if (autoRefreshHandler == null) {
-            autoRefreshHandler = Handler(Looper.getMainLooper())
-        }
-        
-        autoRefreshRunnable = object : Runnable {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun run() {
-                if (isViewingCurrentDay()) {
-                    Log.d("LogsFragment", "Auto-refreshing logs for current day")
-                    loadInitialData()
-                    
-                    // Schedule next refresh
-                    autoRefreshHandler?.postDelayed(this, AUTO_REFRESH_INTERVAL)
-                } else {
-                    Log.d("LogsFragment", "Stopping auto-refresh - not viewing current day")
-                    stopAutoRefresh()
+        if (autoRefreshJob?.isActive == true) return
+        if (_binding == null) return
+
+        autoRefreshJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                while (isActive && _binding != null) {
+                    if (timeZone.isEmpty()) {
+                        Log.d("LogsFragment", "Auto-refresh stopped - timezone empty")
+                        return@launch
+                    }
+
+                    // Check if still viewing current day
+                    if (days != 0) {
+                        Log.d("LogsFragment", "Stopping auto-refresh - not viewing current day")
+                        stopAutoRefresh()
+                        return@launch
+                    }
+
+                    // Calculate request date on background thread
+                    val requestDate = withContext(Dispatchers.Default) {
+                        try {
+                            getDateForDaysOffset(days, "")
+                        } catch (e: Exception) {
+                            Log.e("LogsFragment", "Error getting date: ${e.message}")
+                            null
+                        }
+                    }
+
+                    if (requestDate != null && _binding != null) {
+                        Log.d("LogsFragment", "Auto-refreshing logs for current day")
+                        loadLogsForDate(requestDate, updateAutoRefresh = false)
+                    }
+
+                    delay(AUTO_REFRESH_INTERVAL)
                 }
+            } catch (e: Exception) {
+                Log.e("LogsFragment", "Error in auto-refresh: ${e.message}")
             }
         }
-        
-        autoRefreshHandler?.postDelayed(autoRefreshRunnable!!, AUTO_REFRESH_INTERVAL)
+        autoRefreshJob?.invokeOnCompletion { autoRefreshJob = null }
         Log.d("LogsFragment", "Auto-refresh started for current day logs")
     }
     
@@ -428,10 +454,8 @@ class LogsFragment : Fragment() {
      * Stop the auto-refresh timer
      */
     private fun stopAutoRefresh() {
-        autoRefreshRunnable?.let { runnable ->
-            autoRefreshHandler?.removeCallbacks(runnable)
-            autoRefreshRunnable = null
-        }
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
         Log.d("LogsFragment", "Auto-refresh stopped")
     }
     
@@ -440,10 +464,19 @@ class LogsFragment : Fragment() {
      */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateAutoRefreshForCurrentDate() {
-        if (isViewingCurrentDay()) {
-            startAutoRefresh()
-        } else {
-            stopAutoRefresh()
+        if (_binding == null) return
+        
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                val shouldStart = days == 0 && timeZone.isNotEmpty()
+                if (shouldStart) {
+                    startAutoRefresh()
+                } else {
+                    stopAutoRefresh()
+                }
+            } catch (e: Exception) {
+                Log.e("LogsFragment", "Error updating auto-refresh: ${e.message}")
+            }
         }
     }
 }

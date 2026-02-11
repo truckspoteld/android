@@ -84,9 +84,11 @@ class ReportsFragment : Fragment() {
             when (result) {
                 is NetworkResult.Success -> {
                     companyInfo = result.data?.results
+                    binding.swipeRefreshLayout.isRefreshing = false
                     Log.d("ReportsFragment", "Company info loaded: ${companyInfo?.company_name}")
                 }
                 is NetworkResult.Error -> {
+                    binding.swipeRefreshLayout.isRefreshing = false
                     Log.e("ReportsFragment", "Error loading company info: ${result.message}")
                 }
                 is NetworkResult.Loading -> {
@@ -100,6 +102,22 @@ class ReportsFragment : Fragment() {
         if (driverId != 0) {
 //            homeViewModel.dashboardRespository.getCompanyById(driverId)
         }
+        
+        // Setup SwipeRefreshLayout for pull-to-refresh
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            Log.d("ReportsFragment", "Swipe refresh triggered")
+            // Refresh company data
+            homeViewModel.getCompanyName(requireContext())
+            // Stop refreshing after a short delay since this fragment primarily uses manual actions
+            binding.swipeRefreshLayout.postDelayed({
+                binding.swipeRefreshLayout.isRefreshing = false
+            }, 1000)
+        }
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            android.R.color.holo_blue_bright,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light
+        )
         
         // Add test PDF button for debugging
         binding.btnTestPdf.setOnClickListener {

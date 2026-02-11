@@ -23,9 +23,11 @@ object Utils {
     }
 
     fun Int.toHoursMinutesFormate(): String{
-        val hours = this / 60
-        val min = this % 60
-        return String.format("%02d:%02d" , hours,min)
+        val absMinutes = kotlin.math.abs(this)
+        val hours = absMinutes / 60
+        val min = absMinutes % 60
+        val sign = if (this < 0) "-" else ""
+        return String.format("%s%02d:%02d", sign, hours, min)
     }
 
      @JvmStatic

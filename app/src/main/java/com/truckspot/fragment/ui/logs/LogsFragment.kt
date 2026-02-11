@@ -95,6 +95,17 @@ class LogsFragment : Fragment() {
         val root: View = binding.root
         setupClickListeners()
         setupObservers()
+        
+        // Setup SwipeRefreshLayout for pull-to-refresh
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            Log.d("LogsFragment", "Swipe refresh triggered")
+            loadInitialData()
+        }
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            android.R.color.holo_blue_bright,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light
+        )
 
         return root
     }
@@ -219,6 +230,7 @@ class LogsFragment : Fragment() {
                     showLoading(false)
                     showError(false)
                     disableNavigation(false)
+                    binding.swipeRefreshLayout.isRefreshing = false
                     
                     // Safe handling of nested data
                     val logs = result.data?.results?.userLogs ?: emptyList()
@@ -300,6 +312,7 @@ class LogsFragment : Fragment() {
                     showLoading(false)
                     showError(true, result.message ?: "Unknown error occurred")
                     disableNavigation(false)
+                    binding.swipeRefreshLayout.isRefreshing = false
                     Toast.makeText(requireContext(), result.message ?: "Unknown error", Toast.LENGTH_LONG).show()
                 }
             }

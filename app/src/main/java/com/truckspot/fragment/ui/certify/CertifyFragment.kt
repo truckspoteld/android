@@ -57,6 +57,16 @@ class CertifyFragment : Fragment() {
         // Observe data changes
         observeCertifyData()
         observeUpdateCertifyData()
+        
+        // Setup SwipeRefreshLayout for pull-to-refresh
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            certifyViewModel.loadCertifyData(requireContext())
+        }
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            android.R.color.holo_blue_bright,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light
+        )
 
         // Load initial data
         certifyViewModel.loadCertifyData(requireContext())
@@ -79,6 +89,7 @@ class CertifyFragment : Fragment() {
                 is NetworkResult.Success -> {
                     showLoading(false)
                     showError(false)
+                    binding.swipeRefreshLayout.isRefreshing = false
                     result.data?.let { dates ->
                         // Sort dates in descending order before rendering
                         val sortedDates = sortDatesDescending(dates)
@@ -88,6 +99,7 @@ class CertifyFragment : Fragment() {
                 is NetworkResult.Error -> {
                     showLoading(false)
                     showError(true, result.message ?: "Unknown error occurred")
+                    binding.swipeRefreshLayout.isRefreshing = false
                 }
             }
         }

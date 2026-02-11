@@ -134,6 +134,8 @@ class HomeFragment : Fragment(), OnClickListener {
     var hrs_MODE_ON = 0.0
     var hrs_MODE_D = 0.0
     var hrs_MODE_SB = 0.0
+    var hrs_MODE_YARD = 0.0
+    var hrs_MODE_PERSONAL = 0.0
 
     var miles: BigDecimal? = null
     var mOdometer: String? = null
@@ -272,6 +274,23 @@ class HomeFragment : Fragment(), OnClickListener {
         // Load animations once
         blinkAnimation = AnimationUtils.loadAnimation(requireContext(), R.anim.blink)
         
+        // Setup SwipeRefreshLayout for pull-to-refresh
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            Log.d(TAG, "Swipe refresh triggered")
+            isFetchingLogs = true
+            homeViewModel.getHome(requireContext())
+            homeViewModel.getCompanyName(requireContext())
+        }
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            R.color.green,
+            R.color.orange,
+            R.color.blue
+        )
+        
+        // Set OFF mode as default on initial load
+        homeViewModel.trackingMode.set(MODE_OFF)
+        updateUI(binding.btnOff)
+        
         updateUI()
         return binding.root
     }
@@ -293,15 +312,19 @@ class HomeFragment : Fragment(), OnClickListener {
             when (it) {
                 is NetworkResult.Success<*> -> {
                     binding.progressBar.visibility = View.GONE
+                    binding.swipeRefreshLayout.isRefreshing = false
                     isFetchingLogs = false
                     if (it.data?.logs == null || it.data.logs!!.isEmpty()) {
                         Toast.makeText(context, "Logs are Empty", Toast.LENGTH_SHORT).show()
+                        // Set OFF mode as default when data is empty
+                        homeViewModel.trackingMode.set(MODE_OFF)
+                        updateUI(binding.btnOff)
                         return@observe
                     }
-                    updateLastRelevantLog(it.data?.logs)
+                    updateLastRelevantLog(it.data.logs)
                     // Update UI components based on the fetched data
                     updateGauges(it.data)
-                    updateViolationTimeCard(it.data?.conditions)
+                    updateViolationTimeCard(it.data.conditions)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         updateClockDisplay()
                     }
@@ -309,8 +332,13 @@ class HomeFragment : Fragment(), OnClickListener {
                 }
                 is NetworkResult.Error<*> -> {
                     binding.progressBar.visibility = View.GONE
+                    binding.swipeRefreshLayout.isRefreshing = false
                     isFetchingLogs = false
-                    showValidationErrors(it.message.toString())
+                    // Set OFF mode as default when API error occurs
+                    homeViewModel.trackingMode.set(MODE_OFF)
+                    updateUI(binding.btnOff)
+                    // Don't show error dialog - just log it
+                    Log.e(TAG, "homeLiveData ERROR: ${it.message}")
                 }
                 is NetworkResult.Loading<*> -> {
                     binding.progressBar.visibility = View.VISIBLE
@@ -334,7 +362,14 @@ class HomeFragment : Fragment(), OnClickListener {
                 is NetworkResult.Error<*> -> {
                     Log.e(TAG, "❌ addLogReponse ERROR: ${it.message}")
                     binding.progressBar.visibility = View.GONE
-                    showValidationErrors(it.message.toString())
+                    
+                    // Still update UI to selected mode even if API fails
+                    // This handles the case when data is empty or API has issues
+                    updateUIAfterModeChange(selectedLog.ifEmpty { TRUCK_MODE_OFF })
+                    
+                    // Don't show error dialog - just silently handle it
+                    // User can see the mode is activated in UI
+                    Log.d(TAG, "Mode UI updated despite API error - user can still use the app")
                 }
                 is NetworkResult.Loading<*> -> {
                     Log.d(TAG, "⏳ addLogReponse LOADING")
@@ -348,11 +383,11 @@ class HomeFragment : Fragment(), OnClickListener {
         if (data?.conditions == null || _binding == null) return
 
         if (data.conditions!!.driveViolation!!) {
-            binding.timeText1.text = ("Voilation")
+            binding.timeText1.text = data.conditions?.drive?.toHoursMinutesFormate()
             binding.timeText1.setTextColor(Color.RED)
             binding.progressBarMain.startAnimation(blinkAnimation)
             binding.progressBarMain.setIndicatorColor(Color.RED)
-            binding.progressBarMain.progress = 0
+            binding.progressBarMain.progress = 100 // Full red bar for violation
         } else {
             val totalMinutes = 11 * 60
             val remaining = totalMinutes - (data.conditions?.drive ?: 0)
@@ -369,16 +404,22 @@ class HomeFragment : Fragment(), OnClickListener {
                 100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
             }
-            binding.progressBarMain.setIndicatorColor(color)
+            // Additional check for negative values even if violation flag is false (just in case)
+            if ((data.conditions?.drive ?: 0) < 0) {
+                 binding.progressBarMain.setIndicatorColor(Color.RED)
+                 binding.timeText1.setTextColor(Color.RED)
+            } else {
+                 binding.progressBarMain.setIndicatorColor(color)
+            }
             binding.timeText1.text = data.conditions?.drive?.toHoursMinutesFormate()
         }
 
         if (data.conditions!!.cycleViolation ?: false) {
-            binding.timeText3.text = ("Voilation")
+            binding.timeText3.text = data.conditions?.cycle?.toHoursMinutesFormate()
             binding.timeText3.setTextColor(Color.RED)
             binding.progressBarCycle.startAnimation(blinkAnimation)
             binding.progressBarCycle.setIndicatorColor(Color.RED)
-            binding.progressBarCycle.progress = 0
+            binding.progressBarCycle.progress = 100
         } else {
             val totalMinutes = 70 * 60
             val remaining = totalMinutes - (data.conditions?.cycle ?: 0)
@@ -395,16 +436,21 @@ class HomeFragment : Fragment(), OnClickListener {
                 100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
             }
-            binding.progressBarCycle.setIndicatorColor(color)
+            if ((data.conditions?.cycle ?: 0) < 0) {
+                 binding.progressBarCycle.setIndicatorColor(Color.RED)
+                 binding.timeText3.setTextColor(Color.RED)
+            } else {
+                 binding.progressBarCycle.setIndicatorColor(color)
+            }
             binding.timeText3.text = data.conditions?.cycle?.toHoursMinutesFormate()
         }
 
         if (data.conditions!!.shiftViolation ?: false) {
-            binding.timeText2.text = ("Voilation")
+            binding.timeText2.text = data.conditions?.shift?.toHoursMinutesFormate()
             binding.timeText2.setTextColor(Color.RED)
             binding.progressBarShift.startAnimation(blinkAnimation)
             binding.progressBarShift.setIndicatorColor(Color.RED)
-            binding.progressBarShift.progress = 0
+            binding.progressBarShift.progress = 100
         } else {
             val totalMinutes = 14 * 60
             val remaining = totalMinutes - (data.conditions?.shift ?: 0)
@@ -421,7 +467,12 @@ class HomeFragment : Fragment(), OnClickListener {
                 100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
             }
-            binding.progressBarShift.setIndicatorColor(color)
+            if ((data.conditions?.shift ?: 0) < 0) {
+                 binding.progressBarShift.setIndicatorColor(Color.RED)
+                 binding.timeText2.setTextColor(Color.RED)
+            } else {
+                 binding.progressBarShift.setIndicatorColor(color)
+            }
             binding.timeText2.text = data.conditions?.shift?.toHoursMinutesFormate()
         }
 
@@ -524,6 +575,10 @@ class HomeFragment : Fragment(), OnClickListener {
                 TRUCK_MODE_YARD -> updateUI(binding.tvYarduse)
                 TRUCK_MODE_PERSONAL -> updateUI(binding.tvPerosnaluse)
             }
+        } else {
+            // Set OFF mode as default when no log data available
+            homeViewModel.trackingMode.set(MODE_OFF)
+            updateUI(binding.btnOff)
         }
     }
 
@@ -742,7 +797,7 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.d(TAG, "updating mode --> $mode")
             selectedLog = mode
             prefRepository.setMode(mode)
-            val vin_no = AppModel.getInstance().mVehicleInfo?.VIN?.toString() ?: "1HGCM82633A004352"
+            val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
             val te = AppModel.getInstance().mLastEvent
             val defaultLatitude = (activity as Dashboard).glat ?: 0.0
             val defaultLongitude = (activity as Dashboard).glong ?: 0.0
@@ -1051,11 +1106,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 R.id.btnOff -> offMode()
                 R.id.btnOn -> onMode()
                 R.id.btnSleep -> sbMode()
-                R.id.tvYarduse -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    yardMode()
-                } else {
-                    TODO("VERSION.SDK_INT < O")
-                }
+                R.id.tvYarduse -> yardMode()
                 R.id.tvPerosnaluse -> personalMode()
                 else -> {}
             }
@@ -1075,6 +1126,27 @@ class HomeFragment : Fragment(), OnClickListener {
             mediaPlayer.start()
             updateModeChange(hrs_MODE_SB, TRUCK_MODE_SLEEPING, "sb from click")
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun yardMode() {
+        Log.d(TAG, "Attempting to switch to YARD mode")
+        Log.d(TAG, "Current Mode: ${homeViewModel.trackingMode.get()}")
+        Log.d(TAG, "Last Log Mode: ${homeViewModel.getLastLogModeName()}")
+        Log.d(TAG, "Is Clickable: ${isClickable()}")
+
+        if (homeViewModel.getLastLogModeName() == TRUCK_MODE_YARD) {
+            Utils.dialog(requireContext(), "Error", "Already in yard move mode")
+            return
+        }
+        if (!isClickable()) {
+            Log.d(TAG, "Vehicle is running, unable to click")
+            return
+        }
+        // if (TRUCK_MODE_YARD != homeViewModel.trackingMode.get()!! || isEmptyList) {
+            mediaPlayer.start()
+            updateModeChange(hrs_MODE_YARD, TRUCK_MODE_YARD, "yard")
+        // }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -1155,26 +1227,24 @@ class HomeFragment : Fragment(), OnClickListener {
         mediaPlayer.start()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun yardMode() {
-        if (MODE_YARD != homeViewModel.trackingMode.get()!! && prefRepository.getMode() == TRUCK_MODE_OFF) {
-            mediaPlayer.start()
-            updateUI(binding.tvYarduse)
-            updateModeChange(0.0, TRUCK_MODE_YARD, "yard")
-        }
-    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun personalMode() {
-        if (!isClickable() && prefRepository.getMode() == TRUCK_MODE_PERSONAL && prefRepository.getMode() != TRUCK_MODE_ON) {
-            Log.d(TAG, "Vehicle is running unable to click")
+        Log.d(TAG, "Attempting to switch to PERSONAL mode")
+        
+        if (homeViewModel.getLastLogModeName() == TRUCK_MODE_PERSONAL) {
+            Utils.dialog(requireContext(), "Error", "Already in personal conveyance mode")
             return
         }
-        if ((MODE_PERSONAL != homeViewModel.trackingMode.get()!! && prefRepository.getMode() == TRUCK_MODE_ON)) {
-            mediaPlayer.start()
-            updateUI(binding.tvPerosnaluse)
-            updateModeChange(0.0, TRUCK_MODE_PERSONAL, "personal")
+        if (!isClickable()) {
+            Log.d(TAG, "Vehicle is running, unable to click")
+            return
         }
+        // if (TRUCK_MODE_PERSONAL != homeViewModel.trackingMode.get()!! || isEmptyList) {
+            mediaPlayer.start()
+            updateModeChange(hrs_MODE_PERSONAL, TRUCK_MODE_PERSONAL, "personal")
+        // }
     }
 
     private fun isClickable(): Boolean {

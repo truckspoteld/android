@@ -468,7 +468,13 @@ class DashboardRepository @Inject constructor(
         _homeData.postValue(NetworkResult.Loading())
         try {
             val response = truckSpotAPI.getHomeData()
+            Log.d("API_RESPONSE_DEBUG", "getHome Raw Response code: ${response.code()}")
             if (response.isSuccessful && response.body() != null) {
+                // Print extensive JSON log for debugging
+                val jsonResponse = Gson().toJson(response.body())
+                Log.d("API_RESPONSE_DEBUG", "getHome JSON: $jsonResponse")
+                SLog.detailLogs("GET_HOME_RESPONSE", jsonResponse, true)
+
                 Log.d("DashboardRepository", "getHome: Success")
                 _homeData.postValue(NetworkResult.Success(response.body()!!))
             } else if (response.errorBody() != null) {
@@ -489,8 +495,13 @@ class DashboardRepository @Inject constructor(
         _logByDate.postValue(NetworkResult.Loading())
         try {
             val response = truckSpotAPI.getLogByDate(request)
-            Log.d("check the add log being", response.body().toString())
+            Log.d("API_RESPONSE_DEBUG", "getLogsByDate Raw Response: $response")
             if (response.isSuccessful && response.body() != null) {
+                // Print extensive JSON log for debugging
+                val jsonResponse = Gson().toJson(response.body())
+                Log.d("API_RESPONSE_DEBUG", "getLogsByDate JSON: $jsonResponse")
+                SLog.detailLogs("GET_LOGS_BY_DATE_RESPONSE", jsonResponse, true)
+
                 Log.d(TAG, "handleResponse: ${response.body()}")
                 _logByDate.postValue(NetworkResult.Success(response.body()!!))
             } else if (response.errorBody() != null) {

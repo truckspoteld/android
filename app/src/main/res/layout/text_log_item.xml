@@ -44,10 +44,21 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_weight="1.5"
+        android:layout_weight="1.0"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
         android:tag="binding_3"
+        android:textColor="@color/log_item_text"
+        android:textSize="11sp" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="0.5"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:tag="binding_duration"
         android:textColor="@color/log_item_text"
         android:textSize="11sp" />
 

@@ -20,6 +20,7 @@ import com.truckspot.utils.*
 import com.truckspot.utils.AlertCalculationUtils.setDateAndTimeBasedOnTimezone
 import com.truckspot.utils.AlertCalculationUtils.getCurrentDateInTimezone
 import com.truckspot.utils.Utils.toHoursMinutesFormate
+import com.truckspot.utils.Utils.toMinutesSecondsFormat
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers

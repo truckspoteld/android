@@ -108,6 +108,16 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastLogMode: String = ""
     private var lastRelevantLog: HomeDataModel.Log? = null
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
+    private val supportedTruckModes = setOf(
+        TRUCK_MODE_OFF,
+        TRUCK_MODE_ON,
+        TRUCK_MODE_SLEEPING,
+        TRUCK_MODE_DRIVING,
+        TRUCK_MODE_YARD,
+        TRUCK_MODE_PERSONAL
+    )
+    private var localModeGraceDeadlineMs: Long = 0L
+    private val LOCAL_MODE_GRACE_MS = 30000L
     private var lastEngineApiCallTime: Long = 0
     private val ENGINE_API_DEBOUNCE_MS = 10000L // 10 seconds debounce
     private var lastSpeedCheckTime: Long = 0
@@ -287,9 +297,8 @@ class HomeFragment : Fragment(), OnClickListener {
             R.color.blue
         )
         
-        // Set OFF mode as default on initial load
-        homeViewModel.trackingMode.set(MODE_OFF)
-        updateUI(binding.btnOff)
+        // Restore cached mode first, fallback to OFF when nothing is cached.
+        updateUIAfterModeChange(resolveModeForUi(null))
         
         updateUI()
         return binding.root
@@ -316,9 +325,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     isFetchingLogs = false
                     if (it.data?.logs == null || it.data.logs!!.isEmpty()) {
                         Toast.makeText(context, "Logs are Empty", Toast.LENGTH_SHORT).show()
-                        // Set OFF mode as default when data is empty
-                        homeViewModel.trackingMode.set(MODE_OFF)
-                        updateUI(binding.btnOff)
+                        updateUIAfterModeChange(TRUCK_MODE_OFF)
                         return@observe
                     }
                     updateLastRelevantLog(it.data.logs)
@@ -334,9 +341,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     binding.progressBar.visibility = View.GONE
                     binding.swipeRefreshLayout.isRefreshing = false
                     isFetchingLogs = false
-                    // Set OFF mode as default when API error occurs
-                    homeViewModel.trackingMode.set(MODE_OFF)
-                    updateUI(binding.btnOff)
+                    updateUIAfterModeChange(resolveModeForUi(null))
                     // Don't show error dialog - just log it
                     Log.e(TAG, "homeLiveData ERROR: ${it.message}")
                 }
@@ -504,7 +509,9 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun updateUIAfterModeChange(mode: String) {
-        when (mode) {
+        val normalizedMode = normalizeMode(mode) ?: TRUCK_MODE_OFF
+        cacheModeState(normalizedMode)
+        when (normalizedMode) {
             TRUCK_MODE_OFF -> {
                 homeViewModel.trackingMode.set(MODE_OFF)
                 updateUI(binding.btnOff)
@@ -522,9 +529,11 @@ class HomeFragment : Fragment(), OnClickListener {
                 updateUI(binding.btnDrive)
             }
             TRUCK_MODE_YARD -> {
+                homeViewModel.trackingMode.set(MODE_YARD)
                 updateUI(binding.tvYarduse)
             }
             TRUCK_MODE_PERSONAL -> {
+                homeViewModel.trackingMode.set(MODE_PERSONAL)
                 updateUI(binding.tvPerosnaluse)
             }
         }
@@ -565,21 +574,8 @@ class HomeFragment : Fragment(), OnClickListener {
         lastEngineLogName = data?.logs?.lastOrNull { it.modename == "ENG_ON" || it.modename == "ENG_OFF" }?.modename ?: ""
 
         val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" }
-
-        if (filterForSelection != null && filterForSelection.isNotEmpty()) {
-            when (filterForSelection.last().status) {
-                TRUCK_MODE_OFF -> updateUI(binding.btnOff)
-                TRUCK_MODE_ON -> updateUI(binding.btnOn)
-                TRUCK_MODE_SLEEPING -> updateUI(binding.btnSleep)
-                TRUCK_MODE_DRIVING -> updateUI(binding.btnDrive)
-                TRUCK_MODE_YARD -> updateUI(binding.tvYarduse)
-                TRUCK_MODE_PERSONAL -> updateUI(binding.tvPerosnaluse)
-            }
-        } else {
-            // Set OFF mode as default when no log data available
-            homeViewModel.trackingMode.set(MODE_OFF)
-            updateUI(binding.btnOff)
-        }
+        val latestModeFromServer = filterForSelection?.lastOrNull()?.status
+        updateUIAfterModeChange(resolveModeForUi(latestModeFromServer))
     }
 
     private fun showConnectToDeviceDialog(
@@ -795,8 +791,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 prefRepository.setShowUnidentifiedDialog(false)
             }
             Log.d(TAG, "updating mode --> $mode")
-            selectedLog = mode
-            prefRepository.setMode(mode)
+            cacheModeState(mode, startGraceWindow = true)
             val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
             val te = AppModel.getInstance().mLastEvent
             val defaultLatitude = (activity as Dashboard).glat ?: 0.0
@@ -857,6 +852,40 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.e(TAG, "Error in updateModeChange: ${e.message}", e)
             throw e
         }
+    }
+
+    private fun normalizeMode(mode: String?): String? {
+        val normalizedMode = mode?.trim()?.lowercase(Locale.US) ?: return null
+        return normalizedMode.takeIf { supportedTruckModes.contains(it) }
+    }
+
+    private fun cacheModeState(mode: String, startGraceWindow: Boolean = false) {
+        val normalizedMode = normalizeMode(mode) ?: return
+        selectedLog = normalizedMode
+        lastLog = normalizedMode
+        prefRepository.setMode(normalizedMode)
+        if (startGraceWindow) {
+            localModeGraceDeadlineMs = System.currentTimeMillis() + LOCAL_MODE_GRACE_MS
+        }
+    }
+
+    private fun resolveModeForUi(serverMode: String?): String {
+        val normalizedServerMode = normalizeMode(serverMode)
+        val persistedMode = normalizeMode(prefRepository.getMode())
+        val shouldPreferPersistedMode =
+            persistedMode != null &&
+                normalizedServerMode != persistedMode &&
+                System.currentTimeMillis() <= localModeGraceDeadlineMs
+
+        if (shouldPreferPersistedMode) {
+            return persistedMode ?: TRUCK_MODE_OFF
+        }
+
+        if (normalizedServerMode != null && normalizedServerMode == persistedMode) {
+            localModeGraceDeadlineMs = 0L
+        }
+
+        return normalizedServerMode ?: persistedMode ?: TRUCK_MODE_OFF
     }
 
     override fun onStop() {
@@ -949,21 +978,29 @@ class HomeFragment : Fragment(), OnClickListener {
             val currentTimezoneTime = String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)
             binding.liveClock.text = currentTimezoneTime
 
+            val offset = zonedDateTime.offset
+            val totalSeconds = offset.totalSeconds
+            val absSeconds = Math.abs(totalSeconds)
+            val hours = absSeconds / 3600
+            val minutes = (absSeconds % 3600) / 60
+            val sign = if (totalSeconds >= 0) "+" else "-"
+            val offsetString = String.format("UTC%s%02d:%02d", sign, hours, minutes)
+
             val lastLog = lastRelevantLog
             if (lastLog != null) {
                 lastLogTime = lastLog.time ?: "00:00"
                 lastLogMode = lastLog.modename ?: ""
                 val elapsedTime = calculateElapsedTime(currentTimezoneTime, lastLogTime)
                 binding.timerTv.text = elapsedTime
-                binding.timerLabelTv.text = "Time spent in ${lastLogMode.uppercase()}"
+                binding.timerLabelTv.text = offsetString
             } else {
                 if (lastLogTime.isNotEmpty() && lastLogMode.isNotEmpty()) {
                     val elapsedTime = calculateElapsedTime(currentTimezoneTime, lastLogTime)
                     binding.timerTv.text = elapsedTime
-                    binding.timerLabelTv.text = "Time spent in ${lastLogMode.uppercase()}"
+                    binding.timerLabelTv.text = offsetString
                 } else {
                     binding.timerTv.text = currentTimezoneTime
-                    binding.timerLabelTv.text = "Current $timeZone time"
+                    binding.timerLabelTv.text = offsetString
                 }
             }
         } catch (e: Exception) {

@@ -17,9 +17,8 @@
         <item name="android:dividerHorizontal">@color/dark_divider</item>
         
         <!-- Status bar and navigation bar -->
-        <item name="android:statusBarColor">@color/dark_background</item>
-        <item name="android:navigationBarColor">@color/dark_background</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
         
         <!-- Customize your theme here. -->
     </style>

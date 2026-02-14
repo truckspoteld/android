@@ -497,14 +497,9 @@ class DashboardRepository @Inject constructor(
             val response = truckSpotAPI.getLogByDate(request)
             Log.d("API_RESPONSE_DEBUG", "getLogsByDate Raw Response: $response")
             if (response.isSuccessful && response.body() != null) {
-                // Print FULL JSON response in chunks to avoid Logcat truncation
+                // Print extensive JSON log for debugging
                 val jsonResponse = Gson().toJson(response.body())
-                Log.d("API_RESPONSE_DEBUG", "getLogsByDate FULL Response (length=${jsonResponse.length}):")
-                val chunkSize = 2000
-                for (i in jsonResponse.indices step chunkSize) {
-                    val end = minOf(i + chunkSize, jsonResponse.length)
-                    Log.d("API_RESPONSE_DEBUG", "getLogsByDate [${i}-${end}]: ${jsonResponse.substring(i, end)}")
-                }
+                Log.d("API_RESPONSE_DEBUG", "getLogsByDate JSON: $jsonResponse")
                 SLog.detailLogs("GET_LOGS_BY_DATE_RESPONSE", jsonResponse, true)
 
                 Log.d(TAG, "handleResponse: ${response.body()}")

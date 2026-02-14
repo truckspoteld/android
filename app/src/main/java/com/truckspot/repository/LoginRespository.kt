@@ -33,7 +33,7 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
     @SuppressLint("LongLogTag")
     suspend fun loginUser(loginRequest: LoginRequest) {
         _loginResponseLiveData.postValue(NetworkResult.Loading())
-        val response = truckSpotAPI.login(loginRequest, "mobile")
+        val response = truckSpotAPI.login(loginRequest)
         Log.d("Login response will come here", "LOGINRESPONSE:$response")
         handleResponse(response)
         if (response.isSuccessful && response.body() != null) {

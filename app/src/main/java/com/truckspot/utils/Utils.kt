@@ -30,14 +30,6 @@ object Utils {
         return String.format("%s%02d:%02d", sign, hours, min)
     }
 
-    fun Int.toMinutesSecondsFormat(): String {
-        val absSeconds = kotlin.math.abs(this)
-        val minutes = absSeconds / 60
-        val seconds = absSeconds % 60
-        val sign = if (this < 0) "-" else ""
-        return String.format("%s%02d:%02d", sign, minutes, seconds)
-    }
-
      @JvmStatic
     fun dialog(context:Context,title:String?=null,message:String?,positiveText:String?="Ok",negativeText:String?=null,callback: dialogInterface?=null) {
 

@@ -55,7 +55,6 @@ class LogAdaptor  (
         val tvTime: TextView
         val tvStatus: TextView
         val tvLocation: TextView
-        val tvDuration: TextView
         val tvOdo: TextView
         val tvEng: TextView
         val tvorigon: TextView
@@ -65,7 +64,6 @@ class LogAdaptor  (
             tvTime = view.findViewWithTag("binding_1")
             tvStatus = view.findViewWithTag("binding_2")
             tvLocation = view.findViewWithTag("binding_3")
-            tvDuration = view.findViewWithTag("binding_duration")
             tvOdo = view.findViewWithTag("binding_4")
             tvEng = view.findViewWithTag("binding_5")
             tvorigon = view.findViewWithTag("binding_6")
@@ -162,14 +160,6 @@ class LogAdaptor  (
         
         // Safe handling of location
         viewHolder.tvLocation.text = userLog.location ?: ""
-
-        // Safe handling of duration
-        // Use duration_seconds if available, otherwise fall back to duration (convert to seconds)
-        val totalSeconds = userLog.duration_seconds ?: (userLog.duration * 60)
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        val durationText = String.format("%02d:%02d", minutes, seconds)
-        viewHolder.tvDuration.text = durationText
         
         // Safe handling of auto/manual
         viewHolder.tvorigon.text = if (userLog.is_autoinsert == 1) "Auto" else "Manual"
@@ -190,6 +180,29 @@ class LogAdaptor  (
 
     private val TAG = "LogAdaptor"
 
+     private fun callAddLogAPIForTesting() {
+        // Create an AddLogRequest with sample data for testing
+//        val logRequest = AddLogRequest(
+//            "on", // Example modename "on" for testing
+//            "3000", // Example odometerreading
+//            "2000", // Example eng_hours
+//            2, // Example authorization_status (you can change this as needed)
+//            "Sample location", // Example location (you can change this as needed)
+//            2, // Example is_autoinsert (you can change this as needed)
+//            2, // Example additional field (you can change this as needed)
+//            2 ,
+//            "",
+//            ""
+//            // Example additional field (you can change this as needed)
+//        )
+
+        // Call the addLog API here or log the request data for testing
+        // For example:
+        // truckSpotAPI.addLog(logRequest)
+
+        // Log the request data for testing
+//        Log.d(TAG, "Calling Add Log API for Testing with data: $logRequest")
+    }
 
     override fun getItemCount() = dataSet.size
 
@@ -206,6 +219,17 @@ class LogAdaptor  (
             return time // Return original time if parsing fails
         }
     }
+
+//    fun showEditLogDialog(context: Context) {
+//        AlertDialog.Builder(context)
+//            .setTitle("Notice")
+//            .setMessage("You cannot edit the log. If you want to edit it, please reach support at support@eagleye.com.")
+//            .setPositiveButton("OK") { dialog, _ ->
+//                dialog.dismiss()
+//            }
+//            .show()
+//    }
+
     fun showEditLogDialog(context: Context) {
         val message = SpannableString("You cannot edit the log. If you want to edit it, please reach support at support@eagleye.com.")
 
@@ -235,5 +259,20 @@ class LogAdaptor  (
                 dialog.dismiss()
             }
             .show()
+    }
+    fun extractCityAndState(location: String): String {
+        if (location.isBlank()) return ""
+        
+        try {
+            val locationParts = location.split(",").map { it.trim() }
+
+            // Assuming the second-to-last part is the city and the third-to-last part is the state
+            val city = if (locationParts.size >= 2) locationParts[locationParts.size - 2] else null
+            val state = if (locationParts.size >= 3) locationParts[locationParts.size - 3] else null
+
+            return if (city != null && state != null) "$city, $state" else ""
+        } catch (e: Exception) {
+            return ""
+        }
     }
 }

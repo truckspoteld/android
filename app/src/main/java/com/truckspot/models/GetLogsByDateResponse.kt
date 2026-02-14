@@ -45,7 +45,6 @@ data class GetLogsByDateResponse(
             val distance: String,
             val driverid: Int,
             val duration: Int,
-            val duration_seconds: Int? = null,
             val end_datetime: Any,
             val eng_hours: String,
             val enginemiles: String,

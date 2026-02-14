@@ -538,7 +538,6 @@ class ReportsFragment : Fragment() {
                                 distance = "0",
                                 driverid = 1,
                                 duration = 0,
-                                duration_seconds = 0,
                                 end_datetime = "",
                                 eng_hours = "100.0",
                                 enginemiles = "0",

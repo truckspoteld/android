@@ -35,6 +35,8 @@ data class HomeDataModel(
         var distance: String? = "",
         var driverid: Int? = 0,
         var duration: Int? = 0,
+        /** Duration in seconds from backend; use for accurate display. Exclude login/logout from totals. */
+        var duration_seconds: Int? = null,
         var end_datetime: Any? = Any(),
         var eng_hours: String? = "",
         var enginemiles: String? = "",

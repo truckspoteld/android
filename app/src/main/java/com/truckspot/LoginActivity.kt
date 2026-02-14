@@ -159,6 +159,9 @@ class LoginActivity : AppCompatActivity() {
                         prefRepository.setDriverId(it.data.results.id)
                         prefRepository.setCompanyId(it.data.results.companyid)
                         prefRepository.setToken(token!!)
+                        it.data.results.company_timezone?.let { tz ->
+                            if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
+                        }
 
                         val logRequest = AddLogRequest(
                             modename = "login",

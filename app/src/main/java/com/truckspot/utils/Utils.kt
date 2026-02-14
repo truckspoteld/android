@@ -22,13 +22,40 @@ object Utils {
         }
     }
 
-    fun Int.toHoursMinutesFormate(): String{
+    /** Format minutes as HH:MM (e.g. 90 -> "01:30"). Used for meta and conditions from API. */
+    fun Int.toHoursMinutesFormate(): String {
         val absMinutes = kotlin.math.abs(this)
         val hours = absMinutes / 60
         val min = absMinutes % 60
         val sign = if (this < 0) "-" else ""
         return String.format("%s%02d:%02d", sign, hours, min)
     }
+
+    /** Format seconds as HH:MM. */
+    @JvmStatic
+    fun formatTimeFromSeconds(seconds: Int): String {
+        val absSeconds = kotlin.math.abs(seconds)
+        val totalMinutes = absSeconds / 60
+        val hours = totalMinutes / 60
+        val min = totalMinutes % 60
+        val sign = if (seconds < 0) "-" else ""
+        return String.format("%s%02d:%02d", sign, hours, min)
+    }
+
+    /** Format seconds as HH:MM:SS (matches web portal graph display). */
+    @JvmStatic
+    fun formatTimeFromSecondsWithSeconds(seconds: Int): String {
+        val absSeconds = kotlin.math.abs(seconds)
+        val hours = absSeconds / 3600
+        val min = (absSeconds % 3600) / 60
+        val sec = absSeconds % 60
+        val sign = if (seconds < 0) "-" else ""
+        return String.format("%s%02d:%02d:%02d", sign, hours, min, sec)
+    }
+
+    /** Format minutes as HH:MM. Alias for consistency with backend (conditions/meta are in minutes). */
+    @JvmStatic
+    fun formatTimeFromMinutes(minutes: Int): String = minutes.toHoursMinutesFormate()
 
      @JvmStatic
     fun dialog(context:Context,title:String?=null,message:String?,positiveText:String?="Ok",negativeText:String?=null,callback: dialogInterface?=null) {

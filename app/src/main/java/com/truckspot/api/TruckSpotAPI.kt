@@ -30,7 +30,10 @@ import userModelItem
 interface TruckSpotAPI {
 
     @POST("api/v1/login")
-    suspend fun login(@Body loginRequest: LoginRequest):Response<LoginResponse>
+    suspend fun login(
+        @Query("source") source: String = "mobile",
+        @Body loginRequest: LoginRequest
+    ): Response<LoginResponse>
 
     @POST("api/v1/addLog")
     suspend fun addLog(@Body addLogRequest: AddLogRequest?):Response<AddLogSuccessResponse>

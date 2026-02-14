@@ -16,10 +16,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.truckspot.databinding.FragmentLogsBinding
 import com.truckspot.fragment.ui.home.HomeViewModel
 import com.truckspot.models.GetLogsByDateRequest
+import com.truckspot.models.GetLogsByDateResponse
 import com.truckspot.utils.*
 import com.truckspot.utils.AlertCalculationUtils.setDateAndTimeBasedOnTimezone
 import com.truckspot.utils.AlertCalculationUtils.getCurrentDateInTimezone
-import com.truckspot.utils.Utils.toHoursMinutesFormate
+import com.truckspot.utils.Utils.formatTimeFromSeconds
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -287,26 +288,26 @@ class LogsFragment : Fragment() {
                             )
                         )
                     }
+                    // Exclude login/logout and non-duty statuses from graph (backend meta already excludes them from totals)
                     val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" &&  it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off"}
-
 
                     binding.eldPlot.graph.plotGraph(filteredList)
                     binding.eldPlot.graph.invalidate()
                     
-//                    if (userLogs != null) {
                         binding.eventLogRv.adapter = LogAdaptor(logs, childFragmentManager, requireContext(), timeZone)
                         binding.eventLogRv.layoutManager = LinearLayoutManager(requireContext())
-//                    }
                     
-                    // Safe handling of meta data
+                    // Meta and duration are in seconds; graph shows HH:MM (no seconds) for compact width
                     val meta = result.data?.results?.meta
-                    val totalTime = (meta?.off ?: 0) + (meta?.d ?: 0) + (meta?.sb ?: 0) + (meta?.on ?: 0)
-                    
-                    binding.eldPlot.offDutyHours.text = meta?.off?.toHoursMinutesFormate() ?: "0"
-                    binding.eldPlot.sbHours.text = meta?.sb?.toHoursMinutesFormate() ?: "0"
-                    binding.eldPlot.drivingHours.text = meta?.d?.toHoursMinutesFormate() ?: "0"
-                    binding.eldPlot.onDutyHours.text = meta?.on?.toHoursMinutesFormate() ?: "0"
-                    binding.eldPlot.totalHours.text = totalTime.toHoursMinutesFormate()
+                    val off = meta?.off ?: 0
+                    val sb = meta?.sb ?: 0
+                    val d = meta?.d ?: 0
+                    val on = meta?.on ?: 0
+                    binding.eldPlot.offDutyHours.text = formatTimeFromSeconds(off)
+                    binding.eldPlot.sbHours.text = formatTimeFromSeconds(sb)
+                    binding.eldPlot.drivingHours.text = formatTimeFromSeconds(d)
+                    binding.eldPlot.onDutyHours.text = formatTimeFromSeconds(on)
+                    binding.eldPlot.totalHours.text = formatTimeFromSeconds(off + sb + d + on)
                 }
                 is NetworkResult.Error -> {
                     showLoading(false)

@@ -10,8 +10,9 @@ data class Results(
     val email: String,
     val token: String,
     val username: String,
-    val id:Int,
-    val companyid:Int
+    val id: Int,
+    val companyid: Int,
+    val company_timezone: String? = null
 )
 
 data class AllResults(

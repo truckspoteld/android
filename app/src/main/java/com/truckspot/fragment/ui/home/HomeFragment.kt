@@ -382,17 +382,23 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun updateGauges(data: HomeDataModel?) {
         if (data?.conditions == null || _binding == null) return
 
+        // Conditions from backend are in seconds; format as HH:MM:SS
+        val formatCondition: (Int) -> String = { Utils.formatTimeFromSecondsWithSeconds(it) }
+        val driveTotalSec = 11 * 3600
+        val cycleTotalSec = 70 * 3600
+        val shiftTotalSec = 14 * 3600
+        val breakTotalSec = 8 * 3600
+
         if (data.conditions!!.driveViolation!!) {
-            binding.timeText1.text = data.conditions?.drive?.toHoursMinutesFormate()
+            binding.timeText1.text = formatCondition(data.conditions?.drive ?: 0)
             binding.timeText1.setTextColor(Color.RED)
             binding.progressBarMain.startAnimation(blinkAnimation)
             binding.progressBarMain.setIndicatorColor(Color.RED)
-            binding.progressBarMain.progress = 100 // Full red bar for violation
+            binding.progressBarMain.progress = 100
         } else {
-            val totalMinutes = 11 * 60
-            val remaining = totalMinutes - (data.conditions?.drive ?: 0)
-            val safeSpent = remaining.coerceIn(0, totalMinutes)
-            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            val remaining = (data.conditions?.drive ?: 0)
+            val safeSpent = (driveTotalSec - remaining).coerceIn(0, driveTotalSec)
+            val progressPercent = (safeSpent.toFloat() / driveTotalSec * 100).toInt()
             binding.progressBarMain.clearAnimation()
             binding.timeText1.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
             binding.progressBarMain.max = 100
@@ -404,27 +410,25 @@ class HomeFragment : Fragment(), OnClickListener {
                 100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
             }
-            // Additional check for negative values even if violation flag is false (just in case)
             if ((data.conditions?.drive ?: 0) < 0) {
                  binding.progressBarMain.setIndicatorColor(Color.RED)
                  binding.timeText1.setTextColor(Color.RED)
             } else {
                  binding.progressBarMain.setIndicatorColor(color)
             }
-            binding.timeText1.text = data.conditions?.drive?.toHoursMinutesFormate()
+            binding.timeText1.text = formatCondition(data.conditions?.drive ?: 0)
         }
 
         if (data.conditions!!.cycleViolation ?: false) {
-            binding.timeText3.text = data.conditions?.cycle?.toHoursMinutesFormate()
+            binding.timeText3.text = formatCondition(data.conditions?.cycle ?: 0)
             binding.timeText3.setTextColor(Color.RED)
             binding.progressBarCycle.startAnimation(blinkAnimation)
             binding.progressBarCycle.setIndicatorColor(Color.RED)
             binding.progressBarCycle.progress = 100
         } else {
-            val totalMinutes = 70 * 60
-            val remaining = totalMinutes - (data.conditions?.cycle ?: 0)
-            val safeSpent = remaining.coerceIn(0, totalMinutes)
-            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            val remaining = (data.conditions?.cycle ?: 0)
+            val safeSpent = (cycleTotalSec - remaining).coerceIn(0, cycleTotalSec)
+            val progressPercent = (safeSpent.toFloat() / cycleTotalSec * 100).toInt()
             binding.progressBarCycle.clearAnimation()
             binding.timeText3.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
             binding.progressBarCycle.max = 100
@@ -442,20 +446,19 @@ class HomeFragment : Fragment(), OnClickListener {
             } else {
                  binding.progressBarCycle.setIndicatorColor(color)
             }
-            binding.timeText3.text = data.conditions?.cycle?.toHoursMinutesFormate()
+            binding.timeText3.text = formatCondition(data.conditions?.cycle ?: 0)
         }
 
         if (data.conditions!!.shiftViolation ?: false) {
-            binding.timeText2.text = data.conditions?.shift?.toHoursMinutesFormate()
+            binding.timeText2.text = formatCondition(data.conditions?.shift ?: 0)
             binding.timeText2.setTextColor(Color.RED)
             binding.progressBarShift.startAnimation(blinkAnimation)
             binding.progressBarShift.setIndicatorColor(Color.RED)
             binding.progressBarShift.progress = 100
         } else {
-            val totalMinutes = 14 * 60
-            val remaining = totalMinutes - (data.conditions?.shift ?: 0)
-            val safeSpent = remaining.coerceIn(0, totalMinutes)
-            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            val remaining = (data.conditions?.shift ?: 0)
+            val safeSpent = (shiftTotalSec - remaining).coerceIn(0, shiftTotalSec)
+            val progressPercent = (safeSpent.toFloat() / shiftTotalSec * 100).toInt()
             binding.progressBarShift.clearAnimation()
             binding.timeText2.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
             binding.progressBarShift.max = 100
@@ -473,7 +476,7 @@ class HomeFragment : Fragment(), OnClickListener {
             } else {
                  binding.progressBarShift.setIndicatorColor(color)
             }
-            binding.timeText2.text = data.conditions?.shift?.toHoursMinutesFormate()
+            binding.timeText2.text = formatCondition(data.conditions?.shift ?: 0)
         }
 
         if (data.conditions!!.driveBreakViolation ?: false) {
@@ -483,10 +486,9 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.progressBarBreak.setIndicatorColor(Color.RED)
             binding.progressBarBreak.progress = 0
         } else {
-            val totalMinutes = 8 * 60
-            val remaining = totalMinutes - (data.conditions?.drivebreak ?: 0)
-            val safeSpent = remaining.coerceIn(0, totalMinutes)
-            val progressPercent = (safeSpent.toFloat() / totalMinutes * 100).toInt()
+            val remaining = (data.conditions?.drivebreak ?: 0)
+            val safeSpent = (breakTotalSec - remaining).coerceIn(0, breakTotalSec)
+            val progressPercent = (safeSpent.toFloat() / breakTotalSec * 100).toInt()
             binding.progressBarBreak.clearAnimation()
             binding.timeTextBreak.setTextColor(ContextCompat.getColor(requireContext(), R.color.green))
             binding.progressBarBreak.max = 100
@@ -499,7 +501,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
             }
             binding.progressBarBreak.setIndicatorColor(color)
-            binding.timeTextBreak.text = data.conditions?.drivebreak?.toHoursMinutesFormate()
+            binding.timeTextBreak.text = formatCondition(data.conditions?.drivebreak ?: 0)
         }
     }
 
@@ -564,7 +566,8 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         lastEngineLogName = data?.logs?.lastOrNull { it.modename == "ENG_ON" || it.modename == "ENG_OFF" }?.modename ?: ""
 
-        val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" }
+        // Exclude login/logout (and other non-duty) so current mode reflects duty status only
+        val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "certification" && it.status != "INT" }
 
         if (filterForSelection != null && filterForSelection.isNotEmpty()) {
             when (filterForSelection.last().status) {
@@ -1437,9 +1440,12 @@ class HomeFragment : Fragment(), OnClickListener {
                 binding.closestViolationTime.text = closestViolation.remainingTime
                 binding.closestViolationProgress.progress = closestViolation.progress
                 binding.closestViolationProgress.setIndicatorColor(getViolationColor(closestViolation.progress, closestViolation.isViolation))
-                val hours = closestViolation.remainingMinutes / 60
-                val minutes = closestViolation.remainingMinutes % 60
+                // remainingMinutes is actually remaining seconds from API
+                val totalSeconds = closestViolation.remainingMinutes
+                val hours = totalSeconds / 3600
+                val minutes = (totalSeconds % 3600) / 60
                 val timeText = when {
+                    hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
                     hours > 0 -> "$hours hour${if (hours > 1) "s" else ""}"
                     minutes > 0 -> "$minutes minute${if (minutes > 1) "s" else ""}"
                     else -> "imminent"
@@ -1465,35 +1471,27 @@ class HomeFragment : Fragment(), OnClickListener {
         val violations = mutableListOf<ViolationInfo>()
         val driveRemaining = conditions.drive ?: 0
         if (driveRemaining > 0) {
-            violations.add(ViolationInfo("Drive Time", driveRemaining, formatTimeFromMinutes(driveRemaining), calculateProgressFromRemaining(driveRemaining, 11 * 60), conditions.driveViolation ?: false))
+            violations.add(ViolationInfo("Drive Time", driveRemaining, Utils.formatTimeFromSecondsWithSeconds(driveRemaining), calculateProgressFromRemainingSec(driveRemaining, 11 * 3600), conditions.driveViolation ?: false))
         }
         val driveBreakRemaining = conditions.drivebreak ?: 0
         if (driveBreakRemaining > 0) {
-            violations.add(ViolationInfo("Drive Break", driveBreakRemaining, formatTimeFromMinutes(driveBreakRemaining), calculateProgressFromRemaining(driveBreakRemaining, 8 * 60), conditions.driveBreakViolation ?: false))
+            violations.add(ViolationInfo("Drive Break", driveBreakRemaining, Utils.formatTimeFromSecondsWithSeconds(driveBreakRemaining), calculateProgressFromRemainingSec(driveBreakRemaining, 8 * 3600), conditions.driveBreakViolation ?: false))
         }
         val shiftRemaining = conditions.shift ?: 0
         if (shiftRemaining > 0) {
-            violations.add(ViolationInfo("Shift Time", shiftRemaining, formatTimeFromMinutes(shiftRemaining), calculateProgressFromRemaining(shiftRemaining, 14 * 60), conditions.shiftViolation ?: false))
+            violations.add(ViolationInfo("Shift Time", shiftRemaining, Utils.formatTimeFromSecondsWithSeconds(shiftRemaining), calculateProgressFromRemainingSec(shiftRemaining, 14 * 3600), conditions.shiftViolation ?: false))
         }
         val cycleRemaining = conditions.cycle ?: 0
         if (cycleRemaining > 0) {
-            violations.add(ViolationInfo("Cycle Time", cycleRemaining, formatTimeFromMinutes(cycleRemaining), calculateProgressFromRemaining(cycleRemaining, 70 * 60), conditions.cycleViolation ?: false))
+            violations.add(ViolationInfo("Cycle Time", cycleRemaining, Utils.formatTimeFromSecondsWithSeconds(cycleRemaining), calculateProgressFromRemainingSec(cycleRemaining, 70 * 3600), conditions.cycleViolation ?: false))
         }
         return violations.minByOrNull { it.remainingMinutes }
     }
 
-    private fun formatTimeFromMinutes(remainingMinutes: Int): String {
-        return if (remainingMinutes <= 0) "00:00" else {
-            val hours = remainingMinutes / 60
-            val minutes = remainingMinutes % 60
-            String.format("%02d:%02d", hours, minutes)
-        }
-    }
-
-    private fun calculateProgressFromRemaining(remainingMinutes: Int, totalMinutes: Int): Int {
-        return if (remainingMinutes <= 0) 100 else {
-            val spentMinutes = totalMinutes - remainingMinutes
-            val progress = (spentMinutes.toFloat() / totalMinutes * 100).toInt()
+    private fun calculateProgressFromRemainingSec(remainingSeconds: Int, totalSeconds: Int): Int {
+        return if (remainingSeconds <= 0) 100 else {
+            val spent = totalSeconds - remainingSeconds
+            val progress = (spent.toFloat() / totalSeconds * 100).toInt()
             progress.coerceIn(0, 100)
         }
     }

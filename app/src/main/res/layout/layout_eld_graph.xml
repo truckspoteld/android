@@ -17,7 +17,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
-            android:layout_width="24dp"
+            android:layout_width="18dp"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:weightSum="4">
@@ -63,8 +63,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="12dp"
-            android:layout_marginStart="22dp"
-            android:layout_marginEnd="20dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="40dp"
             android:orientation="horizontal"
             android:weightSum="24">
 
@@ -281,9 +281,9 @@
             android:id="@+id/graph"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="24dp"
+            android:layout_marginStart="20dp"
             android:layout_marginTop="14dp"
-            android:layout_marginEnd="24dp"
+            android:layout_marginEnd="40dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -301,9 +301,10 @@
 
         <LinearLayout
             android:id="@+id/hours"
-            android:layout_width="24dp"
+            android:layout_width="40dp"
             android:layout_height="match_parent"
             android:layout_alignParentEnd="true"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
             android:weightSum="4">
 

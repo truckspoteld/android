@@ -1,15 +1,17 @@
 package com.truckspot.utils
 
 object Constants {
-    const val TAG="Truck Spot"
-    //http://127.0.0.1:4300/api/v1/login
-//    const val BASE_URL ="https://dev-api.truckspoteld.com/"
-//    const val BASE_URL ="https://ululant-marcelino-mellifluent.ngrok-free.dev/"
-//     const val BASE_URL  =   "http://147.182.173.108:4500/"
-//     const val BASE_URL  =   "https://qbj1gz1x-4500.euw.devtunnels.ms/"
-//     const val BASE_URL =   "https://z40vkpxm-4500.uks1.devtunnels.ms/"
-     const val BASE_URL =   "https://api.eagleye.app/"
-    //const val BASE_URL =   "http://localhost:4500/"
+    const val TAG = "Truck Spot"
+
+    // API base URL
+    //const val BASE_URL = "https://aa08-154-208-34-33.ngrok-free.app/"   // local: your Mac IP (phone on same WiFi)
+//    const val BASE_URL = "http://10.0.2.2:4500/"     // local: Android emulator
+    const val BASE_URL = "https://api.eagleye.app/"
+
+    // WebSocket URL (backend WS port, usually 4501)
+  // const val SOCKET_URL = "https://2d8c-154-208-34-33.ngrok-free.app"   // local: your Mac IP
+//    const val SOCKET_URL = "http://10.0.2.2:4501"      // local: emulator
+    const val SOCKET_URL = "https://api.eagleye.app"    // production
 
 
 }

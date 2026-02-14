@@ -183,12 +183,11 @@ class DashboardRepository @Inject constructor(
         SocketManager.initialize()
     }
 
-    // Flag to prevent duplicate socket listeners
     private var isListeningForLogs = false
+    var onLogUpdatedCallback: (() -> Unit)? = null
 
-    fun connectSocket( id : Int) {
+    fun connectSocket(id: Int) {
         SocketManager.connect(id)
-        // Only add listener once to prevent duplicates
         if (!isListeningForLogs) {
             isListeningForLogs = true
             listenNewLogs()
@@ -197,11 +196,15 @@ class DashboardRepository @Inject constructor(
 
     fun disconnectSocket() {
         SocketManager.disconnect()
-        isListeningForLogs = false  // Reset flag when disconnecting
+        isListeningForLogs = false
+        onLogUpdatedCallback = null
     }
 
     @SuppressLint("SuspiciousIndentation")
-    fun listenNewLogs() {
+    private fun listenNewLogs() {
+        SocketManager.listenForLogUpdates {
+            onLogUpdatedCallback?.invoke()
+        }
         SocketManager.listenForLogs { jsonObject ->
 //            val newLogResponse = Gson().fromJson(jsonObject.toString(), UserLog::class.java)
             println(jsonObject.toString())

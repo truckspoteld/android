@@ -1,12 +1,12 @@
 import android.util.Log
+import com.truckspot.utils.Constants
 import io.socket.client.IO
 import io.socket.client.Socket
 import org.json.JSONObject
 
 object SocketManager {
 
-//    private const val SOCKET_URL = "https://20hx23jc-4501.asse.devtunnels.ms/"
-    private const val SOCKET_URL = "https://api.truckspoteld.com"
+    private val SOCKET_URL: String get() = Constants.SOCKET_URL
     private var socket: Socket? = null
     @Volatile
     private var isConnecting = false
@@ -80,8 +80,8 @@ object SocketManager {
 
     fun disconnect() {
         try {
-            // Remove all event listeners before disconnecting
             socket?.off("newLogs")
+            socket?.off("logUpdated")
             socket?.disconnect()
             isConnecting = false
             Log.d("SocketIO", "Socket disconnected and listeners cleared")
@@ -95,7 +95,6 @@ object SocketManager {
     }
 
     fun listenForLogs(onLogsReceived: (JSONObject) -> Unit) {
-        // Remove existing listener first to prevent duplicates
         socket?.off("newLogs")
         socket?.on("newLogs") { args ->
             if (args.isNotEmpty() && args[0] is JSONObject) {
@@ -103,6 +102,16 @@ object SocketManager {
             }
         }
         Log.d("SocketIO", "Listening for newLogs events")
+    }
+
+    /** Call when server emits logUpdated (after add/update/delete log). Client should refetch home/logs. */
+    fun listenForLogUpdates(onLogUpdated: () -> Unit) {
+        socket?.off("logUpdated")
+        socket?.on("logUpdated") {
+            Log.d("SocketIO", "logUpdated received, triggering refresh")
+            onLogUpdated()
+        }
+        Log.d("SocketIO", "Listening for logUpdated events")
     }
 
     fun sendMessage(event: String, data: Int) {

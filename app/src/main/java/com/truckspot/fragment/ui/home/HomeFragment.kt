@@ -103,6 +103,8 @@ class HomeFragment : Fragment(), OnClickListener {
 
     private var clockJob: Job? = null
     private var locationJob: Job? = null
+    private var conditionsRefreshJob: Job? = null
+    private val CONDITIONS_REFRESH_INTERVAL_MS = 120_000L // 2 minutes – conditions & remaining times
     private var timeZone: String = ""
     private var lastLogTime: String = ""
     private var lastLogMode: String = ""
@@ -203,6 +205,7 @@ class HomeFragment : Fragment(), OnClickListener {
         clockJob?.cancel()
         bluetoothConnectionJob?.cancel()
         speedMonitoringJob?.cancel()  // Stop speed monitoring when paused
+        conditionsRefreshJob?.cancel()
     }
 
     @SuppressLint("SuspiciousIndentation", "ResourceAsColor")
@@ -263,6 +266,11 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.profileInitial.text = "U"
         }
         homeViewModel.connectSocket(prefRepository.getDriverId())
+        homeViewModel.setLogUpdatedCallback {
+            requireActivity().runOnUiThread {
+                homeViewModel.getHome(requireContext())
+            }
+        }
 
         binding.editShipping.setOnClickListener { editShippingNumberPopup() }
         binding.editCoDriver.setOnClickListener { editCoDriverPopup() }
@@ -724,6 +732,22 @@ class HomeFragment : Fragment(), OnClickListener {
             } catch (e: Exception) {
                 Log.e(TAG, "onResume: startClock error: ${e.message}")
             }
+
+            // Auto-refresh conditions/remaining every 2 min so home stays in sync without socket event
+            conditionsRefreshJob?.cancel()
+            conditionsRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
+                while (isActive) {
+                    delay(CONDITIONS_REFRESH_INTERVAL_MS)
+                    if (_binding != null && !isFetchingLogs) {
+                        try {
+                            homeViewModel.getHome(requireContext())
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Conditions refresh error: ${e.message}")
+                        }
+                    }
+                }
+            }
+            conditionsRefreshJob?.invokeOnCompletion { conditionsRefreshJob = null }
             
             Log.d(TAG, "onResume: END - All operations completed")
             

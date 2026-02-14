@@ -15,6 +15,10 @@ import com.truckspot.utils.NetworkResult
 import com.truckspot.utils.PrefRepository
 import retrofit2.Response
 import java.math.BigDecimal
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import java.io.IOException
 import javax.inject.Inject
 
 var miles: BigDecimal? = null
@@ -33,10 +37,11 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
     @SuppressLint("LongLogTag")
     suspend fun loginUser(loginRequest: LoginRequest) {
         _loginResponseLiveData.postValue(NetworkResult.Loading())
-        val response = truckSpotAPI.login(loginRequest = loginRequest)
-        Log.d("Login response will come here", "LOGINRESPONSE:$response")
-        handleResponse(response)
-        if (response.isSuccessful && response.body() != null) {
+        try {
+            val response = truckSpotAPI.login(loginRequest = loginRequest)
+            Log.d("Login response will come here", "LOGINRESPONSE:$response")
+            handleResponse(response)
+            if (response.isSuccessful && response.body() != null) {
             _loginResponseLiveData.postValue(NetworkResult.Success(response.body()!!))
             val userLogsResponse = truckSpotAPI.getAllLog()
             if (userLogsResponse.isSuccessful) {
@@ -100,6 +105,22 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
             _loginResponseLiveData.postValue(NetworkResult.Error("Something Went wrong at API END"))
         } else {
             _loginResponseLiveData.postValue(NetworkResult.Error("Something Went Wrong"))
+        }
+        } catch (e: ConnectException) {
+            Log.e(TAG, "Login connection failed: ${e.message}")
+            _loginResponseLiveData.postValue(NetworkResult.Error("Cannot reach server. Check that the server is running and your network (e.g. same Wi‑Fi as server)."))
+        } catch (e: SocketTimeoutException) {
+            Log.e(TAG, "Login timeout: ${e.message}")
+            _loginResponseLiveData.postValue(NetworkResult.Error("Server did not respond in time. Check your connection."))
+        } catch (e: UnknownHostException) {
+            Log.e(TAG, "Login unknown host: ${e.message}")
+            _loginResponseLiveData.postValue(NetworkResult.Error("Cannot reach server. Check the server address and your network."))
+        } catch (e: IOException) {
+            Log.e(TAG, "Login network error: ${e.message}")
+            _loginResponseLiveData.postValue(NetworkResult.Error("Network error: ${e.message ?: "Check your connection."}"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Login error: ${e.message}", e)
+            _loginResponseLiveData.postValue(NetworkResult.Error(e.message ?: "Something went wrong."))
         }
     }
 

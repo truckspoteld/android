@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Allow HTTP (cleartext) to local/dev backend IPs. Add your machine's IP for local testing. -->
     <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.12</domain>
         <domain includeSubdomains="false">192.168.29.117</domain>
         <domain includeSubdomains="false">147.182.173.108</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
     </domain-config>
 </network-security-config>

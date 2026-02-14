@@ -74,12 +74,16 @@ class HomeViewModel @Inject constructor(
 
     fun getUserLogs() = refinedUserLogs ?: mutableListOf()
 
-    fun connectSocket(id : Int ){
-        dashboardRespository.connectSocket(id);
+    fun connectSocket(id: Int) {
+        dashboardRespository.connectSocket(id)
     }
 
-    fun discconecttSocket(){
-        dashboardRespository.disconnectSocket();
+    fun setLogUpdatedCallback(callback: () -> Unit) {
+        dashboardRespository.onLogUpdatedCallback = callback
+    }
+
+    fun discconecttSocket() {
+        dashboardRespository.disconnectSocket()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

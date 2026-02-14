@@ -46,7 +46,7 @@ class LogsFragment : Fragment() {
     
     // Timer variables for auto-refresh
     private var autoRefreshJob: Job? = null
-    private val AUTO_REFRESH_INTERVAL = 30000L // 30 seconds
+    private val AUTO_REFRESH_INTERVAL = 120_000L // 2 minutes
     
     // Flag to prevent duplicate data loading
     private var isDataLoaded = false

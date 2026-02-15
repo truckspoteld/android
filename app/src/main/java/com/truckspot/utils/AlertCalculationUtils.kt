@@ -1110,6 +1110,27 @@ private fun overallHours(
         }
     }
 
+    /** Current time in company timezone as hours (0f–24f) for graph x-axis. */
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCurrentTimeAsFloatInTimezone(timezone: String): Float {
+        return try {
+            val timeStr = setDateAndTimeBasedOnTimezone(timezone)["time"] ?: "00:00:00"
+            val parts = timeStr.split(":")
+            when (parts.size) {
+                3 -> {
+                    val h = parts[0].toIntOrNull() ?: 0
+                    val m = parts[1].toIntOrNull() ?: 0
+                    val s = parts[2].toIntOrNull() ?: 0
+                    (h + m / 60f + s / 3600f).coerceIn(0f, 24f)
+                }
+                else -> 0f
+            }
+        } catch (e: Exception) {
+            Log.e("AlertCalculationUtils", "Error getCurrentTimeAsFloatInTimezone: ${e.message}")
+            0f
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun formatTimeWithTimezone(time: String, timezone: String): String {
         if (time.isBlank() || time == "00:00") return ""

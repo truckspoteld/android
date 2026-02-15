@@ -43,6 +43,9 @@ class LogsFragment : Fragment() {
     var days = 0
 
     var timeZone: String = ""
+
+    /** Requested date (YYYY-MM-DD) for the current load; used to extend graph to 24 or "now". */
+    private var currentRequestDate: String = ""
     
     // Timer variables for auto-refresh
     private var autoRefreshJob: Job? = null
@@ -238,58 +241,52 @@ class LogsFragment : Fragment() {
                     var logList: MutableList<ELDGraphData>? = mutableListOf()
                     logList?.clear();
 
-                    if( result.data?.results?.previousDayLog?.modename != null){
+                    val todayStr = if (timeZone.isNotEmpty()) AlertCalculationUtils.getCurrentDateInTimezone(timeZone) else ""
+                    val isViewingToday = currentRequestDate == todayStr
+                    val nowFloat = if (timeZone.isNotEmpty()) AlertCalculationUtils.getCurrentTimeAsFloatInTimezone(timeZone) else 24f
 
-                        logList?.add(  // adding graph data
-                            ELDGraphData(
-                                0.toFloat(),
-                                result.data.results.previousDayLog.modename,
-                                0.toLong()
-                            )
-                        )
+                    fun addGraphPoint(time: Float, modename: String?) {
+                        if (modename.isNullOrBlank()) return
+                        val status = modename.trim().lowercase()
+                        if (status in setOf("on", "off", "d", "dr", "sb"))
+                            logList?.add(ELDGraphData(time, status, time.toLong()))
+                    }
+
+                    if (result.data?.results?.previousDayLog?.modename != null) {
+                        addGraphPoint(0f, result.data.results.previousDayLog.modename)
                     }
                     logs.forEach {
-                        val time: Float = it.time.let {
-                            AlertCalculationUtils.refinedTimeStringToFloat(it!!)
-                        }
-
-                        logList?.add(  // adding graph data
-                            ELDGraphData(
-                                time,
-                                it.modename,
-                                time.toLong()
-                            )
-                        )
+                        val time = it.time?.let { t -> AlertCalculationUtils.refinedTimeStringToFloat(t) } ?: 0f
+                        addGraphPoint(time, it.modename)
                     }
-                    if( result.data?.results?.latestUpdatedLog?.modename != null){
-                        val time: Float =  result.data.results.latestUpdatedLog.time.let {
-                                AlertCalculationUtils.refinedTimeStringToFloat(it)
+                    val latest = result.data?.results?.latestUpdatedLog
+                    val lastLogTime = logList?.lastOrNull()?.time
+                    val latestTime = latest?.time?.let { AlertCalculationUtils.refinedTimeStringToFloat(it) }
+                    if (latest?.modename != null && latestTime != null && (lastLogTime == null || lastLogTime != latestTime)) {
+                        if (isViewingToday && latestTime > nowFloat) {
+                            // Don't add latest if its time is past "now" (e.g. yesterday's time) — we'll cap at now instead
+                        } else {
+                            addGraphPoint(latestTime, latest.modename)
                         }
-                        logList?.add(  // adding graph data
-                            ELDGraphData(
-                                time,
-                                result.data.results.latestUpdatedLog.modename,
-                                time.toLong()
-                            )
-                        )
                     }
-                    if( result.data?.results?.nextDayLog?.modename != null ){
-                        result.data.results.nextDayLog.time.let {
-                            if(it != null && it.isNotEmpty())
-                            AlertCalculationUtils.refinedTimeStringToFloat(it)
-                            else
-                                24.0.toFloat()
+                    val addedNextDayAt24 = if (!isViewingToday && result.data?.results?.nextDayLog?.modename != null) {
+                        addGraphPoint(24f, result.data.results.nextDayLog.modename)
+                        true
+                    } else false
+                    val dutyStatuses = setOf("on", "off", "d", "sb")
+                    if (!logList.isNullOrEmpty() && timeZone.isNotEmpty()) {
+                        val lastStatus = logList!!.last().status?.lowercase()
+                        if (lastStatus != null && lastStatus in dutyStatuses) {
+                            if (isViewingToday) {
+                                if (logList!!.last().time < nowFloat)
+                                    logList!!.add(ELDGraphData(nowFloat, lastStatus, nowFloat.toLong()))
+                            } else if (!addedNextDayAt24) {
+                                if (logList!!.last().time < 24f)
+                                    logList!!.add(ELDGraphData(24f, lastStatus, 24L))
+                            }
                         }
-                        logList?.add(  // adding graph data
-                            ELDGraphData(
-                                24.toFloat(),
-                                result.data.results.nextDayLog.modename,
-                                24.toLong()
-                            )
-                        )
                     }
-                    // Exclude login/logout and non-duty statuses from graph (backend meta already excludes them from totals)
-                    val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" &&  it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off"}
+                    val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" && it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off" }
 
                     binding.eldPlot.graph.plotGraph(filteredList)
                     binding.eldPlot.graph.invalidate()
@@ -331,6 +328,7 @@ class LogsFragment : Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadLogsForDate(requestDate: String, updateAutoRefresh: Boolean) {
+        currentRequestDate = requestDate
         val request = GetLogsByDateRequest(
             prefRepository.getDriverId(),
             requestDate,

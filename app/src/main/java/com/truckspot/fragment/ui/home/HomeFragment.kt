@@ -391,7 +391,7 @@ class HomeFragment : Fragment(), OnClickListener {
         if (data?.conditions == null || _binding == null) return
 
         // Conditions from backend are in seconds; format as HH:MM:SS
-        val formatCondition: (Int) -> String = { Utils.formatTimeFromSecondsWithSeconds(it) }
+        val formatCondition: (Int) -> String = { Utils.formatTimeFromSeconds(it) }
         val driveTotalSec = 11 * 3600
         val cycleTotalSec = 70 * 3600
         val shiftTotalSec = 14 * 3600
@@ -1495,19 +1495,19 @@ class HomeFragment : Fragment(), OnClickListener {
         val violations = mutableListOf<ViolationInfo>()
         val driveRemaining = conditions.drive ?: 0
         if (driveRemaining > 0) {
-            violations.add(ViolationInfo("Drive Time", driveRemaining, Utils.formatTimeFromSecondsWithSeconds(driveRemaining), calculateProgressFromRemainingSec(driveRemaining, 11 * 3600), conditions.driveViolation ?: false))
+            violations.add(ViolationInfo("Drive Time", driveRemaining, Utils.formatTimeFromSeconds(driveRemaining), calculateProgressFromRemainingSec(driveRemaining, 11 * 3600), conditions.driveViolation ?: false))
         }
         val driveBreakRemaining = conditions.drivebreak ?: 0
         if (driveBreakRemaining > 0) {
-            violations.add(ViolationInfo("Drive Break", driveBreakRemaining, Utils.formatTimeFromSecondsWithSeconds(driveBreakRemaining), calculateProgressFromRemainingSec(driveBreakRemaining, 8 * 3600), conditions.driveBreakViolation ?: false))
+            violations.add(ViolationInfo("Drive Break", driveBreakRemaining, Utils.formatTimeFromSeconds(driveBreakRemaining), calculateProgressFromRemainingSec(driveBreakRemaining, 8 * 3600), conditions.driveBreakViolation ?: false))
         }
         val shiftRemaining = conditions.shift ?: 0
         if (shiftRemaining > 0) {
-            violations.add(ViolationInfo("Shift Time", shiftRemaining, Utils.formatTimeFromSecondsWithSeconds(shiftRemaining), calculateProgressFromRemainingSec(shiftRemaining, 14 * 3600), conditions.shiftViolation ?: false))
+            violations.add(ViolationInfo("Shift Time", shiftRemaining, Utils.formatTimeFromSeconds(shiftRemaining), calculateProgressFromRemainingSec(shiftRemaining, 14 * 3600), conditions.shiftViolation ?: false))
         }
         val cycleRemaining = conditions.cycle ?: 0
         if (cycleRemaining > 0) {
-            violations.add(ViolationInfo("Cycle Time", cycleRemaining, Utils.formatTimeFromSecondsWithSeconds(cycleRemaining), calculateProgressFromRemainingSec(cycleRemaining, 70 * 3600), conditions.cycleViolation ?: false))
+            violations.add(ViolationInfo("Cycle Time", cycleRemaining, Utils.formatTimeFromSeconds(cycleRemaining), calculateProgressFromRemainingSec(cycleRemaining, 70 * 3600), conditions.cycleViolation ?: false))
         }
         return violations.minByOrNull { it.remainingMinutes }
     }

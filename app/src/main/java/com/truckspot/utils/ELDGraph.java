@@ -234,12 +234,15 @@ public final class ELDGraph extends View {
                 CollectionsKt.throwIndexOverflow();
             }
             ELDGraphData eLDGraphData2 = (ELDGraphData) next2;
-            if (i4 < this.eldGraphDataList.size() - 1) {
-                drawStatusLine(((ELDGraphData) this.eldGraphDataList.get(i4)).getTime(), ((ELDGraphData) this.eldGraphDataList.get(i12)).getTime(),
-                        convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4)).getStatus()));
+            int currentStatus = convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4)).getStatus());
+            if (i4 < this.eldGraphDataList.size() - 1 && currentStatus != 0) {
+                drawStatusLine(((ELDGraphData) this.eldGraphDataList.get(i4)).getTime(), ((ELDGraphData) this.eldGraphDataList.get(i12)).getTime(), currentStatus);
             }
             if (i4 != 0) {
-                changeDutyStatus(convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4 - 1)).getStatus()), convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4)).getStatus()), ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime());
+                int prevStatus = convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4 - 1)).getStatus());
+                if (prevStatus != 0 && currentStatus != 0) {
+                    changeDutyStatus(prevStatus, currentStatus, ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime());
+                }
             }
             i4 = i12;
         }
@@ -270,16 +273,12 @@ public final class ELDGraph extends View {
 
 
     private int convertEventNameToStatus(String value) {
-
-        if (Objects.equals(value, "off")) {
-            return 1;
-        } else if (Objects.equals(value, "sb")) {
-            return 2;
-        } else if (Objects.equals(value, "d")) {
-            return 3;
-        } else if (Objects.equals(value, "on")) {
-            return 4;
-        }
+        if (value == null) return 0;
+        String v = value.trim().toLowerCase();
+        if ("off".equals(v)) return 1;
+        if ("sb".equals(v)) return 2;
+        if ("d".equals(v) || "dr".equals(v)) return 3;
+        if ("on".equals(v)) return 4;
         return 0;
     }
 }

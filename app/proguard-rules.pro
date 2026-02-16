@@ -20,8 +20,8 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 #-renamesourcefileattribute SourceFile
--keep class com.truckspot.models.** { *;}
--keep class com.truckspot.request.** { *;}
+-keep class com.eagleye.eld.** { *; }
+
 -keepattributes *Annotation*
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;

@@ -175,23 +175,21 @@ class LogsFragment : Fragment() {
                     true
                 )
                 val currentDate = ++days
+                currentRequestDate = getDateForDaysOffset(days, "")
                 updateDateDisplay()
                 val request = GetLogsByDateRequest(
-                    prefRepository.getDriverId(), 
-                    getDateForDaysOffset(currentDate, ""),
-//                    getDateForDaysOffset(currentDate, ""),
-                    getDateForDaysOffset(currentDate, "")
+                    prefRepository.getDriverId(),
+                    currentRequestDate,
+                    currentRequestDate
                 )
                 logViewMode.getLogs(request, requireContext())
                 updateArrowVisibility()
-                
-                // Update auto-refresh based on current date
                 updateAutoRefreshForCurrentDate()
             } else {
                 showValidationErrors("you cannot see more than 8 days old logsheet")
             }
         }
-        
+
         _binding?.rightArrow?.setOnClickListener {
             if (days > 0) {
                 SLog.detailLogs(
@@ -199,19 +197,16 @@ class LogsFragment : Fragment() {
                     "\n",
                     true
                 )
-
                 val currentDate = --days
+                currentRequestDate = getDateForDaysOffset(days, "")
                 updateDateDisplay()
                 val request = GetLogsByDateRequest(
-                    prefRepository.getDriverId(), 
-                    getDateForDaysOffset(currentDate, ""),
-                    getDateForDaysOffset(currentDate, ""),
-//                    getDateForDaysOffset(currentDate, "")
+                    prefRepository.getDriverId(),
+                    currentRequestDate,
+                    currentRequestDate
                 )
                 logViewMode.getLogs(request, requireContext())
                 updateArrowVisibility()
-                
-                // Update auto-refresh based on current date
                 updateAutoRefreshForCurrentDate()
             }
         }
@@ -241,7 +236,8 @@ class LogsFragment : Fragment() {
                     var logList: MutableList<ELDGraphData>? = mutableListOf()
                     logList?.clear();
 
-                    val todayStr = if (timeZone.isNotEmpty()) AlertCalculationUtils.getCurrentDateInTimezone(timeZone) else ""
+                    val todayStr = if (timeZone.isNotEmpty()) AlertCalculationUtils.getCurrentDateInTimezone(timeZone)
+                        else AlertCalculationUtils.getCurrentDateInTimezone("America/Los_Angeles")
                     val isViewingToday = currentRequestDate == todayStr
                     val nowFloat = if (timeZone.isNotEmpty()) AlertCalculationUtils.getCurrentTimeAsFloatInTimezone(timeZone) else 24f
 
@@ -274,16 +270,15 @@ class LogsFragment : Fragment() {
                         true
                     } else false
                     val dutyStatuses = setOf("on", "off", "d", "sb")
-                    if (!logList.isNullOrEmpty() && timeZone.isNotEmpty()) {
-                        val lastStatus = logList!!.last().status?.lowercase()
-                        if (lastStatus != null && lastStatus in dutyStatuses) {
-                            if (isViewingToday) {
-                                if (logList!!.last().time < nowFloat)
-                                    logList!!.add(ELDGraphData(nowFloat, lastStatus, nowFloat.toLong()))
-                            } else if (!addedNextDayAt24) {
-                                if (logList!!.last().time < 24f)
-                                    logList!!.add(ELDGraphData(24f, lastStatus, 24L))
-                            }
+                    val lastDutyStatus = logList?.lastOrNull { it.status?.lowercase() in dutyStatuses }?.status?.lowercase()
+                    if (!logList.isNullOrEmpty() && lastDutyStatus != null) {
+                        val lastPoint = logList!!.last()
+                        if (isViewingToday) {
+                            if (lastPoint.time < nowFloat)
+                                logList!!.add(ELDGraphData(nowFloat, lastDutyStatus, nowFloat.toLong()))
+                        } else if (!addedNextDayAt24) {
+                            if (lastPoint.time < 24f)
+                                logList!!.add(ELDGraphData(24f, lastDutyStatus, 24L))
                         }
                     }
                     val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" && it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off" }

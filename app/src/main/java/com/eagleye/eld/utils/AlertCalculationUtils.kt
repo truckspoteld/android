@@ -1185,9 +1185,11 @@ private fun overallHours(
 
     fun refinedTimeStringToFloat(time: String): Float {
         return try {
-            val replaced = time.replace(":", ".")
-            val trimmed = replaced.substring(0, replaced.length - 3)
-            "$trimmed".toFloat()
+            val parts = time.split(":")
+            val hours   = parts.getOrNull(0)?.toIntOrNull() ?: 0
+            val minutes = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            val seconds = parts.getOrNull(2)?.toIntOrNull() ?: 0
+            hours + minutes / 60f + seconds / 3600f
         } catch (e: Exception) {
             0f
         }

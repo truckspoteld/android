@@ -283,7 +283,6 @@ class LogsFragment : Fragment() {
                     }
                     val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" && it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off" }
 
-                    binding.eldPlot.graph.plotGraph(filteredList)
                     binding.eldPlot.graph.invalidate()
                     
                         binding.eventLogRv.adapter = LogAdaptor(logs, childFragmentManager, requireContext(), timeZone)
@@ -295,6 +294,8 @@ class LogsFragment : Fragment() {
                     val sb = meta?.sb ?: 0
                     val d = meta?.d ?: 0
                     val on = meta?.on ?: 0
+                    binding.eldPlot.graph.plotGraph(filteredList, off, sb, d, on)
+                    binding.eldPlot.graph.invalidate()
                     binding.eldPlot.offDutyHours.text = formatTimeFromSeconds(off)
                     binding.eldPlot.sbHours.text = formatTimeFromSeconds(sb)
                     binding.eldPlot.drivingHours.text = formatTimeFromSeconds(d)

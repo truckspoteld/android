@@ -11,6 +11,7 @@ import android.view.View;
 import androidx.core.view.ViewCompat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -35,8 +36,20 @@ public final class ELDGraph extends View {
     private final int numColumns;
     private final int numRows;
     private final Paint whitePaint;
+    private final Paint timeLabelPaint;
+    private final Paint dotPaint;
+    private final float[] lastLabelRightByRow;
+    private final int[] labelStackLevelByRow;
+    // Meta totals from server (in seconds); -1 means not set
+    private int metaOffSec = -1;
+    private int metaSbSec = -1;
+    private int metaDSec = -1;
+    private int metaOnSec = -1;
 
-    /* JADX INFO: super call moved to the top of the method (can break code semantics) */
+    /*
+     * JADX INFO: super call moved to the top of the method (can break code
+     * semantics)
+     */
     public ELDGraph(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         Intrinsics.checkNotNullParameter(context, "context");
@@ -45,7 +58,7 @@ public final class ELDGraph extends View {
         this.whitePaint = paint;
         Paint paint2 = new Paint();
         this.graphPlotPaint = paint2;
-        
+
         // Initialize background paints for each duty status
         Paint offBgPaint = new Paint();
         this.offDutyBackgroundPaint = offBgPaint;
@@ -55,36 +68,58 @@ public final class ELDGraph extends View {
         this.drivingBackgroundPaint = driveBgPaint;
         Paint onBgPaint = new Paint();
         this.onDutyBackgroundPaint = onBgPaint;
-        
+
+        // Time label paint - black text drawn above the line at segment start
+        Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.timeLabelPaint = labelPaint;
+        labelPaint.setColor(Color.BLACK);
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+        labelPaint.setTextSize(22f);
+        labelPaint.setFakeBoldText(true);
+
+        // Green dot paint for transition points
+        Paint dp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.dotPaint = dp;
+        dp.setColor(Color.parseColor("#00CC00")); // bright green
+        dp.setStyle(Paint.Style.FILL);
+
         this.numColumns = 24;
         this.numRows = 4;
+        this.lastLabelRightByRow = new float[this.numRows + 1];
+        this.labelStackLevelByRow = new int[this.numRows + 1];
         this.eldGraphDataList = new ArrayList();
-        
+
         // Configure grid lines paint
         paint.setStyle(Paint.Style.FILL_AND_STROKE);
         paint.setColor(Color.parseColor("#333333")); // Dark gray for better visibility on colored backgrounds
         paint.setStrokeWidth(1.0f);
-        
+
         // Configure graph plot paint
         paint2.setStyle(Paint.Style.FILL_AND_STROKE);
         paint2.setStrokeWidth(2.0f); // Normal thickness for status lines
         paint2.setColor(Color.parseColor("#000000")); // Black lines for maximum contrast
-        
+
         // Configure background paints with colors from image
         offBgPaint.setStyle(Paint.Style.FILL);
         offBgPaint.setColor(Color.parseColor("#87CEEB")); // Light blue for OFF duty
-        
+
         sbBgPaint.setStyle(Paint.Style.FILL);
         sbBgPaint.setColor(Color.parseColor("#4169E1")); // Royal blue for Sleeper Berth
-        
+
         driveBgPaint.setStyle(Paint.Style.FILL);
         driveBgPaint.setColor(Color.parseColor("#FFA500")); // Orange for Driving
-        
+
         onBgPaint.setStyle(Paint.Style.FILL);
         onBgPaint.setColor(Color.parseColor("#FFD700")); // Gold/Yellow for ON duty
     }
 
-     public ELDGraph(Context context, AttributeSet attributeSet, int i, DefaultConstructorMarker defaultConstructorMarker) {
+    private void resetLabelLayoutState() {
+        Arrays.fill(this.lastLabelRightByRow, Float.NEGATIVE_INFINITY);
+        Arrays.fill(this.labelStackLevelByRow, 0);
+    }
+
+    public ELDGraph(Context context, AttributeSet attributeSet, int i,
+            DefaultConstructorMarker defaultConstructorMarker) {
         this(context, (i & 2) != 0 ? null : attributeSet);
     }
 
@@ -93,24 +128,47 @@ public final class ELDGraph extends View {
         this.eldGraphDataList = list;
     }
 
+    /** Call this overload to also supply server meta totals (seconds). */
+    public final void plotGraph(List<? extends ELDGraphData> list,
+            int offSec, int sbSec, int dSec, int onSec) {
+        Intrinsics.checkNotNullParameter(list, "eldGraphDataList");
+        this.eldGraphDataList = list;
+        this.metaOffSec = offSec;
+        this.metaSbSec = sbSec;
+        this.metaDSec = dSec;
+        this.metaOnSec = onSec;
+    }
+
     private final void changeDutyStatus(int i, int i2, float f) {
-//        Timber.Forest forest = Timber.Forest;
-//        forest.mo46574i("change duty -> " + i + ' ' + i2 + ' ' + f, new Object[0]);
+        // Timber.Forest forest = Timber.Forest;
+        // forest.mo46574i("change duty -> " + i + ' ' + i2 + ' ' + f, new Object[0]);
         Canvas canvas2 = this.canvas;
         if (canvas2 != null) {
-            canvas2.drawLine((((float) getWidth()) * f) / ((float) this.numColumns), (float) (((double) ((i * getHeight()) / this.numRows)) - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))), (f * ((float) getWidth())) / ((float) this.numColumns), (float) (((double) ((i2 * getHeight()) / this.numRows)) - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))), this.graphPlotPaint);
+            canvas2.drawLine((((float) getWidth()) * f) / ((float) this.numColumns),
+                    (float) (((double) ((i * getHeight()) / this.numRows))
+                            - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))),
+                    (f * ((float) getWidth())) / ((float) this.numColumns),
+                    (float) (((double) ((i2 * getHeight()) / this.numRows))
+                            - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))),
+                    this.graphPlotPaint);
         }
     }
 
     private final void drawStatusLine(float f, float f2, int i) {
-//        Timber.Forest forest = Timber.Forest;
-//        forest.mo46574i("draw line -> " + f + ' ' + f2 + ' ' + i, new Object[0]);
+        // Timber.Forest forest = Timber.Forest;
+        // forest.mo46574i("draw line -> " + f + ' ' + f2 + ' ' + i, new Object[0]);
         Canvas canvas2 = this.canvas;
         if (canvas2 != null) {
-            canvas2.drawLine((f * ((float) getWidth())) / ((float) this.numColumns), (float) (((double) ((getHeight() * i) / this.numRows)) - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))), (f2 * ((float) getWidth())) / ((float) this.numColumns), (float) (((double) ((i * getHeight()) / this.numRows)) - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))), this.graphPlotPaint);
+            canvas2.drawLine((f * ((float) getWidth())) / ((float) this.numColumns),
+                    (float) (((double) ((getHeight() * i) / this.numRows))
+                            - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))),
+                    (f2 * ((float) getWidth())) / ((float) this.numColumns),
+                    (float) (((double) ((i * getHeight()) / this.numRows))
+                            - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))),
+                    this.graphPlotPaint);
         }
     }
-    
+
     private final void drawRowBackground(int rowIndex) {
         Canvas canvas2 = this.canvas;
         if (canvas2 != null) {
@@ -131,14 +189,142 @@ public final class ELDGraph extends View {
                 default:
                     return; // Don't draw background for invalid rows
             }
-            
+
             // Calculate row boundaries
             float top = (float) ((getHeight() * (rowIndex - 1)) / this.numRows);
             float bottom = (float) ((getHeight() * rowIndex) / this.numRows);
-            
+
             // Draw the colored background for the entire row
             canvas2.drawRect(0.0f, top, (float) getWidth(), bottom, backgroundPaint);
         }
+    }
+
+    /**
+     * Draw a HH:MM duration label just above the START point of the segment line.
+     * This matches the reference style where labels appear above the line at the
+     * start.
+     *
+     * @param startTime segment start in hours (0-24 float)
+     * @param endTime   segment end in hours (0-24 float)
+     * @param rowIndex  1=OFF, 2=SB, 3=DR, 4=ON
+     */
+    private final void drawSegmentTimeLabel(float startTime, float endTime, int rowIndex) {
+        Canvas canvas2 = this.canvas;
+        if (canvas2 == null || rowIndex == 0)
+            return;
+
+        float durationHours = endTime - startTime;
+        if (durationHours <= 0f)
+            return;
+
+        // Convert duration to HH:MM using floor to avoid rounding accumulation
+        // Multiply by 3600 to get seconds, then extract hours and minutes
+        int totalSeconds = (int) (durationHours * 3600f);
+        int hours = totalSeconds / 3600;
+        int minutes = (totalSeconds % 3600) / 60;
+        // Round up the minutes if remaining seconds >= 30
+        int remainSec = totalSeconds % 60;
+        if (remainSec >= 30)
+            minutes = Math.min(59, minutes + 1);
+        String label = String.format("%02d:%02d", hours, minutes);
+
+        // Reduce font size for narrow segments, but never skip the label.
+        float segmentWidthPx = (durationHours * (float) getWidth()) / (float) this.numColumns;
+        float originalSize = timeLabelPaint.getTextSize();
+        float textWidth = timeLabelPaint.measureText(label);
+        if (segmentWidthPx < textWidth + 4f) {
+            float scale = (segmentWidthPx - 4f) / textWidth;
+            float boundedScale = Math.max(0.35f, scale);
+            float newSize = Math.max(8f, originalSize * boundedScale);
+            timeLabelPaint.setTextSize(newSize);
+            textWidth = timeLabelPaint.measureText(label);
+        }
+
+        // For tiny segments, anchor near start so even 1-minute segments are visible.
+        float xCenter;
+        if (segmentWidthPx < textWidth + 2f) {
+            float segmentStartX = (startTime * (float) getWidth()) / (float) this.numColumns;
+            xCenter = segmentStartX + (textWidth / 2f) + 2f;
+        } else {
+            xCenter = ((startTime + endTime) / 2f * (float) getWidth()) / (float) this.numColumns;
+        }
+
+        float minX = (textWidth / 2f) + 2f;
+        float maxX = ((float) getWidth()) - (textWidth / 2f) - 2f;
+        xCenter = Math.max(minX, Math.min(maxX, xCenter));
+
+        // Y position: just above the horizontal line of this row
+        float lineY = (float) (((double) ((getHeight() * rowIndex) / this.numRows))
+                - ((((double) getHeight()) * 0.5d) / ((double) this.numRows)));
+
+        // Draw label just above the line (8px gap)
+        Paint.FontMetrics fm = timeLabelPaint.getFontMetrics();
+        float yBaseline = lineY - 8f - fm.descent;
+
+        int safeRowIndex = Math.max(0, Math.min(rowIndex, this.numRows));
+        float labelLeft = xCenter - (textWidth / 2f);
+        float labelRight = xCenter + (textWidth / 2f);
+        if (safeRowIndex < this.lastLabelRightByRow.length) {
+            if (labelLeft <= this.lastLabelRightByRow[safeRowIndex] + 2f) {
+                this.labelStackLevelByRow[safeRowIndex] = Math.min(this.labelStackLevelByRow[safeRowIndex] + 1, 3);
+            } else {
+                this.labelStackLevelByRow[safeRowIndex] = 0;
+            }
+            float verticalStep = (fm.bottom - fm.top) + 2f;
+            yBaseline -= this.labelStackLevelByRow[safeRowIndex] * verticalStep;
+            this.lastLabelRightByRow[safeRowIndex] = labelRight;
+        }
+
+        canvas2.drawText(label, xCenter, yBaseline, timeLabelPaint);
+
+        // Reset font size for next segment
+        timeLabelPaint.setTextSize(originalSize);
+    }
+
+    /**
+     * Draw a green dot at a transition/start point on the graph line.
+     *
+     * @param timeHour time in hours (0-24 float)
+     * @param rowIndex 1=OFF, 2=SB, 3=DR, 4=ON
+     */
+    private final void drawDot(float timeHour, int rowIndex) {
+        Canvas canvas2 = this.canvas;
+        if (canvas2 == null || rowIndex == 0)
+            return;
+
+        float x = (timeHour * (float) getWidth()) / (float) this.numColumns;
+        float y = (float) (((double) ((getHeight() * rowIndex) / this.numRows))
+                - ((((double) getHeight()) * 0.5d) / ((double) this.numRows)));
+
+        canvas2.drawCircle(x, y, 6f, dotPaint);
+    }
+
+    /**
+     * Draw the server-provided total HH:MM label centered in a mode row.
+     * rowIndex: 1=OFF, 2=SB, 3=DR, 4=ON
+     * totalSec: total seconds for that mode (-1 = not available, skip)
+     */
+    private final void drawRowTotalLabel(int rowIndex, int totalSec) {
+        Canvas canvas2 = this.canvas;
+        if (canvas2 == null || totalSec < 0)
+            return;
+
+        int hours = totalSec / 3600;
+        int minutes = (totalSec % 3600) / 60;
+        String label = String.format("%02d:%02d", hours, minutes);
+
+        // Center of the row vertically
+        float rowTop = (float) ((getHeight() * (rowIndex - 1)) / this.numRows);
+        float rowBottom = (float) ((getHeight() * rowIndex) / this.numRows);
+        float yCenter = rowTop + (rowBottom - rowTop) / 2f;
+
+        // Horizontally: center of the entire graph width
+        float xCenter = (float) getWidth() / 2f;
+
+        Paint.FontMetrics fm = timeLabelPaint.getFontMetrics();
+        float yBaseline = yCenter - (fm.ascent + fm.descent) / 2f;
+
+        canvas2.drawText(label, xCenter, yBaseline, timeLabelPaint);
     }
 
     /* access modifiers changed from: protected */
@@ -151,10 +337,10 @@ public final class ELDGraph extends View {
         if (canvas3 != null) {
             canvas3.drawColor(Color.WHITE); // Changed from black to white background
         }
-        
+
         // Draw colored backgrounds for each duty status row
         drawRowBackground(1); // OFF duty - light blue
-        drawRowBackground(2); // Sleeper Berth - dark blue  
+        drawRowBackground(2); // Sleeper Berth - dark blue
         drawRowBackground(3); // Driving - orange
         drawRowBackground(4); // ON duty - yellow
         if (canvas3 != null) {
@@ -182,7 +368,8 @@ public final class ELDGraph extends View {
         int i6 = this.numColumns;
         for (int i7 = 0; i7 < i6; i7++) {
             if (canvas3 != null) {
-                canvas2.drawLine((float) ((getWidth() * i7) / this.numColumns), 0.0f, (float) ((getWidth() * i7) / this.numColumns), (float) getHeight(), this.whitePaint);
+                canvas2.drawLine((float) ((getWidth() * i7) / this.numColumns), 0.0f,
+                        (float) ((getWidth() * i7) / this.numColumns), (float) getHeight(), this.whitePaint);
             }
         }
         int i8 = this.numRows;
@@ -195,15 +382,39 @@ public final class ELDGraph extends View {
                     while (true) {
                         if (canvas3 != null) {
                             i2 = i8;
-                            canvas2.drawLine((float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.5d) / ((double) this.numColumns))), (float) ((getHeight() * i9) / this.numRows), (float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.5d) / ((double) this.numColumns))), (float) (((double) ((getHeight() * i9) / this.numRows)) - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))), this.whitePaint);
+                            canvas2.drawLine(
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.5d) / ((double) this.numColumns))),
+                                    (float) ((getHeight() * i9) / this.numRows),
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.5d) / ((double) this.numColumns))),
+                                    (float) (((double) ((getHeight() * i9) / this.numRows))
+                                            - ((((double) getHeight()) * 0.5d) / ((double) this.numRows))),
+                                    this.whitePaint);
                         } else {
                             i2 = i8;
                         }
                         if (canvas3 != null) {
-                            canvas2.drawLine((float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.25d) / ((double) this.numColumns))), (float) ((getHeight() * i9) / this.numRows), (float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.25d) / ((double) this.numColumns))), (float) (((double) ((getHeight() * i9) / this.numRows)) - ((((double) getHeight()) * 0.25d) / ((double) this.numRows))), this.whitePaint);
+                            canvas2.drawLine(
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.25d) / ((double) this.numColumns))),
+                                    (float) ((getHeight() * i9) / this.numRows),
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.25d) / ((double) this.numColumns))),
+                                    (float) (((double) ((getHeight() * i9) / this.numRows))
+                                            - ((((double) getHeight()) * 0.25d) / ((double) this.numRows))),
+                                    this.whitePaint);
                         }
                         if (canvas3 != null) {
-                            canvas2.drawLine((float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.75d) / ((double) this.numColumns))), (float) ((getHeight() * i9) / this.numRows), (float) (((double) ((getWidth() * i11) / this.numColumns)) + ((((double) getWidth()) * 0.75d) / ((double) this.numColumns))), (float) (((double) ((getHeight() * i9) / this.numRows)) - ((((double) getHeight()) * 0.25d) / ((double) this.numRows))), this.whitePaint);
+                            canvas2.drawLine(
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.75d) / ((double) this.numColumns))),
+                                    (float) ((getHeight() * i9) / this.numRows),
+                                    (float) (((double) ((getWidth() * i11) / this.numColumns))
+                                            + ((((double) getWidth()) * 0.75d) / ((double) this.numColumns))),
+                                    (float) (((double) ((getHeight() * i9) / this.numRows))
+                                            - ((((double) getHeight()) * 0.25d) / ((double) this.numRows))),
+                                    this.whitePaint);
                         }
                         if (i11 == i10) {
                             break;
@@ -223,6 +434,7 @@ public final class ELDGraph extends View {
             }
         }
         Collection arrayList = new ArrayList();
+        resetLabelLayoutState();
         for (Object next : this.eldGraphDataList) {
             ELDGraphData eLDGraphData = (ELDGraphData) next;
             // Include ALL duty statuses, don't exclude E_ON and E_OFF
@@ -236,49 +448,73 @@ public final class ELDGraph extends View {
             ELDGraphData eLDGraphData2 = (ELDGraphData) next2;
             int currentStatus = convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4)).getStatus());
             if (i4 < this.eldGraphDataList.size() - 1 && currentStatus != 0) {
-                drawStatusLine(((ELDGraphData) this.eldGraphDataList.get(i4)).getTime(), ((ELDGraphData) this.eldGraphDataList.get(i12)).getTime(), currentStatus);
+                float segStart = ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime();
+                float segEnd = ((ELDGraphData) this.eldGraphDataList.get(i12)).getTime();
+                drawStatusLine(segStart, segEnd, currentStatus);
+                // Draw this segment's duration label above the line
+                drawSegmentTimeLabel(segStart, segEnd, currentStatus);
+                // Draw green dot at the start point of this segment
+                drawDot(segStart, currentStatus);
             }
             if (i4 != 0) {
-                int prevStatus = convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4 - 1)).getStatus());
+                int prevStatus = convertEventNameToStatus(
+                        ((ELDGraphData) this.eldGraphDataList.get(i4 - 1)).getStatus());
                 if (prevStatus != 0 && currentStatus != 0) {
-                    changeDutyStatus(prevStatus, currentStatus, ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime());
+                    changeDutyStatus(prevStatus, currentStatus,
+                            ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime());
                 }
             }
             i4 = i12;
         }
-        // Get current time in hours (24-hour format)
-//        long currentTimeMillis = System.currentTimeMillis();
-//        Calendar calendar = Calendar.getInstance();
-//        calendar.setTimeInMillis(currentTimeMillis);
-//        float currentHour = calendar.get(Calendar.HOUR_OF_DAY) + (calendar.get(Calendar.MINUTE) / 60.0f);
+        // Draw green dot at the very last data point
+        if (!this.eldGraphDataList.isEmpty()) {
+            ELDGraphData lastPoint = (ELDGraphData) this.eldGraphDataList.get(this.eldGraphDataList.size() - 1);
+            int lastStatus = convertEventNameToStatus(lastPoint.getStatus());
+            if (lastStatus != 0) {
+                drawDot(lastPoint.getTime(), lastStatus);
+            }
+        }
 
-//        long currentTimeMillis = System.currentTimeMillis();
-//        TimeZone pstZone = TimeZone.getTimeZone("America/Los_Angeles"); // PST/PDT zone
-//        Calendar calendar = Calendar.getInstance(pstZone);
-//        calendar.setTimeInMillis(currentTimeMillis);
-//        float currentHour = calendar.get(Calendar.HOUR_OF_DAY) + (calendar.get(Calendar.MINUTE) / 60.0f);
-//
-//        if (!eldGraphDataList.isEmpty()) {
-//            // Get last data point
-//            ELDGraphData lastData = eldGraphDataList.get(eldGraphDataList.size() - 1);
-//
-//            // Convert last event to status
-//            int lastStatus = convertEventNameToStatus(lastData.getStatus());
-//
-//            // Draw a horizontal line from last event time to current time
-//            drawStatusLine(lastData.getTime(), currentHour, lastStatus);
-//        }
+        // Get current time in hours (24-hour format)
+        // long currentTimeMillis = System.currentTimeMillis();
+        // Calendar calendar = Calendar.getInstance();
+        // calendar.setTimeInMillis(currentTimeMillis);
+        // float currentHour = calendar.get(Calendar.HOUR_OF_DAY) +
+        // (calendar.get(Calendar.MINUTE) / 60.0f);
+
+        // long currentTimeMillis = System.currentTimeMillis();
+        // TimeZone pstZone = TimeZone.getTimeZone("America/Los_Angeles"); // PST/PDT
+        // zone
+        // Calendar calendar = Calendar.getInstance(pstZone);
+        // calendar.setTimeInMillis(currentTimeMillis);
+        // float currentHour = calendar.get(Calendar.HOUR_OF_DAY) +
+        // (calendar.get(Calendar.MINUTE) / 60.0f);
+        //
+        // if (!eldGraphDataList.isEmpty()) {
+        // // Get last data point
+        // ELDGraphData lastData = eldGraphDataList.get(eldGraphDataList.size() - 1);
+        //
+        // // Convert last event to status
+        // int lastStatus = convertEventNameToStatus(lastData.getStatus());
+        //
+        // // Draw a horizontal line from last event time to current time
+        // drawStatusLine(lastData.getTime(), currentHour, lastStatus);
+        // }
 
     }
 
-
     private int convertEventNameToStatus(String value) {
-        if (value == null) return 0;
+        if (value == null)
+            return 0;
         String v = value.trim().toLowerCase();
-        if ("off".equals(v)) return 1;
-        if ("sb".equals(v)) return 2;
-        if ("d".equals(v) || "dr".equals(v)) return 3;
-        if ("on".equals(v)) return 4;
+        if ("off".equals(v))
+            return 1;
+        if ("sb".equals(v))
+            return 2;
+        if ("d".equals(v) || "dr".equals(v))
+            return 3;
+        if ("on".equals(v))
+            return 4;
         return 0;
     }
 }

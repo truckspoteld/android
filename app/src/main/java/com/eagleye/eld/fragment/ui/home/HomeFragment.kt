@@ -151,6 +151,7 @@ class HomeFragment : Fragment(), OnClickListener {
     val tmIf = IntentFilter()
 
     // Simple last log tracking like EagleEye
+    // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
     private var lastLog: String = ""
 
     var lastEngineLogName: String = ""
@@ -324,9 +325,12 @@ class HomeFragment : Fragment(), OnClickListener {
                     isFetchingLogs = false
                     if (it.data?.logs == null || it.data.logs!!.isEmpty()) {
                         Toast.makeText(context, "Logs are Empty", Toast.LENGTH_SHORT).show()
-                        // Set OFF mode as default when data is empty
-                        homeViewModel.trackingMode.set(MODE_OFF)
-                        updateUI(binding.btnOff)
+                        // Only set OFF if user is not already on an active mode
+                        val currentMode = homeViewModel.trackingMode.get()
+                        if (currentMode == null || currentMode == MODE_OFF) {
+                            homeViewModel.trackingMode.set(MODE_OFF)
+                            updateUI(binding.btnOff)
+                        }
                         return@observe
                     }
                     updateLastRelevantLog(it.data.logs)
@@ -342,9 +346,12 @@ class HomeFragment : Fragment(), OnClickListener {
                     binding.progressBar.visibility = View.GONE
                     binding.swipeRefreshLayout.isRefreshing = false
                     isFetchingLogs = false
-                    // Set OFF mode as default when API error occurs
-                    homeViewModel.trackingMode.set(MODE_OFF)
-                    updateUI(binding.btnOff)
+                    // Only set OFF if user is not already on an active mode
+                    val currentMode = homeViewModel.trackingMode.get()
+                    if (currentMode == null || currentMode == MODE_OFF) {
+                        homeViewModel.trackingMode.set(MODE_OFF)
+                        updateUI(binding.btnOff)
+                    }
                     // Don't show error dialog - just log it
                     Log.e(TAG, "homeLiveData ERROR: ${it.message}")
                 }
@@ -578,7 +585,10 @@ class HomeFragment : Fragment(), OnClickListener {
         val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "certification" && it.status != "INT" }
 
         if (filterForSelection != null && filterForSelection.isNotEmpty()) {
-            when (filterForSelection.last().status) {
+            val latestMode = filterForSelection.last().status
+            // Keep lastLog in sync so Bluetooth auto-switch doesn't override this mode
+            lastLog = latestMode
+            when (latestMode) {
                 TRUCK_MODE_OFF -> updateUI(binding.btnOff)
                 TRUCK_MODE_ON -> updateUI(binding.btnOn)
                 TRUCK_MODE_SLEEPING -> updateUI(binding.btnSleep)
@@ -587,9 +597,13 @@ class HomeFragment : Fragment(), OnClickListener {
                 TRUCK_MODE_PERSONAL -> updateUI(binding.tvPerosnaluse)
             }
         } else {
-            // Set OFF mode as default when no log data available
-            homeViewModel.trackingMode.set(MODE_OFF)
-            updateUI(binding.btnOff)
+            // Only set OFF if user is not already on an active mode
+            val currentMode = homeViewModel.trackingMode.get()
+            if (currentMode == null || currentMode == MODE_OFF) {
+                homeViewModel.trackingMode.set(MODE_OFF)
+                lastLog = TRUCK_MODE_OFF
+                updateUI(binding.btnOff)
+            }
         }
     }
 
@@ -769,48 +783,39 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleLocationUpdate(speed: Int, rpm: Int, name: String) {
-        Log.d(TAG, "📍 handleLocationUpdate: Speed=$speed, RPM=$rpm, Event=$name")
+        Log.d(TAG, "📍 handleLocationUpdate: Speed=$speed, RPM=$rpm, Event=$name, lastLog=$lastLog")
 
-        val currentMode = lastLog
+        // IMPORTANT: Only auto-switch between 'on' and 'd' (driving).
+        // Never override manually set modes: off, sb, personal, yard.
+        // If lastLog is empty (e.g. after screen refresh), initialize it from the
+        // persisted mode so we don't accidentally force the mode to 'on'.
+        if (lastLog.isEmpty()) {
+            val savedMode = prefRepository.getMode()
+            lastLog = if (savedMode.isNotEmpty()) savedMode else "on"
+            Log.d(TAG, "📍 lastLog was empty, initialized from saved mode: $lastLog")
+        }
 
-        // Logic adapted from EagleEye: ON for <= 0, DRIVE for > 0, with UI fixes (runOnUiThread)
+        // Only auto-switch when in 'on' or 'd' mode — never touch off/sb/personal/yard
+        val autoSwitchableModes = setOf("on", "d")
+        if (lastLog !in autoSwitchableModes) {
+            Log.d(TAG, "📍 Skipping auto mode switch — current mode '$lastLog' is manually set")
+            return
+        }
+
         if (speed > 0 && lastLog == "on") {
-            Log.d(TAG, "🚗 Truck is running & in on mode")
-            lastLog = "d"
-            activity?.runOnUiThread {
-                updateUI(binding.btnDrive)
-            }
-            updateModeChange(hrs_MODE_D, "d", "")
-        } else if (speed > 0 && lastLog == "off") {
-            Log.d(TAG, "🚗 off mode found & speed is more than zero")
-            lastLog = "d"
-            activity?.runOnUiThread {
-                updateUI(binding.btnDrive)
-            }
-            updateModeChange(hrs_MODE_D, "d", "")
-        } else if (speed > 0 && lastLog == "sb") {
-            Log.d(TAG, "🚗 sb mode found & speed is more than zero")
+            Log.d(TAG, "🚗 Truck is running & in on mode — switching to DRIVE")
             lastLog = "d"
             activity?.runOnUiThread {
                 updateUI(binding.btnDrive)
             }
             updateModeChange(hrs_MODE_D, "d", "")
         } else if (speed <= 0 && lastLog == "d") {
-            Log.d(TAG, "🛑 driving mode found & speed is zero")
+            Log.d(TAG, "🛑 Driving mode found & speed is zero — switching to ON")
             activity?.runOnUiThread {
                 updateUI(binding.btnOn)
             }
             lastLog = "on"
             updateModeChange(hrs_MODE_ON, "on", "")
-        } else if (speed <= 0 && lastLog == "") {
-            lastLog = "on"
-            updateModeChange(hrs_MODE_ON, "on", "")
-        } else if (speed > 0 && lastLog == "") {
-            lastLog = "d"
-            activity?.runOnUiThread {
-                updateUI(binding.btnDrive)
-            }
-            updateModeChange(hrs_MODE_D, "d", "")
         }
     }
 
@@ -1230,7 +1235,7 @@ class HomeFragment : Fragment(), OnClickListener {
             return
         }
         val dialog = Dialog(requireContext())
-        dialog.setContentView(R.layout.menu_of_menu)
+        dialog.setContentView(menu_of_menu)
         val optionViews = (1..3).map { i ->
             dialog.findViewById<TextView>(resources.getIdentifier("option$i", "id", requireContext().packageName))
         }

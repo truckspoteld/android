@@ -188,6 +188,22 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getTrailerNumber() = PREF_TRAILER_NO.getString()
 
+    fun setCoDriverId(id: Int) {
+        PREF_CODRIVER_ID.put(id)
+    }
+
+    fun getCoDriverId() = PREF_CODRIVER_ID.getInt()
+
+    fun clearCoDriverId() {
+        PREF_CODRIVER_ID.put(0)
+    }
+
+    fun setCoDriverName(name: String) {
+        PREF_CODRIVER_NAME.put(name)
+    }
+
+    fun getCoDriverName() = PREF_CODRIVER_NAME.getString()
+
     fun setLastLogTime() {
         PREF_LAST_LOG_TIME.put(Date().time)
     }

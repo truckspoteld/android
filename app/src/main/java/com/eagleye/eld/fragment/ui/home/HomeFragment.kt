@@ -71,7 +71,9 @@ import androidx.annotation.RequiresApi
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.gson.Gson
 import com.eagleye.eld.models.HomeDataModel
+import com.eagleye.eld.models.CodriverItem
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.utils.PrefConstants.TRUCK_MODE_YARD
 import com.eagleye.eld.utils.Utils.getDouble
 import com.eagleye.eld.utils.Utils.toHoursMinutesFormate
@@ -79,6 +81,7 @@ import com.whizpool.supportsystem.SLog
 import java.time.LocalDateTime
 import java.time.ZoneId
 import javax.inject.Inject
+import org.json.JSONObject
 
 @AndroidEntryPoint
 class HomeFragment : Fragment(), OnClickListener {
@@ -192,6 +195,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private lateinit var untilBreak: CircularProgressIndicator
     private var selectedLog: String = TRUCK_MODE_OFF
     private var observersSet = false
+    private var codrivers: List<CodriverItem> = emptyList()
 
     @SuppressLint("SuspiciousIndentation")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -273,9 +277,10 @@ class HomeFragment : Fragment(), OnClickListener {
             }
         }
 
-        binding.editShipping.setOnClickListener { editShippingNumberPopup() }
-        binding.editCoDriver.setOnClickListener { editCoDriverPopup() }
-        binding.editTrailerNo.setOnClickListener { editTrailerNumberPopup() }
+        binding.editShipping.setOnClickListener { showShipmentDialog() }
+        binding.editCoDriver.setOnClickListener { showShipmentDialog() }
+        binding.editTrailerNo.setOnClickListener { showShipmentDialog() }
+        binding.btnUpdateShipment.setOnClickListener { showShipmentDialog() }
         
         // Always set observers on view creation
         setupObservers()
@@ -300,7 +305,8 @@ class HomeFragment : Fragment(), OnClickListener {
         homeViewModel.trackingMode.set(MODE_OFF)
         updateUI(binding.btnOff)
         
-        updateUI()
+        updateShipmentInfoUI()
+        loadShipmentContext()
         return binding.root
     }
 
@@ -770,6 +776,8 @@ class HomeFragment : Fragment(), OnClickListener {
             } catch (e: Exception) {
                 Log.e(TAG, "onResume: startClock error: ${e.message}")
             }
+
+            loadShipmentContext()
 
             // Auto-refresh conditions/remaining every 2 min so home stays in sync without socket event
             conditionsRefreshJob?.cancel()
@@ -1471,73 +1479,154 @@ class HomeFragment : Fragment(), OnClickListener {
         context?.let { homeViewModel.logUser(logRequest, it) }
     }
 
-    private fun updateUI() {
-        val numberText = prefRepository.getShippingNumber()
-        binding.shippingNumber.text = getString(shipping_number).plus(numberText)
-        val trailerText = prefRepository.getTrailerNumber()
+    private fun updateShipmentInfoUI() {
+        val shippingText = prefRepository.getShippingNumber().ifBlank { "Not set" }
+        val trailerText = prefRepository.getTrailerNumber().ifBlank { "Not set" }
+        val coDriverName = prefRepository.getCoDriverName().ifBlank { "No Co-driver" }
+
+        binding.shippingNumber.text = getString(shipping_number).plus(shippingText)
         binding.trailerNumber.text = getString(trailer_number).plus(trailerText)
+        binding.coDriver.text = "Co-Driver : $coDriverName"
     }
 
-    private fun editShippingNumberPopup() {
-        val builder: AlertDialog.Builder = AlertDialog.Builder(activity)
-        val dialogView: View = layoutInflater.inflate(edit_shiping_number, null)
-        val dialog = builder.create()
-        dialog.setView(dialogView)
-        val shippingNumber: EditText = dialogView.findViewById(R.id.texture_shipping_number)
-        shippingNumber.setText(prefRepository.getShippingNumber())
-        dialogView.findViewById<Button>(R.id.cancel_shipping).setOnClickListener { dialog.dismiss() }
-        dialogView.findViewById<Button>(R.id.update_shipping).setOnClickListener {
-            val number = shippingNumber.text.toString()
-            if (number.isEmpty()) {
-                makeText(activity, "Shipping number required", LENGTH_LONG).show()
+    private fun loadShipmentContext() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val codriverResponse = homeViewModel.getMyCodrivers()
+                if (codriverResponse.isSuccessful && codriverResponse.body()?.status == true) {
+                    codrivers = codriverResponse.body()?.codrivers ?: emptyList()
+                } else {
+                    codrivers = emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load codrivers: ${e.message}")
+                codrivers = emptyList()
+            }
+
+            try {
+                val shipmentResponse = homeViewModel.getActiveDriverShipment()
+                if (shipmentResponse.isSuccessful && shipmentResponse.body()?.status == true) {
+                    val shipment = shipmentResponse.body()?.data
+                    prefRepository.setShippingNumber(shipment?.shippingNumber.orEmpty())
+                    prefRepository.setTrailerNumber(shipment?.trailerNumber.orEmpty())
+                    val coDriverId = shipment?.codriverId ?: 0
+                    if (coDriverId > 0) {
+                        prefRepository.setCoDriverId(coDriverId)
+                        val name = codrivers.firstOrNull { it.id == coDriverId }?.username ?: "ID $coDriverId"
+                        prefRepository.setCoDriverName(name)
+                    } else {
+                        prefRepository.clearCoDriverId()
+                        prefRepository.setCoDriverName("")
+                    }
+                } else if (shipmentResponse.code() == 404) {
+                    prefRepository.setShippingNumber("")
+                    prefRepository.setTrailerNumber("")
+                    prefRepository.clearCoDriverId()
+                    prefRepository.setCoDriverName("")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load active shipment: ${e.message}")
+            } finally {
+                updateShipmentInfoUI()
+            }
+        }
+    }
+
+    private fun showShipmentDialog() {
+        val dialogView: View = layoutInflater.inflate(R.layout.dialog_update_shipment, null)
+        val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
+
+        val shippingField: EditText = dialogView.findViewById(R.id.input_shipping_number)
+        val trailerField: EditText = dialogView.findViewById(R.id.input_trailer_number)
+        val codriverSpinner: AppCompatSpinner = dialogView.findViewById(R.id.spinner_codriver)
+        val cancelButton: Button = dialogView.findViewById(R.id.btn_cancel_shipment)
+        val updateButton: Button = dialogView.findViewById(R.id.btn_update_shipment)
+
+        shippingField.setText(prefRepository.getShippingNumber())
+        trailerField.setText(prefRepository.getTrailerNumber())
+
+        val spinnerOptions = mutableListOf<Pair<Int?, String>>()
+        spinnerOptions.add(null to "No Co-driver")
+        codrivers.forEach { c ->
+            spinnerOptions.add(c.id to (c.username ?: "Driver #${c.id}"))
+        }
+
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            spinnerOptions.map { it.second }
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        codriverSpinner.adapter = spinnerAdapter
+
+        val preselectedId = prefRepository.getCoDriverId().takeIf { it > 0 }
+        val selectedIndex = spinnerOptions.indexOfFirst { it.first == preselectedId }.takeIf { it >= 0 } ?: 0
+        codriverSpinner.setSelection(selectedIndex)
+
+        cancelButton.setOnClickListener { dialog.dismiss() }
+        updateButton.setOnClickListener {
+            val shippingText = shippingField.text.toString().trim()
+            val trailerText = trailerField.text.toString().trim()
+            val selectedCodriverId = spinnerOptions.getOrNull(codriverSpinner.selectedItemPosition)?.first
+
+            val shippingNumber = shippingText.toIntOrNull()
+            if (shippingText.isEmpty() || shippingNumber == null || shippingNumber < 0) {
+                makeText(requireContext(), "Enter a valid shipping number", LENGTH_LONG).show()
                 return@setOnClickListener
             }
-            dialog.dismiss()
-            prefRepository.setShippingNumber(number)
-            updateUI()
-        }
-        dialog.show()
-    }
 
-    private fun editTrailerNumberPopup() {
-        val builder: AlertDialog.Builder = AlertDialog.Builder(activity)
-        val dialogView: View = layoutInflater.inflate(edit_trailer_number, null)
-        val trailerNumber: EditText = dialogView.findViewById(R.id.trailer_number)
-        trailerNumber.setText(prefRepository.getTrailerNumber())
-        val dialog = builder.create()
-        dialogView.findViewById<Button>(R.id.action_cancel_trailer).setOnClickListener { dialog.dismiss() }
-        dialogView.findViewById<Button>(R.id.action_update_trailer).setOnClickListener {
-            val number = trailerNumber.text.toString()
-            if (number.isEmpty()) {
-                makeText(activity, "Trailer number required", LENGTH_LONG).show()
+            val trailerNumber = if (trailerText.isBlank()) null else trailerText.toIntOrNull()
+            if (trailerText.isNotBlank() && (trailerNumber == null || trailerNumber <= 0)) {
+                makeText(requireContext(), "Enter a valid trailer number", LENGTH_LONG).show()
                 return@setOnClickListener
             }
-            dialog.dismiss()
-            prefRepository.setTrailerNumber(number)
-            updateUI()
-        }
-        dialog.setView(dialogView)
-        dialog.show()
-    }
 
-    private fun editCoDriverPopup() {
-        val builder: AlertDialog.Builder = AlertDialog.Builder(activity)
-        val dialogView: View = layoutInflater.inflate(edit_codriver, null)
-        val dialog = builder.create()
-        dialog.setView(dialogView)
-        val items = arrayOf("No Co-Driver")
-        val coDriverSpinner: AppCompatSpinner = dialogView.findViewById(R.id.spinner_co_driver)
-        val adapter = ArrayAdapter(requireActivity().applicationContext, android.R.layout.simple_spinner_item, items)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        coDriverSpinner.adapter = adapter
-        coDriverSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                // Handle selection if needed
+            updateButton.isEnabled = false
+            updateButton.text = "Saving..."
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val response = homeViewModel.upsertDriverShipment(
+                        DriverShipmentRequest(
+                            shippingNumber = shippingNumber,
+                            trailerNumber = trailerNumber,
+                            codriverId = selectedCodriverId
+                        )
+                    )
+
+                    if (response.isSuccessful && response.body()?.status == true) {
+                        prefRepository.setShippingNumber(shippingNumber.toString())
+                        prefRepository.setTrailerNumber(trailerNumber?.toString().orEmpty())
+                        if (selectedCodriverId != null) {
+                            prefRepository.setCoDriverId(selectedCodriverId)
+                            val selectedName = codrivers.firstOrNull { it.id == selectedCodriverId }?.username ?: "ID $selectedCodriverId"
+                            prefRepository.setCoDriverName(selectedName)
+                        } else {
+                            prefRepository.clearCoDriverId()
+                            prefRepository.setCoDriverName("")
+                        }
+                        updateShipmentInfoUI()
+                        makeText(requireContext(), response.body()?.message ?: "Shipment updated", LENGTH_LONG).show()
+                        dialog.dismiss()
+                    } else {
+                        val errorMessage = try {
+                            val raw = response.errorBody()?.string().orEmpty()
+                            if (raw.isNotEmpty()) JSONObject(raw).optString("message", "Failed to save shipment details.")
+                            else "Failed to save shipment details."
+                        } catch (e: Exception) {
+                            "Failed to save shipment details."
+                        }
+                        makeText(requireContext(), errorMessage, LENGTH_LONG).show()
+                    }
+                } catch (e: Exception) {
+                    makeText(requireContext(), "Network error: ${e.message}", LENGTH_LONG).show()
+                } finally {
+                    updateButton.isEnabled = true
+                    updateButton.text = "Update"
+                }
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-        dialogView.findViewById<Button>(R.id.cancel_codriver).setOnClickListener { dialog.dismiss() }
-        dialogView.findViewById<Button>(R.id.action_update_codriver).setOnClickListener { dialog.dismiss() }
+
         dialog.show()
     }
 

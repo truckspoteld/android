@@ -10,6 +10,8 @@ import com.eagleye.eld.models.GetLogsByDateResponse
 import com.eagleye.eld.models.GetLogsResponse
 import com.eagleye.eld.models.GetReportsResponse
 import com.eagleye.eld.models.HomeDataModel
+import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
 import com.eagleye.eld.models.LoginResponse
@@ -18,6 +20,7 @@ import com.eagleye.eld.models.UnidentifiedResponse
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.request.updateLogRequest
 import okhttp3.RequestBody
@@ -94,6 +97,17 @@ interface TruckSpotAPI {
     suspend fun getLogByDate(
         @Body request: GetLogsByDateRequest
     ): Response<GetLogsByDateResponse>
+
+    @GET("api/v1/driver/codrivers")
+    suspend fun getMyCodrivers(): Response<DriverCodriversResponse>
+
+    @GET("api/v1/driver/shipment-assignment/active")
+    suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse>
+
+    @POST("api/v1/driver/shipment-assignment")
+    suspend fun upsertDriverShipment(
+        @Body request: DriverShipmentRequest
+    ): Response<DriverShipmentResponse>
 
 
     @GET("api/v1/download-csv/{output}")

@@ -18,6 +18,8 @@ import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.models.AddLogSuccessResponse
 import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
+import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.GetLogsResponse
 import com.eagleye.eld.models.GetReportsResponse
 import com.eagleye.eld.models.HomeDataModel
@@ -29,6 +31,7 @@ import com.eagleye.eld.repository.DashboardRepository
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.request.updateLogRequest
 import com.eagleye.eld.utils.AlertCalculationUtils
 import com.eagleye.eld.utils.NetworkResult
@@ -71,6 +74,14 @@ class HomeViewModel @Inject constructor(
     private var refinedUserLogs: MutableList<UserLog>? = null
 
     fun getDriverId() = prefRepository.getDriverId()
+
+    suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
+
+    suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse> =
+        truckSpotAPI.getActiveDriverShipment()
+
+    suspend fun upsertDriverShipment(request: DriverShipmentRequest): Response<DriverShipmentResponse> =
+        truckSpotAPI.upsertDriverShipment(request)
 
     fun getUserLogs() = refinedUserLogs ?: mutableListOf()
 

@@ -111,7 +111,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastRelevantLog: HomeDataModel.Log? = null
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastEngineApiCallTime: Long = 0
-    private val ENGINE_API_DEBOUNCE_MS = 10000L // 10 seconds debounce
+    private val ENGINE_API_DEBOUNCE_MS = 30000L // 30 seconds debounce
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
     private var lastPushedEngineState: String = ""
@@ -547,6 +547,14 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    private fun normalizeEngineMode(modeName: String?): String {
+        return when (modeName?.trim()?.lowercase(Locale.US)) {
+            "eng_on", "e_on", "power_on" -> "eng_on"
+            "eng_off", "e_off", "power_off" -> "eng_off"
+            else -> ""
+        }
+    }
+
     private fun updateUIBasedOnLogs(data: HomeDataModel?) {
         var logList: MutableList<ELDGraphData>? = mutableListOf()
         logList?.clear()
@@ -579,7 +587,23 @@ class HomeFragment : Fragment(), OnClickListener {
                 )
             )
         }
-        lastEngineLogName = data?.logs?.lastOrNull { it.modename == "ENG_ON" || it.modename == "ENG_OFF" }?.modename ?: ""
+        val latestEngineFromLogs = data?.logs
+            ?.asReversed()
+            ?.map { normalizeEngineMode(it.modename) }
+            ?.firstOrNull { it.isNotEmpty() }
+            ?: ""
+        val latestEngineFromUpdated = normalizeEngineMode(data?.latestUpdatedLog?.modename)
+        val latestEngineFromPrevious = normalizeEngineMode(data?.previousDayLog?.modename)
+        lastEngineLogName = when {
+            latestEngineFromLogs.isNotEmpty() -> latestEngineFromLogs
+            latestEngineFromUpdated.isNotEmpty() -> latestEngineFromUpdated
+            latestEngineFromPrevious.isNotEmpty() -> latestEngineFromPrevious
+            else -> ""
+        }
+        if (lastPushedEngineState.isEmpty() && lastEngineLogName.isNotEmpty()) {
+            lastPushedEngineState = lastEngineLogName
+            Log.d(TAG, "Initialized lastPushedEngineState to: $lastPushedEngineState")
+        }
 
         // Exclude login/logout (and other non-duty) so current mode reflects duty status only
         val filterForSelection = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "certification" && it.status != "INT" }
@@ -831,8 +855,8 @@ class HomeFragment : Fragment(), OnClickListener {
             prefRepository.setMode(mode)
             val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
             val te = AppModel.getInstance().mLastEvent
-            val defaultLatitude = (activity as Dashboard).glat ?: 0.0
-            val defaultLongitude = (activity as Dashboard).glong ?: 0.0
+            val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
+            val defaultLongitude = (activity as? Dashboard)?.glong ?: 0.0
 
             val odoact = prefRepository.getDiffinOdo().toDoubleOrNull() ?: 0.0
             val engact = prefRepository.getDiffinEng().toDoubleOrNull() ?: 0.0
@@ -881,9 +905,9 @@ class HomeFragment : Fragment(), OnClickListener {
                     lastLog.time,
                     0
                 )
-                homeViewModel.updateLog(updateLogRequest, false, requireContext())
+                context?.let { homeViewModel.updateLog(updateLogRequest, false, it) }
             }
-            homeViewModel.logUser(logRequest, requireContext())
+            context?.let { homeViewModel.logUser(logRequest, it) }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateModeChange: ${e.message}", e)
@@ -1385,9 +1409,66 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.drivingSpeed.text = "Driving Speed: ${speed} km/h"
             // Use actual Bluetooth speed for mode switching (not dashboardSpeed)
             handleLocationUpdate(speed, rpm, lastEvent.mEvent.name)
+            handleEngineStateUpdate(rpm)
         } catch (e: Exception) {
             Log.e(TAG, "Error in checkAndPrintSpeed: ${e.message}", e)
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun handleEngineStateUpdate(rpm: Int) {
+        val currentState = if (rpm > 0) "eng_on" else "eng_off"
+
+        // Don't track engine state until we know the last state from the API
+        // Otherwise the very first RPM reading creates a bogus log
+        if (lastPushedEngineState.isEmpty()) {
+            Log.d(TAG, "Engine state: skipping — lastPushedEngineState not initialized yet")
+            return
+        }
+
+        if (currentState == lastPushedEngineState) {
+            // State hasn't changed — reset the stability counter
+            engineStateStableCount = 0
+            return
+        }
+
+        // State is different from last pushed — count repeated confirmations
+        engineStateStableCount++
+        if (engineStateStableCount < ENGINE_STATE_STABLE_THRESHOLD) {
+            return
+        }
+
+        // Time debounce check — avoid flooding the API
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastEngineApiCallTime < ENGINE_API_DEBOUNCE_MS) {
+            Log.d(TAG, "Engine state: debounce active, skipping API call")
+            return
+        }
+
+        Log.d(TAG, "Engine state stable at $currentState. Pushing to API.")
+        lastEngineApiCallTime = currentTime
+        lastPushedEngineState = currentState
+        engineStateStableCount = 0  // Reset so we don't fire again until a NEW transition
+
+        val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
+        val te = AppModel.getInstance().mLastEvent
+        val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
+        val defaultLongitude = (activity as? Dashboard)?.glong ?: 0.0
+
+        val logRequest = AddLogRequest(
+            modename = currentState,
+            odometerreading = te?.mOdometer?.takeIf { it.isNotBlank() } ?: "0.0",
+            lat = te?.mGeoloc?.latitude ?: defaultLatitude,
+            long = te?.mGeoloc?.longitude ?: defaultLongitude,
+            location = true,
+            eng_hours = te?.mEngineHours?.takeIf { it.isNotBlank() } ?: "0.0",
+            vin = vin_no,
+            is_active = 1,
+            is_autoinsert = 1,
+            eventcode = 1,
+            eventtype = 1
+        )
+        context?.let { homeViewModel.logUser(logRequest, it) }
     }
 
     private fun updateUI() {

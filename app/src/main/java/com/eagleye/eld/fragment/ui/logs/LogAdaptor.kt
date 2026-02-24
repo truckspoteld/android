@@ -50,6 +50,14 @@ class LogAdaptor  (
     private lateinit var homeViewModel: HomeViewModel
      private val handler = Handler()
 
+    private fun normalizeEngineMode(modeName: String): String {
+        return when (modeName.trim().lowercase(Locale.US)) {
+            "eng_on", "e_on", "power_on" -> "eng_on"
+            "eng_off", "e_off", "power_off" -> "eng_off"
+            else -> ""
+        }
+    }
+
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTime: TextView
@@ -108,10 +116,13 @@ class LogAdaptor  (
         
         val userLog = dataSet[position] ?: return
         
+        val modeValue = userLog.modename.trim().lowercase(Locale.US)
+        val normalizedEngineMode = normalizeEngineMode(modeValue)
+
         viewHolder.itemView.setOnClickListener {
-            if (userLog.modename == "d") {
+            if (modeValue == "d") {
                 showEditLogDialog(contect)
-            } else if(userLog.modename == "login" || userLog.modename == "logout"|| userLog.modename == "yard"|| userLog.modename == "personal" || userLog.modename == "certification"){
+            } else if(modeValue == "login" || modeValue == "logout" || modeValue == "yard" || modeValue == "personal" || modeValue == "certification" || normalizedEngineMode.isNotEmpty()){
 
             }else {
                 val modalFragment = LogModalFragment(userLog)
@@ -124,23 +135,29 @@ class LogAdaptor  (
         viewHolder.tvTime.text = formatTimeWithTimezone(time)
         
         // Safe handling of status
-        var statusText = userLog.modename.uppercase() ?: ""
-        if (userLog.discreption == "yard") {
+        var statusText = modeValue.uppercase(Locale.US)
+        if (normalizedEngineMode == "eng_on") {
+            statusText = "ENG ON"
+        } else if (normalizedEngineMode == "eng_off") {
+            statusText = "ENG OFF"
+        } else if (userLog.discreption == "yard") {
             statusText = "YARD"
         } else if (userLog.discreption == "personal") {
             statusText = "PERSONAL"
-        } else if (userLog.modename == "d" && userLog.discreption == "Intermediate log") {
+        } else if (modeValue == "d" && userLog.discreption == "Intermediate log") {
             statusText = "INT"
         }
         viewHolder.tvStatus.text = statusText
         
         val border = GradientDrawable()
         border.cornerRadius = 16f
-        when (userLog.modename) {
-            "off" -> border.setColor(Color.RED)
-            "d" -> border.setColor(Color.parseColor("#00CC00"))
-            "on" -> border.setColor(Color.parseColor("#FFA500"))
-            "sb" -> border.setColor(Color.BLUE)
+        when {
+            modeValue == "off" -> border.setColor(Color.RED)
+            modeValue == "d" -> border.setColor(Color.parseColor("#00CC00"))
+            modeValue == "on" -> border.setColor(Color.parseColor("#FFA500"))
+            modeValue == "sb" -> border.setColor(Color.BLUE)
+            normalizedEngineMode == "eng_on" -> border.setColor(Color.parseColor("#00BCD4"))
+            normalizedEngineMode == "eng_off" -> border.setColor(Color.parseColor("#607D8B"))
             else -> border.setColor(Color.GRAY)
         }
 
@@ -155,7 +172,12 @@ class LogAdaptor  (
         }
         
         // Safe handling of odometer and engine hours
-        viewHolder.tvOdo.text = String.format("%.2f", userLog.odometerreading.toDouble()) ?: ""
+        val odometerValue = userLog.odometerreading.toDoubleOrNull()
+        viewHolder.tvOdo.text = if (odometerValue != null) {
+            String.format(Locale.US, "%.2f", odometerValue)
+        } else {
+            userLog.odometerreading
+        }
         viewHolder.tvEng.text = userLog.eng_hours ?: ""
         
         // Safe handling of location

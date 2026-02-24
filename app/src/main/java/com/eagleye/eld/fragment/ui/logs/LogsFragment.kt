@@ -244,8 +244,15 @@ class LogsFragment : Fragment() {
                     fun addGraphPoint(time: Float, modename: String?) {
                         if (modename.isNullOrBlank()) return
                         val status = modename.trim().lowercase()
-                        if (status in setOf("on", "off", "d", "dr", "sb"))
-                            logList?.add(ELDGraphData(time, status, time.toLong()))
+                        val normalizedStatus = when (status) {
+                            "dr" -> "d"
+                            "e_on", "power_on" -> "eng_on"
+                            "e_off", "power_off" -> "eng_off"
+                            else -> status
+                        }
+                        if (normalizedStatus in setOf("on", "off", "d", "sb", "eng_on", "eng_off")) {
+                            logList?.add(ELDGraphData(time, normalizedStatus, time.toLong()))
+                        }
                     }
 
                     if (result.data?.results?.previousDayLog?.modename != null) {
@@ -281,7 +288,7 @@ class LogsFragment : Fragment() {
                                 logList!!.add(ELDGraphData(24f, lastDutyStatus, 24L))
                         }
                     }
-                    val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" && it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && it.status != "power_off" }
+                    val filteredList = logList?.filter { it.status != "login" && it.status != "logout" && it.status != "personal" && it.status != "yard" && it.status != "certification" && it.status != "INT" && it.status != "eng_off" && it.status != "eng_on" }
 
                     binding.eldPlot.graph.invalidate()
                     

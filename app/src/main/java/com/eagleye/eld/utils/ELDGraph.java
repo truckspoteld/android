@@ -440,6 +440,7 @@ public final class ELDGraph extends View {
             // Include ALL duty statuses, don't exclude E_ON and E_OFF
             arrayList.add(next);
         }
+        int lastValidDutyStatus = 1; // Default to OFF if none found
         for (Object next2 : (List) arrayList) {
             int i12 = i4 + 1;
             if (i4 < 0) {
@@ -447,31 +448,56 @@ public final class ELDGraph extends View {
             }
             ELDGraphData eLDGraphData2 = (ELDGraphData) next2;
             int currentStatus = convertEventNameToStatus(((ELDGraphData) this.eldGraphDataList.get(i4)).getStatus());
-            if (i4 < this.eldGraphDataList.size() - 1 && currentStatus != 0) {
+
+            // Handle standard duty statuses
+            if (currentStatus >= 1 && currentStatus <= 4) {
+                lastValidDutyStatus = currentStatus;
+
+                // Find next standard duty status to draw horizontal line
+                int nextValidIdx = i12;
                 float segStart = ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime();
-                float segEnd = ((ELDGraphData) this.eldGraphDataList.get(i12)).getTime();
-                drawStatusLine(segStart, segEnd, currentStatus);
-                // Draw this segment's duration label above the line
-                drawSegmentTimeLabel(segStart, segEnd, currentStatus);
-                // Draw green dot at the start point of this segment
-                drawDot(segStart, currentStatus);
-            }
-            if (i4 != 0) {
-                int prevStatus = convertEventNameToStatus(
-                        ((ELDGraphData) this.eldGraphDataList.get(i4 - 1)).getStatus());
-                if (prevStatus != 0 && currentStatus != 0) {
-                    changeDutyStatus(prevStatus, currentStatus,
-                            ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime());
+                float segEnd = segStart;
+
+                while (nextValidIdx < this.eldGraphDataList.size()) {
+                    int nextStatus = convertEventNameToStatus(
+                            ((ELDGraphData) this.eldGraphDataList.get(nextValidIdx)).getStatus());
+                    segEnd = ((ELDGraphData) this.eldGraphDataList.get(nextValidIdx)).getTime();
+                    if (nextStatus >= 1 && nextStatus <= 4) {
+                        break;
+                    }
+                    nextValidIdx++;
                 }
+
+                if (i4 < this.eldGraphDataList.size() - 1) {
+                    drawStatusLine(segStart, segEnd, currentStatus);
+                    drawSegmentTimeLabel(segStart, segEnd, currentStatus);
+                    drawDot(segStart, currentStatus);
+                }
+
+                // Draw vertical transition line to NEXT duty status (if there is one)
+                if (nextValidIdx < this.eldGraphDataList.size()) {
+                    int nextStatus = convertEventNameToStatus(
+                            ((ELDGraphData) this.eldGraphDataList.get(nextValidIdx)).getStatus());
+                    if (nextStatus >= 1 && nextStatus <= 4 && nextStatus != currentStatus) {
+                        changeDutyStatus(currentStatus, nextStatus, segEnd);
+                    }
+                }
+            } else if (currentStatus == 5 || currentStatus == 6) {
+                // It's an ENGINE ON/OFF event - just draw a dot at the last valid duty status
+                float eventTime = ((ELDGraphData) this.eldGraphDataList.get(i4)).getTime();
+                drawDot(eventTime, lastValidDutyStatus);
             }
+
             i4 = i12;
         }
-        // Draw green dot at the very last data point
+        // Draw green dot at the very last data point if it's a duty status
         if (!this.eldGraphDataList.isEmpty()) {
             ELDGraphData lastPoint = (ELDGraphData) this.eldGraphDataList.get(this.eldGraphDataList.size() - 1);
             int lastStatus = convertEventNameToStatus(lastPoint.getStatus());
-            if (lastStatus != 0) {
+            if (lastStatus >= 1 && lastStatus <= 4) {
                 drawDot(lastPoint.getTime(), lastStatus);
+            } else if (lastStatus == 5 || lastStatus == 6) {
+                drawDot(lastPoint.getTime(), lastValidDutyStatus);
             }
         }
 
@@ -515,6 +541,10 @@ public final class ELDGraph extends View {
             return 3;
         if ("on".equals(v))
             return 4;
+        if ("eng_on".equals(v) || "e_on".equals(v) || "power_on".equals(v))
+            return 5;
+        if ("eng_off".equals(v) || "e_off".equals(v) || "power_off".equals(v))
+            return 6;
         return 0;
     }
 }

@@ -30,6 +30,12 @@
         android:label="@string/menu_reports"
         tools:layout="@layout/fragment_reports" />
 
+    <fragment
+        android:id="@+id/nav_dvir"
+        android:name="com.eagleye.eld.fragment.ui.dvir.DvirFragment"
+        android:label="DVIR"
+        tools:layout="@layout/fragment_dvir" />
+
     <!-- Add your fragment_certify destination -->
     <fragment
         android:id="@+id/fragment_certify"

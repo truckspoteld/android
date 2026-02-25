@@ -12,6 +12,8 @@ import com.eagleye.eld.models.GetReportsResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.DriverCodriversResponse
 import com.eagleye.eld.models.DriverShipmentResponse
+import com.eagleye.eld.models.DvirCreateResponse
+import com.eagleye.eld.models.DvirListResponse
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
 import com.eagleye.eld.models.LoginResponse
@@ -21,6 +23,7 @@ import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
 import com.eagleye.eld.request.DriverShipmentRequest
+import com.eagleye.eld.request.DvirCreateRequest
 import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.request.updateLogRequest
 import okhttp3.RequestBody
@@ -108,6 +111,19 @@ interface TruckSpotAPI {
     suspend fun upsertDriverShipment(
         @Body request: DriverShipmentRequest
     ): Response<DriverShipmentResponse>
+
+    @POST("api/v1/driver/dvir")
+    suspend fun submitDVIR(
+        @Body request: DvirCreateRequest
+    ): Response<DvirCreateResponse>
+
+    @GET("api/v1/driver/dvir")
+    suspend fun getDriverDVIRReports(
+        @Query("status") status: String? = null
+    ): Response<DvirListResponse>
+
+    @GET("api/v1/driver/dvir/open")
+    suspend fun getDriverOpenDVIR(): Response<DvirCreateResponse>
 
 
     @GET("api/v1/download-csv/{output}")

@@ -108,6 +108,11 @@ class Dashboard : AppCompatActivity() {
                     true
                 }
 
+                R.id.dvir -> {
+                    navController.navigate(R.id.nav_dvir, null, navOptions)
+                    true
+                }
+
                 R.id.btnLogout -> {
                     Toast.makeText(this, "Thanks bud", Toast.LENGTH_SHORT).show()
                     true

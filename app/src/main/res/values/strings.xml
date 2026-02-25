@@ -14,6 +14,7 @@
     <string name="logs">Logs</string>
     <string name="certify">Certify</string>
     <string name="report">Reports</string>
+    <string name="dvir">DVIR</string>
     <string name="spent_time_in_sleep">Spent time in sleep</string>
     <string name="remember_me">Remember Me</string>
     <string name="login">Login</string>

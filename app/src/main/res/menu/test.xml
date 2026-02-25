@@ -21,5 +21,10 @@
         android:icon="@drawable/baseline_image_search_24"
         android:visible="true"
         android:title="@string/certify"/>
+    <item
+        android:id="@+id/dvir"
+        android:enabled="true"
+        android:icon="@drawable/baseline_edit_24"
+        android:title="@string/dvir"/>
 
 </menu>

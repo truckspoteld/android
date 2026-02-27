@@ -138,4 +138,21 @@
     <color name="dark_progress_green">#4CAF50</color>
     <color name="dark_progress_violation">#FF2E2E</color>
 
+    <!-- DVIR redesign palette -->
+    <color name="dvir_bg_top">#0A0F1C</color>
+    <color name="dvir_bg_bottom">#0A0F1C</color>
+    <color name="dvir_card_background">#1A1A2E</color>
+    <color name="dvir_card_stroke">#404040</color>
+    <color name="dvir_field_background">#2D2D2D</color>
+    <color name="dvir_field_hint">#808080</color>
+    <color name="dvir_text_primary">#FFFFFF</color>
+    <color name="dvir_text_secondary">#B3B3B3</color>
+    <color name="dvir_accent">#2196F3</color>
+    <color name="dvir_success">#4CAF50</color>
+    <color name="dvir_warning">#FF9800</color>
+    <color name="dvir_nav_selected">#FFFFFF</color>
+    <color name="dvir_nav_unselected">#B3B3B3</color>
+    <color name="dvir_nav_item_bg">#2D2D2D</color>
+    <color name="dvir_nav_ripple">#332196F3</color>
+
 </resources>

@@ -13,6 +13,9 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -54,6 +57,7 @@ class Dashboard : AppCompatActivity() {
     private var mRequest: com.google.android.gms.location.LocationRequest? = null
     private var mCallback: LocationCallback? = null
     private lateinit var navController: NavController
+    private var selectedBottomItemId: Int = R.id.home
 
     private val job = Job()
     private val scope = CoroutineScope(job + Dispatchers.IO)
@@ -66,6 +70,11 @@ class Dashboard : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.dark_background)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            window.decorView.systemUiVisibility =
+                window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+        }
         prefRepository = PrefRepository(this)
 //        setSupportActionBar(binding.appBarDashboard.toolbar)
 
@@ -76,6 +85,12 @@ class Dashboard : AppCompatActivity() {
         navController = findNavController(R.id.nav_host_fragment_content_dashboard)
         binding.appBarDashboard.dashboard.setText("Dashboard $VERSION_NAME")
         binding.appBarDashboard.contantDashboard.bottomNav.setOnItemSelectedListener {
+            if (it.itemId == selectedBottomItemId) {
+                return@setOnItemSelectedListener true
+            }
+            selectedBottomItemId = it.itemId
+            animateBottomNavItem(it.itemId)
+
             // Use NavOptions to prevent duplicate fragments and back stack issues
             val navOptions = androidx.navigation.NavOptions.Builder()
                 .setLaunchSingleTop(true)  // Prevent duplicate instances
@@ -123,6 +138,26 @@ class Dashboard : AppCompatActivity() {
                     true
                 }
             }
+        }
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val mappedId = when (destination.id) {
+                R.id.nav_home -> R.id.home
+                R.id.nav_gallery -> R.id.logs
+                R.id.nav_reports -> R.id.report
+                R.id.fragment_certify -> R.id.certify
+                R.id.nav_dvir -> R.id.dvir
+                else -> null
+            }
+            if (mappedId != null && mappedId != selectedBottomItemId) {
+                selectedBottomItemId = mappedId
+                binding.appBarDashboard.contantDashboard.bottomNav.menu.findItem(mappedId)?.isChecked = true
+                animateBottomNavItem(mappedId)
+            }
+        }
+
+        binding.appBarDashboard.contantDashboard.bottomNav.post {
+            animateBottomNavItem(selectedBottomItemId)
         }
 //
         binding.appBarDashboard.fab.setOnClickListener {
@@ -317,6 +352,29 @@ class Dashboard : AppCompatActivity() {
         job.cancel()
     }
 
+    private fun animateBottomNavItem(itemId: Int) {
+        val navItemView: View = binding.appBarDashboard.contantDashboard.bottomNav.findViewById(itemId) ?: return
+        navItemView.animate().cancel()
+        navItemView.scaleX = 0.9f
+        navItemView.scaleY = 0.9f
+        navItemView.alpha = 0.85f
+        navItemView.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .alpha(1f)
+            .setDuration(240)
+            .setInterpolator(OvershootInterpolator(1.15f))
+            .start()
+
+        val iconView: View? = navItemView.findViewById(com.google.android.material.R.id.navigation_bar_item_icon_view)
+        iconView?.animate()?.cancel()
+        iconView?.animate()
+            ?.rotationBy(360f)
+            ?.setDuration(320)
+            ?.setInterpolator(AccelerateDecelerateInterpolator())
+            ?.start()
+    }
+
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         fusedClient?.requestLocationUpdates(mRequest!!, mCallback!!, null)
@@ -373,4 +431,3 @@ class Dashboard : AppCompatActivity() {
 
 
 }
-

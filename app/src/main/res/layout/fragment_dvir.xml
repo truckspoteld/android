@@ -4,180 +4,258 @@
     android:id="@+id/swipeRefreshLayoutDvir"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimary">
+    android:background="@drawable/dvir_screen_background">
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DVIR"
-                android:textColor="@color/colorWhite"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Daily vehicle inspection report"
-                android:textColor="@color/dark_text_secondary" />
+            android:paddingStart="16dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="100dp">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                app:cardBackgroundColor="@color/dark_card_background"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeColor="@color/dark_divider"
-                app:strokeWidth="1dp">
+                android:layout_marginBottom="14dp"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/dvir_panel_background"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DVIR"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Daily Vehicle Inspection Report"
+                        android:textColor="@color/dvir_text_secondary"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/dvir_field_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="6dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/baseline_check_circle_24"
+                            app:tint="@color/dvir_success" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Complete and submit before trip starts"
+                            android:textColor="@color/dvir_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:animateLayoutChanges="true"
+                    android:background="@drawable/dvir_panel_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Trip Type"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textStyle="bold" />
 
                     <Spinner
                         android:id="@+id/spinnerTripType"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/drawable_light_black_rectangle_border"
-                        android:padding="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/dvir_field_background"
+                        android:dropDownWidth="match_parent"
+                        android:popupBackground="@drawable/dvir_spinner_popup_background"
+                        android:spinnerMode="dropdown" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Vehicle Details"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textStyle="bold" />
 
                     <EditText
                         android:id="@+id/etOdometer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/colorWhite"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/dvir_field_background"
                         android:hint="Odometer"
                         android:inputType="number"
-                        android:textColor="@color/colorWhite"
-                        android:textColorHint="@color/dark_text_hint" />
+                        android:padding="12dp"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textColorHint="@color/dvir_field_hint" />
 
                     <EditText
                         android:id="@+id/etTrailer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/colorWhite"
+                        android:background="@drawable/dvir_field_background"
                         android:hint="Trailer number (optional)"
-                        android:textColor="@color/colorWhite"
-                        android:textColorHint="@color/dark_text_hint" />
+                        android:padding="12dp"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textColorHint="@color/dvir_field_hint" />
 
                     <EditText
                         android:id="@+id/etLocation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/colorWhite"
+                        android:background="@drawable/dvir_field_background"
                         android:hint="Location"
-                        android:textColor="@color/colorWhite"
-                        android:textColorHint="@color/dark_text_hint" />
+                        android:padding="12dp"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textColorHint="@color/dvir_field_hint" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Safety Checklist"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textStyle="bold" />
+
+                    <CheckBox
+                        android:id="@+id/cbBrakes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/dvir_accent"
+                        android:text="Brakes"
+                        android:textColor="@color/dvir_text_secondary" />
+
+                    <CheckBox
+                        android:id="@+id/cbLights"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/dvir_accent"
+                        android:text="Lights"
+                        android:textColor="@color/dvir_text_secondary" />
+
+                    <CheckBox
+                        android:id="@+id/cbTires"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/dvir_accent"
+                        android:text="Tires"
+                        android:textColor="@color/dvir_text_secondary" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Checklist"
-                        android:textColor="@color/colorWhite"
-                        android:textStyle="bold" />
-
-                    <CheckBox
-                        android:id="@+id/cbBrakes"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Brakes"
-                        android:textColor="@color/colorWhite" />
-
-                    <CheckBox
-                        android:id="@+id/cbLights"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Lights"
-                        android:textColor="@color/colorWhite" />
-
-                    <CheckBox
-                        android:id="@+id/cbTires"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Tires"
-                        android:textColor="@color/colorWhite" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="Vehicle condition"
-                        android:textColor="@color/colorWhite"
+                        android:text="Vehicle Condition"
+                        android:textColor="@color/dvir_text_primary"
                         android:textStyle="bold" />
 
                     <RadioGroup
                         android:id="@+id/rgCondition"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
                         android:orientation="horizontal">
 
                         <RadioButton
                             android:id="@+id/rbSatisfactory"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/dvir_success"
                             android:checked="true"
                             android:text="Satisfactory"
-                            android:textColor="@color/colorWhite" />
+                            android:textColor="@color/dvir_text_secondary" />
 
                         <RadioButton
                             android:id="@+id/rbDefects"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="18dp"
+                            android:layout_marginStart="16dp"
+                            android:buttonTint="@color/dvir_warning"
                             android:text="Has defects"
-                            android:textColor="@color/colorWhite" />
+                            android:textColor="@color/dvir_text_secondary" />
                     </RadioGroup>
 
                     <EditText
                         android:id="@+id/etDefects"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/colorWhite"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/dvir_field_background"
                         android:gravity="top"
                         android:hint="Describe defects"
                         android:inputType="textMultiLine"
                         android:minLines="3"
-                        android:textColor="@color/colorWhite"
-                        android:textColorHint="@color/dark_text_hint"
+                        android:padding="12dp"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textColorHint="@color/dvir_field_hint"
                         android:visibility="gone" />
 
                     <CheckBox
                         android:id="@+id/cbSafeToOperate"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="6dp"
+                        android:buttonTint="@color/dvir_success"
                         android:checked="true"
                         android:text="Safe to operate"
-                        android:textColor="@color/colorWhite" />
+                        android:textColor="@color/dvir_text_secondary" />
 
                     <EditText
                         android:id="@+id/etSignature"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/colorWhite"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/dvir_field_background"
                         android:hint="Driver signature (type full name)"
-                        android:textColor="@color/colorWhite"
-                        android:textColorHint="@color/dark_text_hint" />
+                        android:padding="12dp"
+                        android:textColor="@color/dvir_text_primary"
+                        android:textColorHint="@color/dvir_field_hint" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSubmitDvir"
@@ -185,7 +263,10 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
                         android:text="Submit DVIR"
-                        app:backgroundTint="@color/dark_progress_green" />
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/dvir_accent" />
 
                     <ProgressBar
                         android:id="@+id/progressSubmit"
@@ -193,6 +274,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="10dp"
+                        android:indeterminateTint="@color/dvir_accent"
                         android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -202,7 +284,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Recent DVIR"
-                android:textColor="@color/colorWhite"
+                android:textColor="@color/dvir_text_primary"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -211,8 +294,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:nestedScrollingEnabled="false" />
-
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

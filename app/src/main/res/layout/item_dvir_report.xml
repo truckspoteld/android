@@ -3,25 +3,26 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="@color/dark_card_background"
-    app:cardCornerRadius="10dp"
-    app:cardElevation="2dp"
-    app:strokeColor="@color/dark_divider"
+    android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/dvir_card_background"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/dvir_card_stroke"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="14dp">
 
         <TextView
             android:id="@+id/tvDvirHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Pre Trip • 2026-02-25"
-            android:textColor="@color/dark_text_primary"
+            android:textColor="@color/dvir_text_primary"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
@@ -30,7 +31,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="Vehicle: VIN123"
-            android:textColor="@color/dark_text_secondary" />
+            android:textColor="@color/dvir_text_secondary"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/tvDvirCondition"
@@ -38,23 +40,31 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Condition: Satisfactory"
-            android:textColor="@color/dark_text_secondary" />
+            android:textColor="@color/dvir_text_secondary"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/tvDvirStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:background="@drawable/dvir_field_background"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
             android:text="Status: submitted"
-            android:textColor="@color/blue" />
+            android:textColor="@color/dvir_accent"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/tvDvirDefects"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:text="Defects: -"
-            android:textColor="@color/dark_text_secondary" />
+            android:textColor="@color/dvir_text_secondary"
+            android:textSize="13sp" />
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

@@ -3,68 +3,141 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="20dp">
+    android:background="@drawable/modern_circular_card"
+    android:padding="24dp">
 
     <TextView
         android:id="@+id/title_shipment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Update Shipment"
-        android:textColor="@color/black"
-        android:textSize="20sp"
+        android:textColor="@color/dark_text_primary"
+        android:textSize="22sp"
         android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/label_shipping"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Shipping Number *"
+        android:textColor="@color/dark_text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_shipment" />
 
     <EditText
         android:id="@+id/input_shipping_number"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:hint="Shipping Number *"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/modern_detail_item_background"
+        android:hint="Enter shipping number"
         android:inputType="number"
         android:maxLines="1"
+        android:paddingHorizontal="16dp"
+        android:textColor="@color/dark_text_primary"
+        android:textColorHint="@color/dark_text_hint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title_shipment" />
+        app:layout_constraintTop_toBottomOf="@id/label_shipping" />
 
-    <androidx.appcompat.widget.AppCompatSpinner
-        android:id="@+id/spinner_codriver"
-        android:layout_width="0dp"
+    <TextView
+        android:id="@+id/label_codriver"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:text="Co-driver"
+        android:textColor="@color/dark_text_secondary"
+        android:textSize="14sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/input_shipping_number" />
+
+    <FrameLayout
+        android:id="@+id/spinner_container"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/modern_detail_item_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/label_codriver">
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/spinner_codriver"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:paddingHorizontal="8dp" />
+            
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
+            android:src="@drawable/baseline_arrow_forward_24"
+            android:rotation="90"
+            app:tint="@color/dark_text_secondary" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/label_trailer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Trailer Number"
+        android:textColor="@color/dark_text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/spinner_container" />
 
     <EditText
         android:id="@+id/input_trailer_number"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="Trailer Number"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/modern_detail_item_background"
+        android:hint="Enter trailer number"
         android:inputType="number"
         android:maxLines="1"
+        android:paddingHorizontal="16dp"
+        android:textColor="@color/dark_text_primary"
+        android:textColorHint="@color/dark_text_hint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/spinner_codriver" />
+        app:layout_constraintTop_toBottomOf="@id/label_trailer" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_cancel_shipment"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/home_bg_deign"
         android:text="Cancel"
+        android:textAllCaps="false"
+        android:textColor="@color/dark_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/btn_update_shipment"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/input_trailer_number" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_update_shipment"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="55dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/modern_onduty_card"
         android:text="Update"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/btn_cancel_shipment"
         app:layout_constraintTop_toTopOf="@id/btn_cancel_shipment" />

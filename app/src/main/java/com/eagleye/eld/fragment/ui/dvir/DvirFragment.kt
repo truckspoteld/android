@@ -1,18 +1,25 @@
 package com.eagleye.eld.fragment.ui.dvir
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.eagleye.eld.R
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.databinding.FragmentDvirBinding
 import com.eagleye.eld.models.HomeDataModel
@@ -56,8 +63,28 @@ class DvirFragment : Fragment() {
 
     private fun setupTripTypeSpinner() {
         val values = listOf("Pre Trip", "Post Trip")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, values)
+        val adapter =
+            ArrayAdapter(requireContext(), R.layout.item_spinner_trip_selected, values).apply {
+                setDropDownViewResource(R.layout.item_spinner_trip_dropdown)
+            }
         binding.spinnerTripType.adapter = adapter
+        binding.spinnerTripType.post {
+            binding.spinnerTripType.dropDownWidth = binding.spinnerTripType.width
+            binding.spinnerTripType.dropDownVerticalOffset =
+                resources.getDimensionPixelOffset(R.dimen._4dp)
+        }
+        binding.spinnerTripType.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                animateTripTypeSelection(position)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
     }
 
     private fun setupRecycler() {
@@ -89,7 +116,7 @@ class DvirFragment : Fragment() {
 
     private fun applyConditionUIState() {
         val hasDefects = binding.rbDefects.isChecked
-        binding.etDefects.visibility = if (hasDefects) View.VISIBLE else View.GONE
+        animateDefectsField(hasDefects)
         if (!hasDefects) {
             binding.etDefects.setText("")
             binding.cbSafeToOperate.isChecked = true
@@ -99,6 +126,59 @@ class DvirFragment : Fragment() {
             if (binding.cbSafeToOperate.isChecked) {
                 binding.cbSafeToOperate.isChecked = false
             }
+        }
+    }
+
+    private fun animateTripTypeSelection(position: Int) {
+        val accent = if (position == 0) R.color.dvir_success else R.color.dvir_warning
+        val spinner = binding.spinnerTripType
+        spinner.animate().cancel()
+        spinner.animate()
+            .scaleX(1.04f)
+            .scaleY(1.04f)
+            .setDuration(140)
+            .setInterpolator(OvershootInterpolator())
+            .withEndAction {
+                spinner.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(120)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+            }
+            .start()
+        spinner.backgroundTintList = ContextCompat.getColorStateList(requireContext(), accent)
+    }
+
+    private fun animateDefectsField(show: Boolean) {
+        val field = binding.etDefects
+        if (show) {
+            if (field.visibility == View.VISIBLE) return
+            field.alpha = 0f
+            field.translationY = -18f
+            field.visibility = View.VISIBLE
+            field.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .start()
+        } else {
+            if (field.visibility != View.VISIBLE) return
+            field.animate()
+                .alpha(0f)
+                .translationY(-12f)
+                .setDuration(180)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        field.visibility = View.GONE
+                        field.alpha = 1f
+                        field.translationY = 0f
+                        field.animate().setListener(null)
+                    }
+                })
+                .start()
         }
     }
 
@@ -277,10 +357,5 @@ class DvirFragment : Fragment() {
 
     private fun toast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }

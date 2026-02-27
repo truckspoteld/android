@@ -940,7 +940,6 @@ class HomeFragment : Fragment(), OnClickListener {
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release()
         }
-        _binding = null
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -1534,7 +1533,7 @@ class HomeFragment : Fragment(), OnClickListener {
 
     private fun showShipmentDialog() {
         val dialogView: View = layoutInflater.inflate(R.layout.dialog_update_shipment, null)
-        val dialog = AlertDialog.Builder(requireContext()).setView(dialogView).create()
+        val dialog = AlertDialog.Builder(requireContext(), R.style.ModernDialogStyle).setView(dialogView).create()
 
         val shippingField: EditText = dialogView.findViewById(R.id.input_shipping_number)
         val trailerField: EditText = dialogView.findViewById(R.id.input_trailer_number)
@@ -1553,10 +1552,10 @@ class HomeFragment : Fragment(), OnClickListener {
 
         val spinnerAdapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.item_spinner_modern,
             spinnerOptions.map { it.second }
         )
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerAdapter.setDropDownViewResource(R.layout.item_spinner_modern)
         codriverSpinner.adapter = spinnerAdapter
 
         val preselectedId = prefRepository.getCoDriverId().takeIf { it > 0 }
@@ -1582,6 +1581,7 @@ class HomeFragment : Fragment(), OnClickListener {
             }
 
             updateButton.isEnabled = false
+            updateButton.alpha = 0.5f
             updateButton.text = "Saving..."
 
             viewLifecycleOwner.lifecycleScope.launch {
@@ -1622,6 +1622,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     makeText(requireContext(), "Network error: ${e.message}", LENGTH_LONG).show()
                 } finally {
                     updateButton.isEnabled = true
+                    updateButton.alpha = 1.0f
                     updateButton.text = "Update"
                 }
             }

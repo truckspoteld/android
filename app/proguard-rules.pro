@@ -20,7 +20,7 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 #-renamesourcefileattribute SourceFile
--keep class com.eagleye.eld.** { *; }
+-keep class com.truckspot.eld.** { *; }
 
 -keepattributes *Annotation*
 -keepclassmembers class * {

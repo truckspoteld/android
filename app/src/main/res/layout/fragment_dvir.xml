@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/swipeRefreshLayoutDvir"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/dvir_screen_background">
+    android:background="@color/home_bg_light">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -19,281 +20,962 @@
             android:paddingStart="16dp"
             android:paddingTop="16dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="100dp">
+            android:paddingBottom="30dp">
 
-            <com.google.android.material.card.MaterialCardView
+            <!-- Header Section -->
+            <LinearLayout
+                android:id="@+id/llHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp">
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DVIR"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="24sp"
+                    android:fontFamily="@font/sf_pro_display_bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Daily Vehicle Inspection Report"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/sf_pro_display_regular"
+                    />
 
                 <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/tvTripChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pre-Trip"
+                        android:textColor="@color/nav_icon_active"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/sf_pro_display_medium"
+                        android:background="@drawable/bg_status_pill"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:gravity="center"
+                        android:drawableStart="@drawable/baseline_sync_alt_24"
+                        android:drawablePadding="6dp"
+                        app:drawableTint="@color/nav_icon_active" />
+
+                    <TextView
+                        android:id="@+id/tvCheckChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/10 Checks"
+                        android:textColor="@color/status_on_text"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/sf_pro_display_medium"
+                        android:background="@drawable/bg_status_pill"
+                        android:backgroundTint="#DEF7ED"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:layout_marginStart="12dp"
+                        android:gravity="center"
+                        android:drawablePadding="6dp"
+                        app:drawableStartCompat="@drawable/baseline_check_circle_24"
+                        app:drawableTint="@color/status_on_text" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Screen Toggle (New / History) -->
+
+            <!-- Container for the form elements -->
+            <LinearLayout
+                android:id="@+id/formContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Inspection Progress -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvProgress"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/dvir_panel_background"
-                    android:orientation="vertical"
-                    android:padding="18dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="DVIR"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Daily Vehicle Inspection Report"
-                        android:textColor="@color/dvir_text_secondary"
-                        android:textSize="13sp" />
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="10dp"
-                        android:paddingTop="6dp"
-                        android:paddingEnd="10dp"
-                        android:paddingBottom="6dp">
+                        android:orientation="vertical"
+                        android:padding="13dp">
 
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/baseline_check_circle_24"
-                            app:tint="@color/dvir_success" />
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Inspection Progress"
+                                android:textColor="@color/home_text_main"
+                                android:fontFamily="@font/sf_pro_display_bold"
+                                android:drawablePadding="8dp"
+                                android:drawableStart="@drawable/baseline_show_chart_24"
+                                app:drawableTint="@color/home_text_sub" />
+                            <TextView
+                                android:id="@+id/tvProgressPercent"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="100%"
+                                android:textColor="@color/nav_icon_active"
+                                android:fontFamily="@font/sf_pro_display_bold" />
+                        </RelativeLayout>
+
+                        <ProgressBar
+                            android:id="@+id/pbInspection"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="12dp"
+                            android:progress="100"
+                            android:progressTint="@color/nav_icon_active"
+                            android:progressBackgroundTint="#F1F5F9" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="16dp">
+                            <!-- Safe Label -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:background="@drawable/bg_log_item_indicator"
+                                android:backgroundTint="#B1E3F1FF"
+                                android:padding="12dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Safe"
+                                    android:textColor="@color/home_text_sub"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Yes"
+                                    android:textColor="@color/status_on_text"
+                                    android:fontFamily="@font/sf_pro_display_bold" />
+                            </LinearLayout>
+
+                            <View android:layout_width="12dp" android:layout_height="1dp" />
+
+                            <!-- Defects Label -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:background="@drawable/bg_log_item_indicator"
+                                android:backgroundTint="#B1E3F1FF"
+                                android:padding="12dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Defects"
+                                    android:textColor="@color/home_text_sub"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="None"
+                                    android:textColor="@color/nav_icon_active"
+                                    android:fontFamily="@font/sf_pro_display_bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Trip Type Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvTripType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="13dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="Complete and submit before trip starts"
-                            android:textColor="@color/dvir_text_secondary"
-                            android:textSize="12sp" />
+                            android:text="Trip Type"
+                            android:textColor="@color/home_text_main"
+                            android:fontFamily="@font/sf_pro_display_bold"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/baseline_sync_alt_24"
+                            app:drawableTint="@color/nav_icon_active" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="16dp">
+
+                            <TextView
+                                android:id="@+id/tvPreTrip"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dvir_checklist_item"
+                                android:backgroundTint="#B1E3F1FF"
+                                android:padding="16dp"
+                                android:text="Pre-Trip"
+                                android:textColor="@color/home_text_main"
+                                android:fontFamily="@font/sf_pro_display_bold"
+                                android:gravity="center_vertical"
+                                android:drawableStart="@drawable/baseline_radio_button_checked_24"
+                                android:drawablePadding="12dp"
+                                app:drawableTint="@color/nav_icon_active" />
+
+                            <View android:layout_width="12dp" android:layout_height="1dp" />
+
+                            <TextView
+                                android:id="@+id/tvPostTrip"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dvir_checklist_item"
+                                android:padding="16dp"
+                                android:backgroundTint="#B1E3F1FF"
+                                android:text="Post-Trip"
+                                android:textColor="@color/home_text_sub"
+                                android:fontFamily="@font/sf_pro_display_medium"
+                                android:gravity="center_vertical"
+                                android:drawableStart="@drawable/baseline_radio_button_unchecked_24"
+                                android:drawablePadding="12dp"
+                                app:drawableTint="@color/home_text_sub" />
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp">
-
-                <LinearLayout
+                <!-- Vehicle Information Section -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvVehicleInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:animateLayoutChanges="true"
-                    android:background="@drawable/dvir_panel_background"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginBottom="13dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Trip Type"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textStyle="bold" />
-
-                    <Spinner
-                        android:id="@+id/spinnerTripType"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:dropDownWidth="match_parent"
-                        android:popupBackground="@drawable/dvir_spinner_popup_background"
-                        android:spinnerMode="dropdown" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:text="Vehicle Details"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textStyle="bold" />
-
-                    <EditText
-                        android:id="@+id/etOdometer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:hint="Odometer"
-                        android:inputType="number"
-                        android:padding="12dp"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textColorHint="@color/dvir_field_hint" />
-
-                    <EditText
-                        android:id="@+id/etTrailer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:hint="Trailer number (optional)"
-                        android:padding="12dp"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textColorHint="@color/dvir_field_hint" />
-
-                    <EditText
-                        android:id="@+id/etLocation"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:hint="Location"
-                        android:padding="12dp"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textColorHint="@color/dvir_field_hint" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:text="Safety Checklist"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textStyle="bold" />
-
-                    <CheckBox
-                        android:id="@+id/cbBrakes"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/dvir_accent"
-                        android:text="Brakes"
-                        android:textColor="@color/dvir_text_secondary" />
-
-                    <CheckBox
-                        android:id="@+id/cbLights"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/dvir_accent"
-                        android:text="Lights"
-                        android:textColor="@color/dvir_text_secondary" />
-
-                    <CheckBox
-                        android:id="@+id/cbTires"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/dvir_accent"
-                        android:text="Tires"
-                        android:textColor="@color/dvir_text_secondary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Vehicle Condition"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textStyle="bold" />
-
-                    <RadioGroup
-                        android:id="@+id/rgCondition"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:orientation="horizontal">
-
-                        <RadioButton
-                            android:id="@+id/rbSatisfactory"
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="@color/dvir_success"
-                            android:checked="true"
-                            android:text="Satisfactory"
-                            android:textColor="@color/dvir_text_secondary" />
+                            android:text="Vehicle Information"
+                            android:textColor="@color/home_text_main"
+                            android:fontFamily="@font/sf_pro_display_bold"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/baseline_local_shipping_24"
+                            app:drawableTint="@color/nav_icon_active" />
 
-                        <RadioButton
-                            android:id="@+id/rbDefects"
+                        <EditText
+                            android:id="@+id/etOdometer"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_dvir_checklist_item"
+                            android:hint="Odometer Reading"
+                            android:inputType="number"
+                            android:paddingHorizontal="16dp"
+                            android:drawableStart="@drawable/baseline_speed_24"
+                            android:drawablePadding="12dp"
+                            app:drawableTint="@color/home_text_sub"
+                            android:textColor="@color/home_text_main"
+                            android:textColorHint="@color/home_text_sub"
+                            android:textSize="14sp" />
+
+                        <EditText
+                            android:id="@+id/etTrailer"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dvir_checklist_item"
+                            android:hint="Trailer Number"
+                            android:paddingHorizontal="16dp"
+                            android:drawableStart="@drawable/baseline_local_shipping_24"
+                            android:drawablePadding="12dp"
+                            app:drawableTint="@color/home_text_sub"
+                            android:textColor="@color/home_text_main"
+                            android:textColorHint="@color/home_text_sub"
+                            android:textSize="14sp" />
+
+                        <EditText
+                            android:id="@+id/etLocation"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dvir_checklist_item"
+                            android:hint="Location"
+                            android:paddingHorizontal="16dp"
+                            android:drawableStart="@drawable/baseline_location_on_24"
+                            android:drawablePadding="12dp"
+                            app:drawableTint="@color/home_text_sub"
+                            android:textColor="@color/home_text_main"
+                            android:textColorHint="@color/home_text_sub"
+                            android:textSize="14sp" />
+
+                        <LinearLayout
+                            android:id="@+id/llToggle"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+
+                            android:layout_marginBottom="10dp"
+                            android:background="@drawable/bg_dvir_toggle_container"
+                            android:orientation="horizontal"
+                            android:padding="4dp">
+
+                            <TextView
+                                android:id="@+id/tvToggleNew"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dvir_toggle_item"
+                                android:fontFamily="@font/sf_pro_display_bold"
+                                android:gravity="center"
+                                android:text="New"
+                                android:textAllCaps="false"
+                                android:textColor="@color/home_text_main" />
+
+                            <TextView
+                                android:id="@+id/tvToggleHistory"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_dvir_toggle_item"
+                                android:fontFamily="@font/sf_pro_display_medium"
+                                android:gravity="center"
+                                android:text="History"
+                                android:textAllCaps="false"
+                                android:textColor="@color/home_text_sub" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Vehicle Condition Section -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvCondition"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:buttonTint="@color/dvir_warning"
-                            android:text="Has defects"
-                            android:textColor="@color/dvir_text_secondary" />
-                    </RadioGroup>
+                            android:text="Vehicle Condition"
+                            android:textColor="@color/home_text_main"
+                            android:fontFamily="@font/sf_pro_display_bold"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/baseline_security_24"
+                            app:drawableTint="@color/nav_icon_active" />
 
-                    <EditText
-                        android:id="@+id/etDefects"
+                        <LinearLayout
+                            android:id="@+id/llSatisfactory"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_status_pill"
+                            android:backgroundTint="#DEF7ED"
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/baseline_check_circle_24"
+                                app:tint="@color/status_on_text" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Satisfactory"
+                                    android:textColor="@color/home_text_main"
+                                    android:fontFamily="@font/sf_pro_display_bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Vehicle is in good condition"
+                                    android:textColor="@color/home_text_sub"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                            <ImageView
+                                android:id="@+id/ivSatisfactoryCheck"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/baseline_check_circle_24"
+                                app:tint="@color/status_on_text" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/llHasDefects"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dvir_checklist_item"
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/baseline_error_24"
+                                app:tint="@color/home_text_sub" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Has Defects"
+                                    android:textColor="@color/home_text_main"
+                                    android:fontFamily="@font/sf_pro_display_bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Vehicle has issues that need attention"
+                                    android:textColor="@color/home_text_sub"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                            <View
+                                android:id="@+id/vDefectsCheck"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:background="@drawable/baseline_radio_button_unchecked_24"
+                                android:backgroundTint="@color/home_text_sub" />
+                        </LinearLayout>
+
+                        <EditText
+                            android:id="@+id/etDefects"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dvir_checklist_item"
+                            android:gravity="top"
+                            android:hint="Describe defects"
+                            android:inputType="textMultiLine"
+                            android:minLines="3"
+                            android:padding="12dp"
+                            android:textColor="@color/home_text_main"
+                            android:textColorHint="@color/home_text_sub"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Inspection Checklist Section -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvChecklist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="13dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:gravity="top"
-                        android:hint="Describe defects"
-                        android:inputType="textMultiLine"
-                        android:minLines="3"
-                        android:padding="12dp"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textColorHint="@color/dvir_field_hint"
-                        android:visibility="gone" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <CheckBox
-                        android:id="@+id/cbSafeToOperate"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Inspection Checklist"
+                            android:textColor="@color/home_text_main"
+                            android:fontFamily="@font/sf_pro_display_bold"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/baseline_checklist_24"
+                            app:drawableTint="@color/nav_icon_active" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <!-- Row 1: Brakes & Tires -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbBrakes"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckBrakes"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Brakes"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                    <CheckBox android:id="@+id/cbBrakes" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbTires"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckTires"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Tires"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                    <CheckBox android:id="@+id/cbTires" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 2: Lights & Mirrors -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbLights"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckLights"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Lights"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                    <CheckBox android:id="@+id/cbLights" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbMirrors"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckMirrors"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Mirrors"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 3: Horn & Wipers -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbHorn"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckHorn"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Horn"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbWipers"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckWipers"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Wipers"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 4: Steering & Emergency -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbSteering"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckSteering"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Steering"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbEmergency"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckEmergency"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Emergency"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 5: Coupling & Exhaust -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbCoupling"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckCoupling"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Coupling"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbExhaust"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckExhaust"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Exhaust"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Safety Status Switch -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvSafety"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="13dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16sp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/strockColor">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:buttonTint="@color/dvir_success"
-                        android:checked="true"
-                        android:text="Safe to operate"
-                        android:textColor="@color/dvir_text_secondary" />
+                        android:orientation="vertical"
+                        android:padding="13dp">
 
-                    <EditText
-                        android:id="@+id/etSignature"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/dvir_field_background"
-                        android:hint="Driver signature (type full name)"
-                        android:padding="12dp"
-                        android:textColor="@color/dvir_text_primary"
-                        android:textColorHint="@color/dvir_field_hint" />
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/baseline_security_24"
+                                app:tint="@color/nav_icon_active" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:text="Safety"
+                                android:textColor="@color/home_text_main"
+                                android:fontFamily="@font/sf_pro_display_bold" />
+                        </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp">
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Safe to Operate"
+                                    android:textColor="@color/home_text_main"
+                                    android:textSize="16sp"
+                                    android:fontFamily="@font/sf_pro_display_bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Vehicle is safe for operation"
+                                    android:textColor="@color/home_text_sub"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                            <androidx.appcompat.widget.SwitchCompat
+                                android:id="@+id/cbSafeToOperate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:checked="true"
+                                app:thumbTint="@color/white"
+                                app:trackTint="@color/nav_icon_active" />
+                        </RelativeLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Signature & Submit -->
+                <EditText
+                    android:id="@+id/etSignature"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_50sdp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dvir_checklist_item"
+                    android:backgroundTint="#E9F4FF"
+                    android:hint="Driver Signature (type full name)"
+                    android:paddingHorizontal="16dp"
+                    android:textColor="@color/home_text_main"
+                    android:textColorHint="@color/home_text_sub"
+                    android:textSize="14sp" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
                         android:id="@+id/btnSubmitDvir"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_height="56dp"
                         android:text="Submit DVIR"
                         android:textAllCaps="false"
                         android:textColor="@android:color/white"
-                        android:textStyle="bold"
-                        app:backgroundTint="@color/dvir_accent" />
+                        android:textSize="16sp"
+                        android:fontFamily="@font/sf_pro_display_bold"
+                        android:background="@drawable/bg_dvir_submit_gradient"
+                        app:cornerRadius="12dp"
+                        app:elevation="0dp"
+                        android:drawableStart="@drawable/baseline_check_circle_24"
+                        app:drawableTint="@color/white"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:gravity="center"
+                        app:iconGravity="textStart" />
 
                     <ProgressBar
                         android:id="@+id/progressSubmit"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="10dp"
-                        android:indeterminateTint="@color/dvir_accent"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="center"
+                        android:indeterminateTint="@color/white"
                         android:visibility="gone" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </FrameLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Recent DVIR"
-                android:textColor="@color/dvir_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+            </LinearLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvDvirHistory"
+            <!-- History Section -->
+            <LinearLayout
+                android:id="@+id/historyContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false" />
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Recent DVIR"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/sf_pro_display_bold"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvDvirHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    tools:listitem="@layout/item_dvir_report" />
+            </LinearLayout>
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

@@ -1,169 +1,312 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/swipeRefreshLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimary">
+    android:background="#F0F4F8"
+    android:orientation="vertical">
 
-<LinearLayout
-    android:id="@+id/layout_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp">
-
-    <!-- Title -->
-    <LinearLayout
+    <!-- Header -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:layout_height="?attr/actionBarSize"
+        android:paddingHorizontal="16dp">
 
+        <!-- Back Button -->
+        <LinearLayout
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:padding="@dimen/_1sdp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                app:srcCompat="@drawable/back"
+                app:tint="#374151"
+                />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Back"
+                android:textColor="#374151"
+                android:textSize="18sp"/>
+        </LinearLayout>
 
+        <!-- Title -->
         <TextView
-            android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DOT Inspection"
-            android:textColor="#FFFFFF"
+            android:layout_centerInParent="true"
+            android:text="Inspection Start"
+            android:textColor="#111827"
             android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp" />
+            android:textStyle="bold"/>
+    </RelativeLayout>
 
-    </LinearLayout>
-
-
-
-    <!-- Button Row -->
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="16dp">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnWeb"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="WEB"
-            android:textAllCaps="true"
-            android:textColor="@android:color/white"
-            android:backgroundTint="@android:color/transparent"
-            app:strokeColor="@android:color/white"
-            app:strokeWidth="1dp"
-            app:cornerRadius="5dp"/>
-<!--        <Button-->
-<!--            android:id="@+id/btnWeb"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_weight="1"-->
-<!--            android:text="WEB"-->
-<!--            android:textColor="@color/black"-->
-<!--            android:backgroundTint="@color/colorWhite"-->
-<!--            android:textAllCaps="true"/>-->
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:paddingHorizontal="16dp"
+        android:scrollIndicators="none"
+        android:paddingTop="8dp"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false">
 
-        <View
-            android:layout_width="16dp"
-            android:layout_height="0dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnEmail"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="EMAIL"
-            android:textAllCaps="true"
-            android:textColor="@android:color/white"
-            android:backgroundTint="@android:color/transparent"
-            app:strokeColor="@android:color/white"
-            app:strokeWidth="1dp"
-            app:cornerRadius="5dp"/>
-    </LinearLayout>
-
-    <!-- Date Time -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="16dp">
-
-        <Button
-            android:id="@+id/btnStartDate"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Start Date"
-            android:textColor="@color/black"
-            android:backgroundTint="@color/colorWhite"
-            android:textAllCaps="true"/>
-
-        <View
-            android:layout_width="16dp"
-            android:layout_height="0dp" />
-
-        <Button
-            android:id="@+id/btnEndDate"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="End Date"
-            android:textColor="@color/black"
-            android:backgroundTint="@color/colorWhite"
-            android:textAllCaps="true"/>
-    </LinearLayout>
-
-    <!-- Submission Code Input -->
-        <EditText
-            android:id="@+id/et_emailid"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/_5dp"
-            android:hint="Submission Code (eRODS code/email)"
-            android:textColorHint="@color/colorWhite"
-            android:textColor="@color/colorWhite"
-            android:textSize="@dimen/_14sp"
-            android:backgroundTint="#FFFF"
-            android:layout_marginBottom="@dimen/_20sdp"
-           />
-    <!-- Send Button -->
-    <Button
-        android:id="@+id/btnSend"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="SEND"
-        android:textAllCaps="true"
-        android:backgroundTint="@color/blue"
-        android:textColor="#FFFFFF" />
+            android:orientation="vertical">
 
-    <!-- PDF Download Button -->
-    <Button
-        android:id="@+id/btnDownloadPdf"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="DOWNLOAD PDF REPORT"
-        android:textAllCaps="true"
-        android:backgroundTint="@color/green"
-        android:textColor="#FFFFFF" />
+            <!-- Card 1: Regulation Mode -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_regulation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#E0E6ED"
+                app:strokeWidth="1dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-    <!-- Test PDF Button -->
-    <Button
-        android:id="@+id/btnTestPdf"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="80dp"
-        android:text="view User Manual"
-        android:textAllCaps="true"
-        android:backgroundTint="@color/blue"
-        android:textColor="#FFFFFF" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            app:srcCompat="@drawable/ic_shield_blue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="Regulation mode: ELD"
+                            android:textColor="#111827"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:text="Review logs for the current 24-hours period and the previous 7 consecutive days."
+                        android:textColor="#4B5563"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:text="Tap Start Review button and give your device to the DOT Officer"
+                        android:textColor="#111827"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStartReview"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="20dp"
+                        android:background="@drawable/bg_primary_gradient_btn"
+                        app:backgroundTint="@null"
+                        app:icon="@drawable/ic_play_white"
+                        app:iconGravity="textStart"
+                        android:text="START REVIEW"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card 2: FMCSA Data Transfer -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_fmcsa"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#E0E6ED"
+                app:strokeWidth="1dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            app:srcCompat="@drawable/ic_sync_blue" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="FMCSA Data Transfer"
+                            android:textColor="#111827"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:text="Email logs for the current 24-hours period and the previous 7 consecutive days"
+                        android:textColor="#4B5563"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnEmail"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            app:backgroundTint="#1B6DFB"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_email_white"
+                            app:iconGravity="textStart"
+                            android:text="EMAIL"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:visibility="gone"
+                            android:id="@+id/btnTransfer"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            app:backgroundTint="#10B8A9"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_wifi_white"
+                            app:iconGravity="textStart"
+                            android:text="TRANSFER"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:visibility="gone"
+                        android:id="@+id/btnUsb"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_primary_gradient_btn"
+                        app:backgroundTint="@null"
+                        app:icon="@drawable/ic_usb_white"
+                        app:iconGravity="textStart"
+                        android:text="USB"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card 3: Paper Logs -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_paper_logs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#E0E6ED"
+                app:strokeWidth="1dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            app:srcCompat="@drawable/ic_description_orange" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="Paper Logs"
+                            android:textColor="#111827"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:text="Switch to paper logs if your device or the ELD is malfunctioning."
+                        android:textColor="#4B5563"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPaperLogs"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="20dp"
+                        android:background="@drawable/bg_primary_gradient_btn"
+                        app:backgroundTint="@null"
+                        app:icon="@drawable/ic_description_white"
+                        app:iconGravity="textStart"
+                        android:text="PAPER LOGS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

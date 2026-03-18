@@ -1,29 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:showIn="navigation_view">
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_home"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="@string/dashboard" />
+            android:id="@+id/nav_codriver_login"
+            android:icon="@drawable/ic_sync_blue"
+            android:title="Co-Driver Login" />
+            
         <item
-            android:id="@+id/nav_gallery"
-            android:icon="@drawable/ic_menu_gallery"
-            android:title="@string/connect_a_device" />
+            android:id="@+id/nav_shipping"
+            android:icon="@android:drawable/ic_menu_send"
+            android:title="Shipping" />
 
         <item
-            android:id="@+id/btnReportIssue"
-            android:icon="@android:drawable/ic_menu_report_image"
-            android:title="Report Issue" />
+            android:id="@+id/nav_request"
+            android:icon="@drawable/ic_description_blue"
+            android:title="Request" />
+            
+        <item
+            android:id="@+id/nav_fmcsa"
+            android:icon="@drawable/ic_shield_blue"
+            android:title="FMCSA" />
+            
+        <item
+            android:id="@+id/nav_upload_documents"
+            android:icon="@android:drawable/ic_menu_upload"
+            android:title="Upload Documents" />
+            
+        <item
+            android:id="@+id/nav_more_options"
+            android:icon="@android:drawable/ic_menu_more"
+            android:title="More Options" />
+            
         <item
             android:id="@+id/btnLogout"
             android:icon="@drawable/ic_logout"
-            android:title="@string/logout" />
-<!--        <item-->
-<!--            android:id="@+id/nav_slideshow"-->
-<!--            android:icon="@drawable/ic_menu_slideshow"-->
-<!--            android:title="@string/menu_slideshow" />-->
+            android:title="Logout" />
     </group>
 </menu>

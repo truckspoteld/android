@@ -1,36 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="16dp"
-    android:background="@drawable/modern_log_card"
-    android:layout_marginStart="8dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp"
     android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/tvDate"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/dark_text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginEnd="16dp" />
+        android:orientation="vertical"
+        android:layout_marginEnd="@dimen/_8sdp">
 
-    <Button
+        <TextView
+            android:id="@+id/tvDateLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Log Date"
+            android:textColor="@color/home_text_sub"
+            android:textSize="12sp"
+            android:fontFamily="@font/sf_pro_display_medium"
+            android:textAllCaps="true" />
+
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/home_text_main"
+            android:textSize="17sp"
+            android:fontFamily="@font/sf_pro_display_bold"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+    <TextView
         android:id="@+id/btnCertify"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:text="Certify"
+        android:layout_height="wrap_content"
+        android:minHeight="34dp"
+        android:text="@string/certify"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:background="@drawable/clerify_btn"
         android:textColor="@color/white"
-        android:backgroundTint="@android:color/holo_green_dark"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        app:cornerRadius="20dp"
+        android:textSize="12sp"
+        android:fontFamily="@font/sf_pro_display_bold"
+        android:paddingHorizontal="@dimen/_14sdp"
+        app:elevation="0dp" />
 
 </LinearLayout>

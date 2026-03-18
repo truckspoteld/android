@@ -240,7 +240,7 @@
         app:layout_constraintTop_toTopOf="@+id/textView15" />
 
 
-    <!--    <com.eagleye.eld.utils.ELDGraph-->
+    <!--    <com.truckspot.eld.utils.ELDGraph-->
 <!--        android:id="@+id/graph"-->
 <!--        android:layout_width="350dp"-->
 <!--        android:layout_height="80dp"-->

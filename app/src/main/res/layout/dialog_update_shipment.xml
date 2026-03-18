@@ -1,145 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/modern_circular_card"
-    android:padding="24dp">
+    android:layout_margin="16dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#E2E8F0">
 
-    <TextView
-        android:id="@+id/title_shipment"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Update Shipment"
-        android:textColor="@color/dark_text_primary"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:fontFamily="sans-serif-medium"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"
+        android:padding="@dimen/_20sdp">
 
-    <TextView
-        android:id="@+id/label_shipping"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="Shipping Number *"
-        android:textColor="@color/dark_text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title_shipment" />
-
-    <EditText
-        android:id="@+id/input_shipping_number"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/modern_detail_item_background"
-        android:hint="Enter shipping number"
-        android:inputType="number"
-        android:maxLines="1"
-        android:paddingHorizontal="16dp"
-        android:textColor="@color/dark_text_primary"
-        android:textColorHint="@color/dark_text_hint"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/label_shipping" />
-
-    <TextView
-        android:id="@+id/label_codriver"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Co-driver"
-        android:textColor="@color/dark_text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/input_shipping_number" />
-
-    <FrameLayout
-        android:id="@+id/spinner_container"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/modern_detail_item_background"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/label_codriver">
-
-        <androidx.appcompat.widget.AppCompatSpinner
-            android:id="@+id/spinner_codriver"
+        <!-- Header -->
+        <LinearLayout
+            android:id="@+id/llDialogHeader"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@android:color/transparent"
-            android:paddingHorizontal="8dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="@dimen/_20sdp">
             
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="12dp"
-            android:src="@drawable/baseline_arrow_forward_24"
-            android:rotation="90"
-            app:tint="@color/dark_text_secondary" />
-    </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Update Shipment"
+                android:textColor="@color/home_text_main"
+                android:textSize="22sp"
+                android:fontFamily="@font/sf_pro_display_bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Set your current trip details"
+                android:textColor="@color/home_text_sub"
+                android:textSize="14sp"
+                android:fontFamily="@font/sf_pro_display_medium" />
+        </LinearLayout>
 
-    <TextView
-        android:id="@+id/label_trailer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Trailer Number"
-        android:textColor="@color/dark_text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/spinner_container" />
+        <!-- Shipping Number Section -->
+        <LinearLayout
+            android:id="@+id/llShippingSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="@dimen/_12sdp">
+            
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilShipping"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Shipping Number *"
+                app:startIconDrawable="@drawable/ic_shipment_24"
+                app:startIconTint="@color/nav_icon_active"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxBackgroundColor="#F9FAFB"
+                app:boxStrokeColor="@color/shipment_input_stroke"
+                app:hintTextColor="@color/nav_icon_active">
 
-    <EditText
-        android:id="@+id/input_trailer_number"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/modern_detail_item_background"
-        android:hint="Enter trailer number"
-        android:inputType="number"
-        android:maxLines="1"
-        android:paddingHorizontal="16dp"
-        android:textColor="@color/dark_text_primary"
-        android:textColorHint="@color/dark_text_hint"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/label_trailer" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_shipping_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/sf_pro_display_medium" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_cancel_shipment"
-        android:layout_width="0dp"
-        android:layout_height="55dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="8dp"
-        android:background="@drawable/home_bg_deign"
-        android:text="Cancel"
-        android:textAllCaps="false"
-        android:textColor="@color/dark_text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@id/btn_update_shipment"
-        app:layout_constraintHorizontal_chainStyle="spread"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/input_trailer_number" />
+        <!-- Co-driver Section -->
+        <LinearLayout
+            android:id="@+id/llCodriverSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="@dimen/_12sdp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Co-driver"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:textColor="@color/home_text_sub"
+                android:textSize="13sp"
+                android:fontFamily="@font/sf_pro_display_medium" />
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_update_shipment"
-        android:layout_width="0dp"
-        android:layout_height="55dp"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/modern_onduty_card"
-        android:text="Update"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btn_cancel_shipment"
-        app:layout_constraintTop_toTopOf="@id/btn_cancel_shipment" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_45sdp"
+                android:background="@drawable/bg_dialog_input">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+                <androidx.appcompat.widget.AppCompatSpinner
+                    android:id="@+id/spinner_codriver"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:paddingHorizontal="12dp" />
+                    
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:src="@drawable/baseline_arrow_forward_24"
+                    android:rotation="90"
+                    app:tint="@color/home_text_sub" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Trailer Number Section -->
+        <LinearLayout
+            android:id="@+id/llTrailerSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="@dimen/_24sdp">
+            
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilTrailer"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Trailer Number"
+                app:startIconDrawable="@drawable/ic_trailer_24"
+                app:startIconTint="@color/nav_icon_active"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxBackgroundColor="#F9FAFB"
+                app:boxStrokeColor="@color/shipment_input_stroke"
+                app:hintTextColor="@color/nav_icon_active">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_trailer_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/sf_pro_display_medium" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <!-- Actions -->
+        <LinearLayout
+            android:id="@+id/llDialogActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancel_shipment"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/_45sdp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Cancel"
+                android:textAllCaps="false"
+                android:textColor="@color/home_text_main"
+                app:cornerRadius="16dp"
+                app:strokeColor="#E7E7E7"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_update_shipment"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/_45sdp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Update"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:fontFamily="@font/sf_pro_display_bold"
+                app:backgroundTint="@color/nav_icon_active"
+                app:cornerRadius="16dp"
+                app:elevation="0dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

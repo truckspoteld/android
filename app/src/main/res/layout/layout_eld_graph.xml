@@ -1,378 +1,579 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/graph_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:tag="layout/layout_eld_graph_0">
+    android:paddingHorizontal="@dimen/_4sdp">
 
-    <RelativeLayout
-        android:id="@+id/relative_layout"
-        android:layout_width="0dp"
-        android:layout_height="140dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:padding="@dimen/_10dp"
+    <TextView
+        android:id="@+id/graph_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_6sdp"
+        android:layout_marginTop="@dimen/_3sdp"
+        android:text="ELD Graph"
+        android:textColor="@color/home_text_main"
+        android:textSize="14sp"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/graph_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="24 Hour Duty Timeline"
+        android:textColor="@color/home_text_sub"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/graph_title" />
+
+    <!-- Legend -->
+    <LinearLayout
+        android:id="@+id/legend_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_4sdp"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/graph_title">
+
+        <!-- OFF Pill -->
         <LinearLayout
-            android:layout_width="18dp"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:weightSum="4">
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="15dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/off"
-                android:textColor="@android:color/white"
-                android:textSize="10sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/sb"
-                android:textColor="@android:color/white"
-                android:textSize="10sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/d"
-                android:textColor="@android:color/white"
-                android:textSize="10sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/on"
-                android:textColor="@android:color/white"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="12dp"
-            android:layout_marginStart="20dp"
-            android:layout_marginEnd="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_status_pill"
+            android:gravity="center"
             android:orientation="horizontal"
-            android:weightSum="24">
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp">
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/m"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/ic_activity_new"
+                android:backgroundTint="#8DA0B6" />
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_1"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_2"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_3"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_4"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_5"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_6"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_7"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_8"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_9"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_10"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_11"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_12"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_13"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_14"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_15"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_16"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_17"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_18"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_19"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_20"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_21"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_22"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_23"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/_24"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/m"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="OFF"
+                android:textColor="@color/home_text_main"
+                android:textSize="10sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <com.eagleye.eld.utils.ELDGraph
-            android:id="@+id/graph"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginEnd="40dp"
+        <!-- SB Pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_status_pill"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/ic_activity_new"
+                android:backgroundTint="#4169E1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="SB"
+                android:textColor="@color/home_text_main"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- DR Pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_status_pill"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/ic_activity_new"
+                android:backgroundTint="@color/nav_icon_active" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="DR"
+                android:textColor="@color/home_text_main"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- ON Pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_status_pill"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/ic_activity_new"
+                android:backgroundTint="#10B981" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="ON"
+                android:textColor="@color/home_text_main"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/graph_container"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_120sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        app:layout_constraintTop_toBottomOf="@id/legend_container">
+
+
+        <!-- X-Axis Labels Container -->
+        <FrameLayout
+            android:id="@+id/x_axis_labels"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="@id/graph"
+            app:layout_constraintStart_toStartOf="@id/graph"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="24">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="M"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="1"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="2"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="3"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="4"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="5"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="6"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="7"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="8"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="9"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="10"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="11"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="N"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="1"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="2"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="3"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="4"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="5"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="6"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="7"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="8"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="9"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="10"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|bottom"
+                    android:singleLine="true"
+                    android:text="11"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="8sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:gravity="end|bottom"
+                android:text="M"
+                android:textColor="@color/home_text_sub"
+                android:textSize="8sp" />
+        </FrameLayout>
+
+        <!-- Y-Axis Labels -->
+        <LinearLayout
+            android:id="@+id/y_axis"
+            android:layout_width="@dimen/_15sdp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:weightSum="4"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/x_axis_labels">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="OFF"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="SB"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="DR"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="ON"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
+        </LinearLayout>
+
+        <!-- Right Totals Column -->
+        <LinearLayout
+            android:id="@+id/hours_column"
+            android:layout_width="@dimen/_17sdp"
+            android:layout_height="0dp"
+
+            android:orientation="vertical"
+            android:weightSum="4"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/x_axis_labels">
 
-        <View
-            android:id="@+id/violation"
-            android:layout_width="5dp"
-            android:layout_height="wrap_content"
-            android:layout_alignStart="@+id/graph"
-            android:layout_alignTop="@+id/graph"
-            android:layout_alignBottom="@+id/graph"
-            android:background="#55ff0000"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/hours"
-            android:layout_width="40dp"
-            android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:weightSum="4">
-
-            <androidx.appcompat.widget.AppCompatTextView
+            <TextView
                 android:id="@+id/off_duty_hours"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="15dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="@string/_0"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
+                android:text="00:00"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
 
-            <androidx.appcompat.widget.AppCompatTextView
+            <TextView
                 android:id="@+id/sb_hours"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="@string/_0"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
+                android:text="00:00"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
 
-            <androidx.appcompat.widget.AppCompatTextView
+            <TextView
                 android:id="@+id/driving_hours"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="@string/_0"
-                android:textColor="@android:color/white"
-                android:textSize="8sp" />
+                android:text="00:00"
+                android:textColor="@color/home_text_sub"
+                android:textSize="@dimen/_5sdp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
+                android:gravity="center"
                 android:orientation="vertical">
 
-                <androidx.appcompat.widget.AppCompatTextView
+                <TextView
                     android:id="@+id/on_duty_hours"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
-                    android:lineSpacingExtra="0.1dp"
-                    android:text="@string/_0"
-                    android:textColor="@android:color/white"
-                    android:textSize="8sp" />
+                    android:gravity="center"
+                    android:text="00:00"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="@dimen/_5sdp" />
 
                 <View
-                    android:layout_width="12dp"
+                    android:layout_width="16dp"
                     android:layout_height="1dp"
-                    android:layout_gravity="center_horizontal"
-                    android:background="@android:color/holo_blue_dark" />
+                    android:layout_marginTop="1dp"
+                    android:background="#E0E6ED" />
 
-                <androidx.appcompat.widget.AppCompatTextView
+                <TextView
                     android:id="@+id/total_hours"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
-                    android:lineSpacingExtra="0.1dp"
-                    android:text="@string/_0"
-                    android:textColor="@android:color/white"
-                    android:textSize="8sp" />
+                    android:gravity="center"
+                    android:text="00:00"
+                    android:textColor="@color/home_text_sub"
+                    android:textSize="@dimen/_5sdp"
+                    android:textStyle="bold" />
             </LinearLayout>
-
         </LinearLayout>
-    </RelativeLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- The Graph View -->
+        <com.truckspot.eld.utils.ELDGraph
+            android:id="@+id/graph"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:layout_marginBottom="@dimen/_5sdp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/hours_column"
+            app:layout_constraintStart_toEndOf="@id/y_axis"
+            app:layout_constraintTop_toBottomOf="@id/x_axis_labels" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Legacy/Logic support elements -->
+    <RelativeLayout
+        android:id="@+id/relative_layout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/hours"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        tools:ignore="MissingConstraints" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

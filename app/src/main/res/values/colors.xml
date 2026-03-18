@@ -155,4 +155,30 @@
     <color name="dvir_nav_item_bg">#2D2D2D</color>
     <color name="dvir_nav_ripple">#332196F3</color>
 
+    <!-- Login redesign palette -->
+    <color name="login_bg_gradient_start">#E6F1FB</color>
+    <color name="login_bg_gradient_end">#FAF9F9</color>
+    <color name="login_text_dark">#1A2B4C</color>
+    <color name="login_text_gray">#6B7C93</color>
+    <color name="login_input_bg">#F0F4F8</color>
+    <color name="login_btn_gradient_start">#2D7BFE</color>
+    <color name="login_btn_gradient_end">#10B9B2</color>
+
+    <!-- Home & Nav redesign palette -->
+    <color name="home_bg_light">#F5F9FF</color>
+    <color name="home_text_main">#1A1D26</color>
+    <color name="home_text_sub">#6B7C93</color>
+    <color name="nav_active_blue">#EBF3FF</color>
+    <color name="nav_icon_active">#2D7BFE</color>
+    <color name="nav_icon_inactive">#8DA0B6</color>
+    <color name="status_on_bg">#DEF7ED</color>
+    <color name="status_on_text">#10B981</color>
+    <color name="status_off_bg">#FEE2E2</color>
+    <color name="status_off_text">#EF4444</color>
+    <color name="card_white">#FFFFFF</color>
+    <color name="card_stroke_light">#F0F4F8</color>
+    <color name="gauge_arc_bg">#F1F5F9</color>
+    <color name="strockColor">#E7E7E7</color>
+    <color name="home_bg_blue_light">#EBF3FF</color>
+
 </resources>

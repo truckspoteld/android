@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Eagleeye</string>
+    <string name="app_name">truckspot</string>
     <string name="by_logging_in_you_are_agree_to_the_following">By logging in, you are
         agree to the following</string>
     <string name="agree"><u>Terms of Service</u></string>
@@ -85,7 +85,7 @@
     <string name="Readdummy">D Read</string>
     <string name="removeBond">Remove Bond</string>
     <string name="paired">paired</string>
-    <string name="popup_title">Quit EldMan</string>
+    <string name="popup_title">Quit truckspot</string>
     <string name="popup_message">Do you want to quit this Application?</string>
     <string name="popup_yes">YES</string>
     <string name="popup_no">NO</string>
@@ -155,10 +155,10 @@
     <string name="channel_update_title">Update in progress ...</string>
     <string name="channel_connected_devices_description">Shows a notification when a tracker is connected in background.</string>
     <string name="channel_update_description">Shows a notification when an update is being performed.</string>
-    <string name="title_activity_tracker_manager">EldMan</string>
+    <string name="title_activity_tracker_manager">truckspot</string>
 
     <!-- Disclosure -->
-    <string name="disclosure">Eldman collects location data to enable telemetry even when the app is closed or not in use.</string>
+    <string name="disclosure">truckspot collects location data to enable telemetry even when the app is closed or not in use.</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="tracker_running">Tracking in progress ...</string>
@@ -209,5 +209,7 @@
     <string name="shipping_number">Shipping Number : </string>
     <string name="trailer_number">Trailer Number : </string>
     <string name="logout">Logout</string>
+    <string name="review_and_certify_your_daily_logs">Review and certify your daily logs</string>
+    <string name="pending_certification">Pending Certification</string>
 
 </resources>

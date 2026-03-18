@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dark_background"
+    android:background="@color/home_bg_light"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:showIn="@layout/app_bar_dashboard">
 
@@ -20,27 +20,22 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navGraph="@navigation/mobile_navigation" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <me.ibrahimsn.lib.SmoothBottomBar
         android:id="@+id/bottomNav"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="0dp"
-        android:background="@drawable/nav_bottom_surface"
-        android:elevation="10dp"
-        android:paddingStart="8dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="6dp"
-        app:itemBackground="@drawable/nav_bottom_item_background"
-        app:itemIconSize="22dp"
-        app:itemIconTint="@color/nav_bottom_tint"
-        app:itemRippleColor="@color/dvir_nav_ripple"
-        app:itemTextColor="@color/nav_bottom_tint"
-        app:labelVisibilityMode="labeled"
+        android:layout_height="@dimen/_55sdp"
+        app:indicatorColor="#A5CFE4FF"
+        app:indicatorRadius="50dp"
+        app:cornerRadius="@dimen/_10sdp"
+        app:textColor="@color/login_btn_gradient_start"
+        app:textSize="10sp"
+        app:iconSize="20dp"
+        app:itemPadding="10dp"
+        app:iconTint="@color/login_btn_gradient_start"
+        app:iconTintActive="@color/login_btn_gradient_start"
+        app:activeItem="0"
+        app:menu="@menu/test"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/test" />
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

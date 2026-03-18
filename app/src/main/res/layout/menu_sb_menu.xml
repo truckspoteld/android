@@ -1,133 +1,80 @@
-<!-- custom_menu_layout.xml -->
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="250dp"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"> <!-- Adding padding to the entire menu -->
+    app:cardBackgroundColor="#F2F2F7"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="8dp"
+    app:strokeWidth="0.5dp"
+    app:strokeColor="#C6C6C8">
 
-    <TextView
-        android:id="@+id/sb1"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Pre-Trip"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+        android:orientation="vertical"
+        android:divider="@drawable/divider_horizontal_ios"
+        android:showDividers="middle">
 
-    <TextView
-        android:id="@+id/sb2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="DOT Inspection"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+        <TextView
+            android:id="@+id/sb1"
+            style="@style/IosMenuItemStyle"
+            android:text="Pre-Trip" />
 
-    <TextView
-        android:id="@+id/sb3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Fueling"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb4"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Loading"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb5"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Un-Loading"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
+        <TextView
+            android:id="@+id/sb2"
+            style="@style/IosMenuItemStyle"
+            android:text="DOT Inspection" />
 
-    <TextView
-        android:id="@+id/sb6"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pre-Trip and unloading"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb7"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pre-Trip and Loading"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb8"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pre-Trip and Fueling"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb9"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hooking"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb10"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Dropping"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb11"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Repairing"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
-    <TextView
-        android:id="@+id/sb12"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Border-Crossing"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" />
+        <TextView
+            android:id="@+id/sb3"
+            style="@style/IosMenuItemStyle"
+            android:text="Fueling" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/sb4"
+            style="@style/IosMenuItemStyle"
+            android:text="Loading" />
+
+        <TextView
+            android:id="@+id/sb5"
+            style="@style/IosMenuItemStyle"
+            android:text="Un-Loading" />
+
+        <TextView
+            android:id="@+id/sb6"
+            style="@style/IosMenuItemStyle"
+            android:text="Pre-Trip and unloading" />
+
+        <TextView
+            android:id="@+id/sb7"
+            style="@style/IosMenuItemStyle"
+            android:text="Pre-Trip and Loading" />
+
+        <TextView
+            android:id="@+id/sb8"
+            style="@style/IosMenuItemStyle"
+            android:text="Pre-Trip and Fueling" />
+
+        <TextView
+            android:id="@+id/sb9"
+            style="@style/IosMenuItemStyle"
+            android:text="Hooking" />
+
+        <TextView
+            android:id="@+id/sb10"
+            style="@style/IosMenuItemStyle"
+            android:text="Dropping" />
+
+        <TextView
+            android:id="@+id/sb11"
+            style="@style/IosMenuItemStyle"
+            android:text="Repairing" />
+
+        <TextView
+            android:id="@+id/sb12"
+            style="@style/IosMenuItemStyle"
+            android:text="Border-Crossing" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

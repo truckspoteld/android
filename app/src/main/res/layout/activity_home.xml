@@ -19,16 +19,23 @@
         app:headerLayout="@layout/nav_header_main"
         app:menu="@menu/activity_main_drawer" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <me.ibrahimsn.lib.SmoothBottomBar
         android:id="@+id/bottomNav"
-        android:background="@drawable/bottom_design"
         android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
-        app:labelVisibilityMode="labeled"
-        android:layout_height="?android:attr/actionBarSize"
-        app:itemIconTint="@drawable/navcolor"
-        app:itemTextColor="@drawable/navcolor"
-        app:menu="@menu/test"
-        />
+        android:layout_height="64dp"
+        android:elevation="0dp"
+        app:backgroundColor="@color/nav_item_selector"
+        app:indicatorColor="#BEDBFA"
+        app:indicatorRadius="50dp"
+        app:textColor="@color/login_btn_gradient_start"
+        app:textSize="10sp"
+        app:iconSize="20dp"
+        app:itemPadding="10dp"
+        app:iconTint="@color/nav_item_text_color"
+        app:iconTintActive="@color/login_btn_gradient_start"
+        app:activeItem="0"
+        app:menu="@menu/test" />
+
 
 </androidx.drawerlayout.widget.DrawerLayout>

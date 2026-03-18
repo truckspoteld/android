@@ -1,42 +1,35 @@
-<!-- custom_menu_layout.xml -->
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="250dp"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"> <!-- Adding padding to the entire menu -->
+    app:cardBackgroundColor="#F2F2F7"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="8dp"
+    app:strokeWidth="0.5dp"
+    app:strokeColor="#C6C6C8">
 
-    <TextView
-        android:id="@+id/option1"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="30 minutes break"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+        android:orientation="vertical"
+        android:divider="@drawable/divider_horizontal_ios"
+        android:showDividers="middle">
 
-    <TextView
-        android:id="@+id/option2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="week reset"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+        <TextView
+            android:id="@+id/option1"
+            style="@style/IosMenuItemStyle"
+            android:text="30 minutes break" />
 
-    <TextView
-        android:id="@+id/option3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="out of service"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="?android:attr/selectableItemBackground" /> <!-- Adding margins and background to the option -->
+        <TextView
+            android:id="@+id/option2"
+            style="@style/IosMenuItemStyle"
+            android:text="week reset" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/option3"
+            style="@style/IosMenuItemStyle"
+            android:text="out of service" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

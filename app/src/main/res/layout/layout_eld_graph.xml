@@ -546,7 +546,7 @@
         </LinearLayout>
 
         <!-- The Graph View -->
-        <com.truckspot.eld.utils.ELDGraph
+        <com.eagleye.eld.utils.ELDGraph
             android:id="@+id/graph"
             android:layout_width="0dp"
             android:layout_height="0dp"

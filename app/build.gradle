@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace 'com.truckspot.eld'
+    namespace 'com.eagleye.eld'
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.truckspot.eld"
+        applicationId "com.eagleye.eld"
         minSdk 24
         targetSdk 36
-        versionCode 6
-        versionName "1.1.21"
+        versionCode 8
+        versionName "1.1.22"
         //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField('String', 'API_KEY', "\"sSUmrxH9rS2q6LOL38WXXFgXhLKAf9e34cRv5Xn5\"")
     }

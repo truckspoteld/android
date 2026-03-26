@@ -20,6 +20,8 @@ import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.DriverCodriversResponse
 import com.eagleye.eld.models.DriverShipmentResponse
+import com.eagleye.eld.models.FmcsaEmailTransferResponse
+import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.GetLogsResponse
 import com.eagleye.eld.models.GetReportsResponse
 import com.eagleye.eld.models.HomeDataModel
@@ -85,6 +87,22 @@ class HomeViewModel @Inject constructor(
 
     suspend fun upsertDriverShipment(request: DriverShipmentRequest): Response<DriverShipmentResponse> =
         truckSpotAPI.upsertDriverShipment(request)
+
+    suspend fun sendFmcsaEmailTransfer(
+        startDate: String,
+        endDate: String,
+        transferCode: String
+    ): NetworkResult<FmcsaEmailTransferResponse> {
+        return dashboardRespository.sendFmcsaEmailTransfer(startDate, endDate, transferCode)
+    }
+
+    suspend fun sendFmcsaWebServiceTransfer(
+        startDate: String,
+        endDate: String,
+        transferCode: String
+    ): NetworkResult<FmcsaWebServiceTransferResponse> {
+        return dashboardRespository.sendFmcsaWebServiceTransfer(startDate, endDate, transferCode)
+    }
 
     fun getUserLogs() = refinedUserLogs ?: mutableListOf()
 

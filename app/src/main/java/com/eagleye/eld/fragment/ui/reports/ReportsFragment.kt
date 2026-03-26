@@ -17,6 +17,13 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.text.InputType
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.text.method.ScrollingMovementMethod
+import android.widget.TextView
 import android.widget.Toast
 import android.widget.Toast.makeText
 import androidx.annotation.RequiresApi
@@ -55,6 +62,10 @@ import com.daimajia.androidanimations.library.Techniques
 
 @AndroidEntryPoint
 class ReportsFragment : Fragment() {
+    private enum class TransferMethod {
+        EMAIL,
+        WEBSERVICE
+    }
     private var _binding: FragmentReportsBinding? = null
     private var _bindingPrint: LayoutPrintBinding? = null
     private var _bindingEldGraph: LayoutEldGraphBinding? = null
@@ -78,6 +89,52 @@ class ReportsFragment : Fragment() {
     private var driverLicense: String = "CA / Y46O8156"
     private var vehicleVin: String = "-"
 
+    private fun showFmcsaResultDialog(title: String, body: String) {
+        val tv = TextView(requireContext()).apply {
+            text = body
+            setTextColor(Color.parseColor("#111827"))
+            textSize = 14f
+            setPadding(48, 32, 48, 16)
+            movementMethod = ScrollingMovementMethod()
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setView(tv)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Copy") { _, _ ->
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("FMCSA Result", body))
+                Toast.makeText(requireContext(), "Copied", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun buildWebServiceResultText(response: com.truckspot.eld.models.FmcsaWebServiceTransferResponse?): String {
+        if (response == null) return "No response."
+        val sb = StringBuilder()
+        sb.appendLine(response.message.ifBlank { "FMCSA response received." })
+
+        val d = response.data
+        if (d != null) {
+            if (!d.status.isNullOrBlank()) sb.appendLine("\nStatus: ${d.status}")
+            if (!d.submissionId.isNullOrBlank()) sb.appendLine("SubmissionId: ${d.submissionId}")
+            if (d.errorCount != null) sb.appendLine("ErrorCount: ${d.errorCount}")
+            if (!d.broadcast.isNullOrBlank()) sb.appendLine("\nBroadcast:\n${d.broadcast}")
+
+            val errs = d.errors.orEmpty().filter { !it.message.isNullOrBlank() || !it.detail.isNullOrBlank() || !it.errorType.isNullOrBlank() }
+            if (errs.isNotEmpty()) {
+                sb.appendLine("\nMessages:")
+                errs.take(50).forEachIndexed { idx, e ->
+                    sb.appendLine("${idx + 1}. ${listOfNotNull(e.errorType, e.message).joinToString(" - ")}")
+                    if (!e.detail.isNullOrBlank()) sb.appendLine("   ${e.detail}")
+                }
+                if (errs.size > 50) sb.appendLine("... (${errs.size - 50} more)")
+            }
+        }
+
+        return sb.toString().trim()
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -100,17 +157,12 @@ class ReportsFragment : Fragment() {
 
         binding.btnEmail.setOnClickListener { 
             playClickAnimation(it)
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:eld@fmcsa.dot.gov")
-                putExtra(Intent.EXTRA_SUBJECT, "FMCSA Report")
-            }
-            try {
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "No email app found", Toast.LENGTH_SHORT).show()
-            }
+            showFmcsaTransferDialog(TransferMethod.EMAIL)
         }
-        binding.btnTransfer.setOnClickListener { playClickAnimation(it) }
+        binding.btnTransfer.setOnClickListener {
+            playClickAnimation(it)
+            showFmcsaTransferDialog(TransferMethod.WEBSERVICE)
+        }
         binding.btnUsb.setOnClickListener { playClickAnimation(it) }
         binding.btnPaperLogs.setOnClickListener { playClickAnimation(it) }
 
@@ -643,6 +695,88 @@ class ReportsFragment : Fragment() {
                     .start()
             }
             .start()
+    }
+
+    private fun showFmcsaTransferDialog(method: TransferMethod) {
+        val input = EditText(requireContext()).apply {
+            hint = "Enter transfer code"
+            inputType = InputType.TYPE_CLASS_TEXT
+            setPadding(48, 32, 48, 32)
+        }
+        val title = if (method == TransferMethod.EMAIL) "FMCSA Email Transfer" else "FMCSA Web Service Transfer (API)"
+        val message = "Enter the inspection transfer code provided by officer."
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setMessage(message)
+            .setView(input)
+            .setPositiveButton("Send") { _, _ ->
+                val transferCode = input.text?.toString()?.trim().orEmpty()
+                if (transferCode.isBlank()) {
+                    Toast.makeText(requireContext(), "Transfer code is required", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                sendFmcsaTransfer(method, transferCode)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun sendFmcsaTransfer(method: TransferMethod, transferCode: String) {
+        val progressDialog = ProgressDialog(requireContext()).apply {
+            setMessage(if (method == TransferMethod.EMAIL) "Sending logs to FMCSA via Email..." else "Sending logs to FMCSA via Web Service (API)...")
+            setCancelable(false)
+            show()
+        }
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val endCal = Calendar.getInstance()
+        val endDate = dateFormat.format(endCal.time)
+        val startCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -7) }
+        val startDate = dateFormat.format(startCal.time)
+
+        lifecycleScope.launch {
+            when (method) {
+                TransferMethod.EMAIL -> {
+                    val result = homeViewModel.sendFmcsaEmailTransfer(startDate, endDate, transferCode)
+                    progressDialog.dismiss()
+                    when (result) {
+                        is NetworkResult.Success -> {
+                            Toast.makeText(
+                                requireContext(),
+                                result.data?.message ?: "FMCSA email transfer sent successfully",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        is NetworkResult.Error -> {
+                            Toast.makeText(
+                                requireContext(),
+                                result.message ?: "Failed to send FMCSA email transfer",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        is NetworkResult.Loading -> Unit
+                    }
+                }
+
+                TransferMethod.WEBSERVICE -> {
+                    val result = homeViewModel.sendFmcsaWebServiceTransfer(startDate, endDate, transferCode)
+                    progressDialog.dismiss()
+                    when (result) {
+                        is NetworkResult.Success -> {
+                            val body = buildWebServiceResultText(result.data)
+                            showFmcsaResultDialog("FMCSA Web Service Result", body)
+                        }
+                        is NetworkResult.Error -> {
+                            Toast.makeText(
+                                requireContext(),
+                                result.message ?: "Failed to send FMCSA web service transfer",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        is NetworkResult.Loading -> Unit
+                    }
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {

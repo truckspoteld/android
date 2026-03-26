@@ -180,7 +180,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:gravity="center"
-                        android:text="Email logs for the current 24-hours period and the previous 7 consecutive days"
+                        android:text="FMCSA transfer (Email or Web Service API) for the last 7 days"
                         android:textColor="#4B5563"
                         android:textSize="14sp" />
 
@@ -188,35 +188,31 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnEmail"
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
                             app:backgroundTint="#1B6DFB"
                             app:cornerRadius="12dp"
                             app:icon="@drawable/ic_email_white"
                             app:iconGravity="textStart"
-                            android:text="EMAIL"
+                            android:text="SEND LOGS VIA EMAIL"
                             android:textColor="#FFFFFF"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <com.google.android.material.button.MaterialButton
-                            android:visibility="gone"
                             android:id="@+id/btnTransfer"
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
+                            android:layout_marginTop="12dp"
                             app:backgroundTint="#10B8A9"
                             app:cornerRadius="12dp"
                             app:icon="@drawable/ic_wifi_white"
                             app:iconGravity="textStart"
-                            android:text="TRANSFER"
+                            android:text="SEND VIA WEB SERVICE"
                             android:textColor="#FFFFFF"
                             android:textSize="16sp"
                             android:textStyle="bold" />

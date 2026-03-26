@@ -9,6 +9,10 @@ import com.eagleye.eld.models.GetLogsByDateRequest
 import com.eagleye.eld.models.GetLogsByDateResponse
 import com.eagleye.eld.models.GetLogsResponse
 import com.eagleye.eld.models.GetReportsResponse
+import com.eagleye.eld.models.FmcsaEmailTransferRequest
+import com.eagleye.eld.models.FmcsaEmailTransferResponse
+import com.eagleye.eld.models.FmcsaWebServiceTransferRequest
+import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.DriverCodriversResponse
 import com.eagleye.eld.models.DriverShipmentResponse
@@ -100,6 +104,20 @@ interface TruckSpotAPI {
     suspend fun getLogByDate(
         @Body request: GetLogsByDateRequest
     ): Response<GetLogsByDateResponse>
+
+    @POST("api/v1/fmcsa/email-transfer")
+    suspend fun sendFmcsaEmailTransfer(
+        @Query("start") startDate: String,
+        @Query("end") endDate: String,
+        @Body request: FmcsaEmailTransferRequest
+    ): Response<FmcsaEmailTransferResponse>
+
+    @POST("api/v1/fmcsa/webservice-transfer")
+    suspend fun sendFmcsaWebServiceTransfer(
+        @Query("start") startDate: String,
+        @Query("end") endDate: String,
+        @Body request: FmcsaWebServiceTransferRequest
+    ): Response<FmcsaWebServiceTransferResponse>
 
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>

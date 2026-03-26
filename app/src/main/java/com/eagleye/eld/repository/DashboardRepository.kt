@@ -26,6 +26,10 @@ import com.eagleye.eld.models.GetLogsByDateRequest
 import com.eagleye.eld.models.GetLogsByDateResponse
 import com.eagleye.eld.models.GetLogsResponse
 import com.eagleye.eld.models.GetReportsResponse
+import com.eagleye.eld.models.FmcsaEmailTransferRequest
+import com.eagleye.eld.models.FmcsaEmailTransferResponse
+import com.eagleye.eld.models.FmcsaWebServiceTransferRequest
+import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
@@ -445,6 +449,70 @@ class DashboardRepository @Inject constructor(
             handleResponseGetReports(response)
         } catch (e: Exception) {
             Log.e(TAG, "Error in getReports: ${e.message}", e)
+            NetworkResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun sendFmcsaEmailTransfer(
+        startDate: String,
+        endDate: String,
+        transferCode: String
+    ): NetworkResult<FmcsaEmailTransferResponse> {
+        return try {
+            val request = FmcsaEmailTransferRequest(
+                transferCode = transferCode.trim(),
+                driverId = prefRepository.getDriverId()
+            )
+            val response = truckSpotAPI.sendFmcsaEmailTransfer(startDate, endDate, request)
+            if (response.isSuccessful && response.body() != null) {
+                NetworkResult.Success(response.body()!!)
+            } else {
+                val errorRaw = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorRaw.isNullOrBlank()) {
+                        "Failed to send FMCSA transfer."
+                    } else {
+                        JSONObject(errorRaw).optString("message", errorRaw)
+                    }
+                } catch (_: Exception) {
+                    errorRaw ?: "Failed to send FMCSA transfer."
+                }
+                NetworkResult.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in sendFmcsaEmailTransfer: ${e.message}", e)
+            NetworkResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun sendFmcsaWebServiceTransfer(
+        startDate: String,
+        endDate: String,
+        transferCode: String
+    ): NetworkResult<FmcsaWebServiceTransferResponse> {
+        return try {
+            val request = FmcsaWebServiceTransferRequest(
+                transferCode = transferCode.trim(),
+                driverId = prefRepository.getDriverId()
+            )
+            val response = truckSpotAPI.sendFmcsaWebServiceTransfer(startDate, endDate, request)
+            if (response.isSuccessful && response.body() != null) {
+                NetworkResult.Success(response.body()!!)
+            } else {
+                val errorRaw = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorRaw.isNullOrBlank()) {
+                        "Failed to submit FMCSA web services transfer."
+                    } else {
+                        JSONObject(errorRaw).optString("message", errorRaw)
+                    }
+                } catch (_: Exception) {
+                    errorRaw ?: "Failed to submit FMCSA web services transfer."
+                }
+                NetworkResult.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in sendFmcsaWebServiceTransfer: ${e.message}", e)
             NetworkResult.Error("Network error: ${e.message}")
         }
     }

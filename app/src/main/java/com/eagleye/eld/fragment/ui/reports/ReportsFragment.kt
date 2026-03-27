@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,6 +34,7 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Observer
 import com.eagleye.eld.R
 import com.eagleye.eld.databinding.FragmentReportsBinding
 import com.eagleye.eld.databinding.LayoutEldGraphBinding
@@ -109,7 +111,7 @@ class ReportsFragment : Fragment() {
             .show()
     }
 
-    private fun buildWebServiceResultText(response: com.truckspot.eld.models.FmcsaWebServiceTransferResponse?): String {
+    private fun buildWebServiceResultText(response: com.eagleye.eld.models.FmcsaWebServiceTransferResponse?): String {
         if (response == null) return "No response."
         val sb = StringBuilder()
         sb.appendLine(response.message.ifBlank { "FMCSA response received." })
@@ -164,7 +166,10 @@ class ReportsFragment : Fragment() {
             showFmcsaTransferDialog(TransferMethod.WEBSERVICE)
         }
         binding.btnUsb.setOnClickListener { playClickAnimation(it) }
-        binding.btnPaperLogs.setOnClickListener { playClickAnimation(it) }
+        binding.btnPaperLogs.setOnClickListener {
+            playClickAnimation(it)
+            showPaperLogsEmailDialog()
+        }
 
         entranceAnimations()
 
@@ -719,6 +724,120 @@ class ReportsFragment : Fragment() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showPaperLogsEmailDialog() {
+        val input = EditText(requireContext()).apply {
+            hint = "Enter email address"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            setPadding(48, 32, 48, 32)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Send Paper Logs PDF")
+            .setMessage("Enter email address to send paper logs PDF.")
+            .setView(input)
+            .setPositiveButton("Send") { _, _ ->
+                val email = input.text?.toString()?.trim().orEmpty()
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    Toast.makeText(requireContext(), "Please enter a valid email address", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                sendPaperLogsPdfToEmail(email)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun sendPaperLogsPdfToEmail(email: String) {
+        val progressDialog = ProgressDialog(requireContext()).apply {
+            setMessage("Preparing paper logs PDF...")
+            setCancelable(false)
+            show()
+        }
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val endCal = Calendar.getInstance()
+        val endDate = dateFormat.format(endCal.time)
+        val startCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -7) }
+        val startDate = dateFormat.format(startCal.time)
+
+        val observer = object : Observer<NetworkResult<GetLogsByDateResponse>> {
+            override fun onChanged(result: NetworkResult<GetLogsByDateResponse>) {
+                when (result) {
+                    is NetworkResult.Success -> {
+                        homeViewModel.dashboardRespository.logByDate.removeObserver(this)
+                        try {
+                            val reportData = result.data ?: throw IllegalStateException("No report data")
+                            val fileName = "Paper_Logs_${startDate}_to_${endDate}.pdf"
+                            val pdfFile = File(requireContext().getExternalFilesDir(null), fileName)
+                            val firstLog = reportData.results?.userLogs?.firstOrNull()
+                            val extractedDriverName = firstLog?.let { "Driver ${it.driverid ?: "Unknown"}" } ?: driverName
+                            val extractedVehicleVin = firstLog?.vin ?: vehicleVin
+
+                            val pdfOk = pdfGenerator.generateDriverDailyReportByDateRange(
+                                reportData,
+                                startDate,
+                                endDate,
+                                pdfFile,
+                                companyInfo,
+                                extractedDriverName,
+                                driverLicense,
+                                extractedVehicleVin
+                            )
+                            if (!pdfOk || !pdfFile.exists()) throw IllegalStateException("Failed to generate PDF")
+
+                            val pdfBase64 = Base64.encodeToString(pdfFile.readBytes(), Base64.NO_WRAP)
+                            lifecycleScope.launch {
+                                val sendResult = homeViewModel.sendPaperLogsByEmail(
+                                    email = email,
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    fileName = fileName,
+                                    pdfBase64 = pdfBase64
+                                )
+                                progressDialog.dismiss()
+                                when (sendResult) {
+                                    is NetworkResult.Success -> {
+                                        Toast.makeText(
+                                            requireContext(),
+                                            sendResult.data?.message ?: "Paper logs sent successfully.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    is NetworkResult.Error -> {
+                                        Toast.makeText(
+                                            requireContext(),
+                                            sendResult.message ?: "Failed to send paper logs.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    is NetworkResult.Loading -> Unit
+                                }
+                            }
+                        } catch (e: Exception) {
+                            progressDialog.dismiss()
+                            Toast.makeText(requireContext(), "Error preparing PDF: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    is NetworkResult.Error -> {
+                        homeViewModel.dashboardRespository.logByDate.removeObserver(this)
+                        progressDialog.dismiss()
+                        Toast.makeText(requireContext(), result.message ?: "Unable to fetch logs.", Toast.LENGTH_LONG).show()
+                    }
+                    is NetworkResult.Loading -> Unit
+                }
+            }
+        }
+
+        homeViewModel.dashboardRespository.logByDate.observe(viewLifecycleOwner, observer)
+        lifecycleScope.launch {
+            homeViewModel.dashboardRespository.getLogsByDate(
+                com.eagleye.eld.models.GetLogsByDateRequest(
+                    prefRepository.getDriverId(),
+                    startDate,
+                    endDate
+                )
+            )
+        }
     }
 
     private fun sendFmcsaTransfer(method: TransferMethod, transferCode: String) {

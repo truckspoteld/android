@@ -33,6 +33,8 @@ import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
+import com.eagleye.eld.models.PaperLogsEmailRequest
+import com.eagleye.eld.models.PaperLogsEmailResponse
 import com.eagleye.eld.models.ReportsDataResponse
 import com.eagleye.eld.models.ResultsNew
 import com.eagleye.eld.models.UnidentifiedResponse
@@ -513,6 +515,41 @@ class DashboardRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in sendFmcsaWebServiceTransfer: ${e.message}", e)
+            NetworkResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun sendPaperLogsByEmail(
+        email: String,
+        startDate: String,
+        endDate: String,
+        fileName: String,
+        pdfBase64: String
+    ): NetworkResult<PaperLogsEmailResponse> {
+        return try {
+            val request = PaperLogsEmailRequest(
+                email = email.trim(),
+                driverId = prefRepository.getDriverId(),
+                start = startDate,
+                end = endDate,
+                fileName = fileName,
+                pdfBase64 = pdfBase64
+            )
+            val response = truckSpotAPI.sendPaperLogsByEmail(request)
+            if (response.isSuccessful && response.body() != null) {
+                NetworkResult.Success(response.body()!!)
+            } else {
+                val errorRaw = response.errorBody()?.string()
+                val errorMessage = try {
+                    if (errorRaw.isNullOrBlank()) "Failed to send paper logs."
+                    else JSONObject(errorRaw).optString("message", errorRaw)
+                } catch (_: Exception) {
+                    errorRaw ?: "Failed to send paper logs."
+                }
+                NetworkResult.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in sendPaperLogsByEmail: ${e.message}", e)
             NetworkResult.Error("Network error: ${e.message}")
         }
     }

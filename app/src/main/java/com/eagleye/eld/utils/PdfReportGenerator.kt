@@ -96,6 +96,159 @@ class PdfReportGenerator(private val context: Context) {
         }
     }
 
+    fun generateDriverDailyReportByDateRange(
+        reportData: GetLogsByDateResponse,
+        startDate: String,
+        endDate: String,
+        outputFile: File,
+        companyInfo: GetCompanyById.Results? = null,
+        driverName: String = "SUKHDEEP SINGH",
+        driverLicense: String = "CA / Y46O8156",
+        vehicleVin: String = "-"
+    ): Boolean {
+        return try {
+            val allLogs = reportData.results.userLogs.orEmpty()
+            if (allLogs.isEmpty()) {
+                Log.w("PdfReportGenerator", "No logs found for date range report")
+                return false
+            }
+
+            val start = parseYmd(startDate)
+            val end = parseYmd(endDate)
+            if (start == null || end == null) {
+                Log.w("PdfReportGenerator", "Invalid date range for PDF: $startDate to $endDate")
+                return false
+            }
+
+            // Build stable day key from date first, then created_on fallback.
+            val logsWithDay = allLogs.mapNotNull { log ->
+                val day = resolveLogDayKey(log)
+                if (day == null) null else day to log
+            }
+            val logsByDate = logsWithDay.groupBy({ it.first }, { it.second })
+
+            val availableDatesDesc = logsByDate.keys
+                .mapNotNull { d -> parseYmd(d)?.let { d to it } }
+                .filter { (_, day) -> !day.before(start) && !day.after(end) }
+                .sortedByDescending { (_, day) -> day.time }
+                .map { (d, _) -> d }
+
+            if (availableDatesDesc.isEmpty()) {
+                Log.w("PdfReportGenerator", "No available day logs in selected range, using single-page fallback")
+                val fallbackDate = formatYmdToDisplay(endDate)
+                return generateDriverDailyReport(
+                    reportData = reportData,
+                    selectedDate = fallbackDate,
+                    outputFile = outputFile,
+                    companyInfo = companyInfo,
+                    driverName = driverName,
+                    driverLicense = driverLicense,
+                    vehicleVin = vehicleVin
+                )
+            }
+
+            val document = Document(PageSize.A4, MARGIN, MARGIN, MARGIN, MARGIN)
+            PdfWriter.getInstance(document, FileOutputStream(outputFile))
+            document.open()
+
+            availableDatesDesc.forEachIndexed { index, dateKey ->
+                val dayLogs = logsByDate[dateKey].orEmpty()
+                    .sortedBy { parseTimeToSortable(it.time) }
+                val dayReportData = sliceReportDataForLogs(reportData, dayLogs)
+                val headerDate = formatYmdToDisplay(dateKey)
+
+                if (index > 0) document.newPage()
+
+                addHeader(document, headerDate)
+                addCompanyDriverInfo(document, dayReportData, companyInfo, driverName, driverLicense, vehicleVin)
+                addSeparatorLine(document)
+                addEventLogHeaders(document)
+                addEventLogData(document, dayReportData)
+                addEldGraph(document, dayReportData)
+                addCertification(document, dayReportData, driverName)
+            }
+
+            document.close()
+            true
+        } catch (e: Exception) {
+            Log.e("PdfReportGenerator", "Error generating date range PDF: ${e.message}", e)
+            // Final fallback to old single-page generator so paper-log email still works.
+            try {
+                generateDriverDailyReport(
+                    reportData = reportData,
+                    selectedDate = formatYmdToDisplay(endDate),
+                    outputFile = outputFile,
+                    companyInfo = companyInfo,
+                    driverName = driverName,
+                    driverLicense = driverLicense,
+                    vehicleVin = vehicleVin
+                )
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    private fun sliceReportDataForLogs(
+        source: GetLogsByDateResponse,
+        dayLogs: List<GetLogsByDateResponse.Results.UserLog>
+    ): GetLogsByDateResponse {
+        val first = dayLogs.firstOrNull()
+        val last = dayLogs.lastOrNull()
+        return source.copy(
+            results = source.results.copy(
+                totalCount = dayLogs.size,
+                userLogs = dayLogs,
+                previousDayLog = first,
+                nextDayLog = last,
+                latestUpdatedLog = last
+            )
+        )
+    }
+
+    private fun parseYmd(value: String): Date? {
+        return try {
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
+            fmt.parse(value)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun formatYmdToDisplay(value: String): String {
+        return try {
+            val inFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
+            val outFmt = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+            val d = inFmt.parse(value)
+            if (d != null) outFmt.format(d) else value
+        } catch (_: Exception) {
+            value
+        }
+    }
+
+    private fun parseTimeToSortable(value: String?): Int {
+        if (value.isNullOrBlank()) return Int.MAX_VALUE
+        val parts = value.split(":")
+        if (parts.size < 2) return Int.MAX_VALUE
+        val h = parts[0].toIntOrNull() ?: return Int.MAX_VALUE
+        val m = parts[1].toIntOrNull() ?: 0
+        val s = if (parts.size > 2) (parts[2].toIntOrNull() ?: 0) else 0
+        return (h * 3600) + (m * 60) + s
+    }
+
+    private fun resolveLogDayKey(log: GetLogsByDateResponse.Results.UserLog): String? {
+        val fromDate = log.date.trim()
+        if (parseYmd(fromDate) != null) return fromDate
+
+        val createdOn = log.created_on.trim()
+        if (createdOn.isNotBlank()) {
+            // Handle values like "2026-03-27T..." and "2026-03-27 ..."
+            val ymd = createdOn.take(10)
+            if (parseYmd(ymd) != null) return ymd
+        }
+        return null
+    }
+
     private fun addHeader(document: Document, selectedDate: String) {
         // Create a table for the header layout (logo, title, date)
         val headerTable = PdfPTable(3)

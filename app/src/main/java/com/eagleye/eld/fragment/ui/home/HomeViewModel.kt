@@ -27,6 +27,7 @@ import com.eagleye.eld.models.GetReportsResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
+import com.eagleye.eld.models.PaperLogsEmailResponse
 import com.eagleye.eld.models.ReportsDataResponse
 import com.eagleye.eld.models.UserLog
 import com.eagleye.eld.repository.DashboardRepository
@@ -102,6 +103,16 @@ class HomeViewModel @Inject constructor(
         transferCode: String
     ): NetworkResult<FmcsaWebServiceTransferResponse> {
         return dashboardRespository.sendFmcsaWebServiceTransfer(startDate, endDate, transferCode)
+    }
+
+    suspend fun sendPaperLogsByEmail(
+        email: String,
+        startDate: String,
+        endDate: String,
+        fileName: String,
+        pdfBase64: String
+    ): NetworkResult<PaperLogsEmailResponse> {
+        return dashboardRespository.sendPaperLogsByEmail(email, startDate, endDate, fileName, pdfBase64)
     }
 
     fun getUserLogs() = refinedUserLogs ?: mutableListOf()

@@ -21,6 +21,8 @@ import com.eagleye.eld.models.DvirListResponse
 import com.eagleye.eld.models.LogIdRequest
 import com.eagleye.eld.models.LogResponse
 import com.eagleye.eld.models.LoginResponse
+import com.eagleye.eld.models.PaperLogsEmailRequest
+import com.eagleye.eld.models.PaperLogsEmailResponse
 import com.eagleye.eld.models.ReportsDataResponse
 import com.eagleye.eld.models.UnidentifiedResponse
 import com.eagleye.eld.request.AddLogRequest
@@ -118,6 +120,11 @@ interface TruckSpotAPI {
         @Query("end") endDate: String,
         @Body request: FmcsaWebServiceTransferRequest
     ): Response<FmcsaWebServiceTransferResponse>
+
+    @POST("api/v1/paper-logs/email")
+    suspend fun sendPaperLogsByEmail(
+        @Body request: PaperLogsEmailRequest
+    ): Response<PaperLogsEmailResponse>
 
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>

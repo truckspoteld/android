@@ -11,6 +11,7 @@ data class updateLogRequest(
     val odometerreading:String,
     val eng_hours:String,
     val time:String,
+    val location:String,
     val event_status:Int
 )
 

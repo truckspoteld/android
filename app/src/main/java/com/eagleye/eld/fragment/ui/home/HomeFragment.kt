@@ -266,9 +266,7 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.cvGaugeCycle.setOnClickListener { playClickAnimation(it) }
         binding.cvGaugeBreak.setOnClickListener { playClickAnimation(it) }
         binding.cvProfile.setOnClickListener { playClickAnimation(it) }
-        binding.cvViolationCard.setOnClickListener { playClickAnimation(it) }
-        binding.cvAvailableCard.setOnClickListener { playClickAnimation(it) }
-        
+
         binding.llBluetoothStatusPill.setOnClickListener {
             playClickAnimation(it)
             if (isNeedToconnect) {
@@ -320,6 +318,7 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.editShipping.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
         binding.editCoDriver.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
         binding.editTrailerNo.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
+        binding.cvProfile.setOnClickListener { playClickAnimation(it); showDriverProfileDialog() }
         binding.btnUpdateShipment.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
         
         // Always set observers on view creation
@@ -798,6 +797,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 mostRecentLogWithValidOdometer.odometerreading,
                 mostRecentLogWithValidOdometer.eng_hours,
                 mostRecentLogWithValidOdometer.time,
+                mostRecentLogWithValidOdometer.location,
                 0
             )
             Log.d(TAG, "Unidentified driving hours: $unIdentifiedDrivingHours")
@@ -1040,6 +1040,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     lastLog.odometerreading,
                     lastLog.eng_hours,
                     lastLog.time,
+                    lastLog.location,
                     0
                 )
                 context?.let { homeViewModel.updateLog(updateLogRequest, false, it) }
@@ -1630,67 +1631,11 @@ class HomeFragment : Fragment(), OnClickListener {
             // binding.drivingSpeed.text = "Driving Speed: ${speed} km/h" // Removed
             // Use actual Bluetooth speed for mode switching (not dashboardSpeed)
             handleLocationUpdate(speed, rpm, lastEvent.mEvent.name)
-            handleEngineStateUpdate(rpm)
         } catch (e: Exception) {
             Log.e(TAG, "Error in checkAndPrintSpeed: ${e.message}", e)
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleEngineStateUpdate(rpm: Int) {
-        val currentState = if (rpm > 0) "eng_on" else "eng_off"
-
-        // Don't track engine state until we know the last state from the API
-        // Otherwise the very first RPM reading creates a bogus log
-        if (lastPushedEngineState.isEmpty()) {
-            Log.d(TAG, "Engine state: skipping — lastPushedEngineState not initialized yet")
-            return
-        }
-
-        if (currentState == lastPushedEngineState) {
-            // State hasn't changed — reset the stability counter
-            engineStateStableCount = 0
-            return
-        }
-
-        // State is different from last pushed — count repeated confirmations
-        engineStateStableCount++
-        if (engineStateStableCount < ENGINE_STATE_STABLE_THRESHOLD) {
-            return
-        }
-
-        // Time debounce check — avoid flooding the API
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastEngineApiCallTime < ENGINE_API_DEBOUNCE_MS) {
-            Log.d(TAG, "Engine state: debounce active, skipping API call")
-            return
-        }
-
-        Log.d(TAG, "Engine state stable at $currentState. Pushing to API.")
-        lastEngineApiCallTime = currentTime
-        lastPushedEngineState = currentState
-        engineStateStableCount = 0  // Reset so we don't fire again until a NEW transition
-
-        val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
-        val te = AppModel.getInstance().mLastEvent
-        val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
-        val defaultLongitude = (activity as? Dashboard)?.glong ?: 0.0
-
-        val logRequest = AddLogRequest(
-            modename = currentState,
-            odometerreading = te?.mOdometer?.takeIf { it.isNotBlank() } ?: "0.0",
-            lat = te?.mGeoloc?.latitude ?: defaultLatitude,
-            long = te?.mGeoloc?.longitude ?: defaultLongitude,
-            location = true,
-            eng_hours = te?.mEngineHours?.takeIf { it.isNotBlank() } ?: "0.0",
-            vin = vin_no,
-            is_active = 1,
-            is_autoinsert = 1,
-            eventcode = 1,
-            eventtype = 1
-        )
-        context?.let { homeViewModel.logUser(logRequest, it) }
-    }
 
     private fun updateShipmentInfoUI() {
         val shippingText = prefRepository.getShippingNumber().ifBlank { "Not set" }
@@ -1905,24 +1850,11 @@ class HomeFragment : Fragment(), OnClickListener {
                     else -> "imminent"
                 }
                 binding.closestViolationMessage.text = "${closestViolation.type} violation due in $timeText"
-                
-                // Update the new "Violation Time" card
-                // The screenshot shows "SB SB 00:00:00" - we'll use shorthand for mode
-                val modeShorthand = getModeShorthand(closestViolation.type)
-                binding.tvViolationModeValue.text = "$modeShorthand $modeShorthand ${closestViolation.remainingTime}"
             } else {
                 binding.closestViolationCard.visibility = View.GONE
-                binding.tvViolationModeValue.text = "-- -- 00:00:00"
             }
-
-            // Update "Available Time" card
-            // Show the next most restrictive or just the overall available drive time
-            val availableDriveTime = calculateAvailableDriveTime(cond)
-            binding.tvAvailableTimeValue.text = availableDriveTime
         } ?: run {
             binding.closestViolationCard.visibility = View.GONE
-            binding.tvViolationModeValue.text = "-- -- 00:00:00"
-            binding.tvAvailableTimeValue.text = "-- 00:00:00"
         }
     }
 
@@ -2017,8 +1949,6 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.tvStatusSubtitle,
             binding.llQuickPills,
             binding.cvProfile,
-            binding.cvViolationCard,
-            binding.cvAvailableCard,
             binding.tvDriveModesTitle,
             binding.glModes,
             binding.tvDutyLimitsTitle,
@@ -2038,5 +1968,89 @@ class HomeFragment : Fragment(), OnClickListener {
                 }
             }
         }
+    }
+
+    private fun showDriverProfileDialog() {
+        val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
+        val view = layoutInflater.inflate(R.layout.dialog_driver_profile, null)
+        dialog.setContentView(view)
+
+        val profileInitial = view.findViewById<TextView>(R.id.dialog_profile_initial)
+        val driverNameView = view.findViewById<TextView>(R.id.dialog_driver_name)
+        val licenseNumberView = view.findViewById<TextView>(R.id.dialog_license_number)
+        val carrierNameView = view.findViewById<TextView>(R.id.dialog_carrier_name)
+        val dotNumberView = view.findViewById<TextView>(R.id.dialog_dot_number)
+        val addressView = view.findViewById<TextView>(R.id.dialog_carrier_address)
+        val phoneView = view.findViewById<TextView>(R.id.dialog_carrier_phone)
+        val btnClose = view.findViewById<View>(R.id.btn_close_dialog)
+        val dialogRoot = view.findViewById<View>(R.id.dialog_root)
+
+        // Set initials from local prefs first
+        val name = prefRepository.getName()
+        if (name.isNotEmpty()) {
+            driverNameView.text = name
+            profileInitial.text = name.first().uppercase()
+        }
+
+        // Setup observer for driver review data
+        homeViewModel.driverReviewLiveData.observe(viewLifecycleOwner) { result ->
+            when (result) {
+                is NetworkResult.Success -> {
+                    val driver = result.data?.data?.driver
+                    val company = result.data?.data?.company
+                    
+                    driver?.let {
+                        driverNameView.text = it.name ?: name
+                        licenseNumberView.text = it.licenseNumber ?: "N/A"
+                        if (it.name?.isNotEmpty() == true) {
+                            profileInitial.text = it.name.first().uppercase()
+                        }
+                    }
+                    company?.let {
+                        carrierNameView.text = it.companyName ?: "N/A"
+                    }
+                }
+                is NetworkResult.Error -> {
+                    Log.e(TAG, "Error fetching driver review: ${result.message}")
+                }
+                else -> {}
+            }
+        }
+
+        // Observer for carrier data (reusing same logic as Log Fragment)
+        homeViewModel.company.observe(viewLifecycleOwner) { result ->
+            if (result is NetworkResult.Success && result.data?.results != null) {
+                val company = result.data.results
+                carrierNameView.text = company.company_name ?: "N/A"
+                dotNumberView.text = "DOT: ${company.dot_no ?: "N/A"}"
+                
+                val addressParts = mutableListOf<String>()
+                if (!company.address.isNullOrBlank()) addressParts.add(company.address)
+                if (!company.city.isNullOrBlank()) addressParts.add(company.city)
+                if (!company.state.isNullOrBlank()) addressParts.add(company.state)
+                if (!company.zip.isNullOrBlank()) addressParts.add(company.zip)
+                if (!company.country.isNullOrBlank()) addressParts.add(company.country)
+                
+                addressView.text = if (addressParts.isNotEmpty()) addressParts.joinToString(", ") else "N/A"
+                phoneView.text = "Phone: ${company.phone_no ?: "N/A"}"
+            }
+        }
+
+        // Fetch both driver and company data
+        context?.let { 
+            homeViewModel.getDriverReview(it)
+            homeViewModel.getCompanyName(it)
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+
+        // Premium Animation
+        YoYo.with(Techniques.BounceInUp)
+            .duration(800)
+            .playOn(dialogRoot)
     }
 }

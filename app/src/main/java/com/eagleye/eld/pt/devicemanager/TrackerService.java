@@ -102,6 +102,13 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     DashboardRepository repository;
 
     PrefRepository prefRepository;
+    
+    // Engine state tracking
+    private String lastPushedEngineState = "";
+    private int engineStateStableCount = 0;
+    private long lastEngineApiCallTime = 0;
+    private static final int ENGINE_STATE_STABLE_THRESHOLD = 3;
+    private static final long ENGINE_API_DEBOUNCE_MS = 30000L; // 30 seconds
 
     public class TrackerBinder extends LocalBinder {
         public void sendResponse(@NonNull final BaseResponse response) {
@@ -475,11 +482,89 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     @Override
     public void onVirtualDashboardUpdated(String address, List<Integer> updatedParams) {
-
         AppModel.getInstance().dashboard = mTracker.getVirtualDashboard().get();
         AppModel.getInstance().vdbParams.addAll(updatedParams);
+        
+        // Handle automatic engine ON/OFF logs
+        if (AppModel.getInstance().dashboard != null) {
+            handleEngineStateUpdate(AppModel.getInstance().dashboard.engineRPM);
+        }
+
         Intent broadcast = new Intent("TRACKER-DASHBOARD-REFRESH");
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+    }
+
+    private void handleEngineStateUpdate(int rpm) {
+        String currentState = (rpm > 0) ? "eng_on" : "eng_off";
+        
+        // Initialize if empty (from preferences or previous day logs)
+        if (lastPushedEngineState.isEmpty()) {
+            prefRepository = new PrefRepository(this);
+            // We'll initialize from the last known state from pref or wait for the first known state
+            // For now, let's just wait for a stable transition to avoid bogus logs on start
+            lastPushedEngineState = currentState;
+            return;
+        }
+
+        if (currentState.equals(lastPushedEngineState)) {
+            engineStateStableCount = 0;
+            return;
+        }
+
+        engineStateStableCount++;
+        if (engineStateStableCount < ENGINE_STATE_STABLE_THRESHOLD) {
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastEngineApiCallTime < ENGINE_API_DEBOUNCE_MS) {
+            return;
+        }
+
+        Log.d(TAG, "Engine state stable transition: " + currentState + ". Pushing to API.");
+        lastEngineApiCallTime = currentTime;
+        lastPushedEngineState = currentState;
+        engineStateStableCount = 0;
+
+        TelemetryEvent te = AppModel.getInstance().mLastEvent;
+        double defaultLat = 0.0;
+        double defaultLong = 0.0;
+        if (te != null && te.mGeoloc != null) {
+            if (te.mGeoloc.latitude != null) {
+                defaultLat = te.mGeoloc.latitude.doubleValue();
+            }
+            if (te.mGeoloc.longitude != null) {
+                defaultLong = te.mGeoloc.longitude.doubleValue();
+            }
+        }
+
+        String vin = AppModel.getInstance().mPT30Vin;
+        if (vin == null || vin.equals("n/a") || vin.isEmpty()) {
+            vin = "1HGCM82633A004352"; // Fallback static VIN or from prefs
+        }
+
+        AddLogRequest logRequest = new AddLogRequest(
+                currentState,
+                (te != null && te.mOdometer != null && !te.mOdometer.isEmpty()) ? te.mOdometer : "0.0",
+                defaultLat,
+                defaultLong,
+                true,
+                (te != null && te.mEngineHours != null && !te.mEngineHours.isEmpty()) ? te.mEngineHours : "0.0",
+                vin,
+                1,
+                1,
+                1,
+                1, "", "",
+                "");
+
+        new Thread(() -> {
+            try {
+                repository.addLogJava(logRequest);
+                Log.i(TAG, "SUCCESS: Pushed automatic engine state log: " + currentState);
+            } catch (Exception e) {
+                Log.e(TAG, "ERROR: Failed to push engine state log: " + e.getMessage(), e);
+            }
+        }).start();
     }
 
     public static final String EXTRA_TRACKER_UPDATE_ACTION_KEY = "action";

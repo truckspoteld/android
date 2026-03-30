@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.Build
 import android.view.View
 import com.itextpdf.text.*
 import com.itextpdf.text.pdf.*
@@ -58,32 +59,21 @@ class PdfReportGenerator(private val context: Context) {
             val writer = PdfWriter.getInstance(document, FileOutputStream(outputFile))
             document.open()
 
-            // Add header with logo and title
-            Log.d("PdfReportGenerator", "Adding header...")
+            // 1. Header: EaglEye | Title | Date
             addHeader(document, selectedDate)
             
-            // Add company and driver information section
-            Log.d("PdfReportGenerator", "Adding company/driver info...")
+            // 2. Merged company+driver info table (4 columns)
             addCompanyDriverInfo(document, reportData, companyInfo, driverName, driverLicense, vehicleVin)
             
-            // Add separator line
-            Log.d("PdfReportGenerator", "Adding separator...")
-            addSeparatorLine(document)
+            val timeZone = companyInfo?.company_timezone
+
+            // 3. ELD Graph (before event table, matching reference layout)
+            addEldGraph(document, reportData, timeZone)
             
-            // Add event log table headers
-            Log.d("PdfReportGenerator", "Adding event log headers...")
-            addEventLogHeaders(document)
-            
-            // Add event log data
-            Log.d("PdfReportGenerator", "Adding event log data...")
+            // 4. Event log table (6 columns with Comment)
             addEventLogData(document, reportData)
             
-            // Add ELD Graph
-            Log.d("PdfReportGenerator", "Adding ELD graph...")
-            addEldGraph(document, reportData)
-            
-            // Add certification
-            Log.d("PdfReportGenerator", "Adding certification...")
+            // 5. Certification
             addCertification(document, reportData, driverName)
 
             document.close()
@@ -159,12 +149,12 @@ class PdfReportGenerator(private val context: Context) {
 
                 if (index > 0) document.newPage()
 
+                val timeZone = companyInfo?.company_timezone
+
                 addHeader(document, headerDate)
                 addCompanyDriverInfo(document, dayReportData, companyInfo, driverName, driverLicense, vehicleVin)
-                addSeparatorLine(document)
-                addEventLogHeaders(document)
+                addEldGraph(document, dayReportData, timeZone)
                 addEventLogData(document, dayReportData)
-                addEldGraph(document, dayReportData)
                 addCertification(document, dayReportData, driverName)
             }
 
@@ -250,125 +240,93 @@ class PdfReportGenerator(private val context: Context) {
     }
 
     private fun addHeader(document: Document, selectedDate: String) {
-        // Create a table for the header layout (logo, title, date)
         val headerTable = PdfPTable(3)
         headerTable.widthPercentage = 100f
-        headerTable.setWidths(floatArrayOf(15f, 70f, 15f))
+        headerTable.setWidths(floatArrayOf(20f, 60f, 20f))
         
-        // Logo placeholder (left column)
-        val logoCell = PdfPCell(Phrase("LOGO", FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_NORMAL)))
+        // Left: EaglEye brand name
+        val brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f)
+        val logoCell = PdfPCell(Phrase("EaglEye", brandFont))
         logoCell.border = Rectangle.NO_BORDER
         logoCell.horizontalAlignment = Element.ALIGN_LEFT
-        logoCell.verticalAlignment = Element.ALIGN_TOP
-        logoCell.setPaddingTop(10f)
-        logoCell.setPaddingBottom(10f)
+        logoCell.verticalAlignment = Element.ALIGN_MIDDLE
+        logoCell.setPadding(10f)
         headerTable.addCell(logoCell)
         
-        // Title (center column)
-        val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_HEADER)
-        val title = Phrase("Driver's Daily Report\nUS 8 days 70 hours Ruleset", titleFont)
-        val titleCell = PdfPCell(title)
-        titleCell.border = Rectangle.NO_BORDER
-        titleCell.horizontalAlignment = Element.ALIGN_CENTER
-        titleCell.verticalAlignment = Element.ALIGN_TOP
-        titleCell.setPaddingTop(10f)
-        titleCell.setPaddingBottom(10f)
-        headerTable.addCell(titleCell)
+        // Center: empty (title will go below)
+        val emptyCell = PdfPCell(Phrase(""))
+        emptyCell.border = Rectangle.NO_BORDER
+        headerTable.addCell(emptyCell)
         
-        // Date (right column)
-        val dateFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)
-        val date = Phrase(selectedDate, dateFont)
-        val dateCell = PdfPCell(date)
+        // Right: Date
+        val dateFont = FontFactory.getFont(FontFactory.HELVETICA, 11f)
+        val dateCell = PdfPCell(Phrase(selectedDate, dateFont))
         dateCell.border = Rectangle.NO_BORDER
         dateCell.horizontalAlignment = Element.ALIGN_RIGHT
-        dateCell.verticalAlignment = Element.ALIGN_TOP
-        dateCell.setPaddingTop(10f)
-        dateCell.setPaddingBottom(10f)
+        dateCell.verticalAlignment = Element.ALIGN_MIDDLE
+        dateCell.setPadding(10f)
         headerTable.addCell(dateCell)
         
         document.add(headerTable)
-        document.add(Paragraph(" "))
+        
+        // Title centered below the header row
+        val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16f)
+        val title = Paragraph("Driver's Daily Report", titleFont)
+        title.alignment = Element.ALIGN_CENTER
+        title.spacingAfter = 2f
+        document.add(title)
+        
+        val subtitleFont = FontFactory.getFont(FontFactory.HELVETICA, 11f)
+        val subtitle = Paragraph("US 8 days 70 Hours Ruleset", subtitleFont)
+        subtitle.alignment = Element.ALIGN_CENTER
+        subtitle.spacingAfter = 6f
+        document.add(subtitle)
     }
 
     private fun addCompanyDriverInfo(document: Document, reportData: GetLogsByDateResponse, companyInfo: GetCompanyById.Results?, driverName: String, driverLicense: String, vehicleVin: String) {
-        val headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_TITLE)
-        val normalFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)
-        
-        // Company Information
-        val companyHeader = Paragraph("Company Information", headerFont)
-        document.add(companyHeader)
-        
-        // Create company info table
-        val companyTable = PdfPTable(2)
-        companyTable.widthPercentage = 100f
-        companyTable.setWidths(floatArrayOf(40f, 60f))
-        
-        addInfoRowToTable(companyTable, "Carrier", companyInfo?.company_name ?: "VNX EXPORT TRANSPORT INC", true)
-        addInfoRowToTable(companyTable, "DOT Number", companyInfo?.dot_no ?: "3249740", false)
-        addInfoRowToTable(companyTable, "Office Address", companyInfo?.address ?: "1155 W CENTER ST", false)
-        addInfoRowToTable(companyTable, "Terminal Timezone", companyInfo?.company_timezone ?: "America / Los_Angeles", false)
-        
-        document.add(companyTable)
-        document.add(Paragraph(" "))
-        
-        // Driver Information
-        val driverHeader = Paragraph("Driver Information", headerFont)
-        document.add(driverHeader)
-        
-        // Create driver info table
-        val driverTable = PdfPTable(2)
-        driverTable.widthPercentage = 100f
-        driverTable.setWidths(floatArrayOf(40f, 60f))
-        
-        addInfoRowToTable(driverTable, "Driver Name / ID", driverName, false)
-        addInfoRowToTable(driverTable, "Co-Driver Name / ID", "-", false)
-        addInfoRowToTable(driverTable, "License State / #", driverLicense, false)
-        addInfoRowToTable(driverTable, "Vehicle VIN / #", vehicleVin, false)
-        
-        document.add(driverTable)
-        document.add(Paragraph(" "))
-    }
-
-    private fun addInfoRowToTable(table: PdfPTable, label: String, value: String, isBold: Boolean = false) {
-        val labelFont = if (isBold) FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_NORMAL) 
-                        else FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)
+        val labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_NORMAL)
         val valueFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)
+        val borderColor = BaseColor(220, 220, 220)
         
-        // Label cell
-        val labelCell = PdfPCell(Phrase(label, labelFont))
-        labelCell.backgroundColor = BaseColor.LIGHT_GRAY
-        labelCell.horizontalAlignment = Element.ALIGN_LEFT
-        labelCell.verticalAlignment = Element.ALIGN_MIDDLE
-        labelCell.setPadding(8f)
-        labelCell.border = Rectangle.BOX
-        labelCell.borderWidth = 1f
-        table.addCell(labelCell)
+        // 4-column table: Label | Value | Label | Value
+        val table = PdfPTable(4)
+        table.widthPercentage = 100f
+        table.setWidths(floatArrayOf(20f, 30f, 20f, 30f))
         
-        // Value cell
-        val valueCell = PdfPCell(Phrase(value, valueFont))
-        valueCell.horizontalAlignment = Element.ALIGN_LEFT
-        valueCell.verticalAlignment = Element.ALIGN_MIDDLE
-        valueCell.setPadding(8f)
-        valueCell.border = Rectangle.BOX
-        valueCell.borderWidth = 1f
-        table.addCell(valueCell)
-    }
-
-    private fun addSeparatorLine(document: Document) {
-        val line = LineSeparator()
-        line.lineWidth = 1f
-        line.lineColor = BaseColor.BLACK
-        document.add(line)
-        document.add(Paragraph(" "))
-    }
-
-    private fun addEventLogHeaders(document: Document) {
-        val headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_TITLE)
+        fun addRow(label1: String, value1: String, label2: String, value2: String) {
+            val lc1 = PdfPCell(Phrase(label1, labelFont))
+            lc1.setPadding(6f); lc1.border = Rectangle.BOX; lc1.borderColor = borderColor
+            table.addCell(lc1)
+            
+            val vc1 = PdfPCell(Phrase(value1, valueFont))
+            vc1.setPadding(6f); vc1.border = Rectangle.BOX; vc1.borderColor = borderColor
+            table.addCell(vc1)
+            
+            val lc2 = PdfPCell(Phrase(label2, labelFont))
+            lc2.setPadding(6f); lc2.border = Rectangle.BOX; lc2.borderColor = borderColor
+            table.addCell(lc2)
+            
+            val vc2 = PdfPCell(Phrase(value2, valueFont))
+            vc2.setPadding(6f); vc2.border = Rectangle.BOX; vc2.borderColor = borderColor
+            table.addCell(vc2)
+        }
         
-        val tableHeader = Paragraph("Event Log", headerFont)
-        document.add(tableHeader)
+        val firstLog = reportData.results?.userLogs?.firstOrNull()
+        val driverId = firstLog?.driverid?.toString() ?: "-"
+        val coDriverId = firstLog?.codriverid?.toString() ?: "0"
+        val vin = firstLog?.vin?.takeIf { it.isNotBlank() } ?: vehicleVin
         
-        document.add(Paragraph(" "))
+        addRow("Carrier", companyInfo?.company_name ?: "-",
+               "Driver Name / ID", "$driverName / $driverId")
+        addRow("DOT Number", companyInfo?.dot_no ?: "-",
+               "Co-Driver Name / ID", coDriverId)
+        addRow("Office Address", companyInfo?.address ?: "-",
+               "License State / #", driverLicense)
+        addRow("Terminal Timezone", companyInfo?.company_timezone ?: "-",
+               "Vehicle VIN / #", vin)
+        
+        document.add(table)
+        document.add(Paragraph("\n", FontFactory.getFont(FontFactory.HELVETICA, 4f)))
     }
 
     private fun addEventLogData(document: Document, reportData: GetLogsByDateResponse) {
@@ -377,113 +335,71 @@ class PdfReportGenerator(private val context: Context) {
         
         val logs = reportData.results?.userLogs ?: emptyList()
         if (logs.isNotEmpty()) {
-            // Create table with 5 columns
-            val table = PdfPTable(5)
+            // 6-column table matching reference image
+            val table = PdfPTable(6)
             table.widthPercentage = 100f
-            table.setWidths(floatArrayOf(20f, 15f, 20f, 20f, 25f))
+            // Adjust widths slightly for tighter packing
+            table.setWidths(floatArrayOf(15f, 13f, 15f, 12f, 25f, 20f))
             
-            // Add table headers
-            val headers = arrayOf("Event", "Time", "Engine Hours", "Odometer", "Location")
+            val headers = arrayOf("Event Status", "Time", "Engine Hours", "Odometer", "Location", "Comment")
             headers.forEach { header ->
                 val cell = PdfPCell(Phrase(header, headerFont))
-                cell.backgroundColor = BaseColor.LIGHT_GRAY
+                cell.backgroundColor = BaseColor(242, 242, 242) // Light gray header
                 cell.horizontalAlignment = Element.ALIGN_CENTER
                 cell.verticalAlignment = Element.ALIGN_MIDDLE
-                cell.setPadding(8f)
-                cell.border = Rectangle.BOX
-                cell.borderWidth = 1f
+                cell.setPaddingTop(5f)
+                cell.setPaddingBottom(5f)
+                cell.border = Rectangle.NO_BORDER
                 table.addCell(cell)
             }
             
-            // Add data rows
-            logs.forEach { log ->
-                // Event Status
-                val eventCell = PdfPCell(Phrase(log.modename ?: "", normalFont))
-                eventCell.horizontalAlignment = Element.ALIGN_CENTER
-                eventCell.verticalAlignment = Element.ALIGN_MIDDLE
-                eventCell.setPadding(6f)
-                eventCell.border = Rectangle.BOX
-                eventCell.borderWidth = 0.5f
-                table.addCell(eventCell)
+            logs.forEachIndexed { index, log ->
+                val isAlternate = index % 2 != 0
+                val bgColor = if (isAlternate) BaseColor(250, 250, 250) else BaseColor.WHITE
                 
-                // Time
-                val timeCell = PdfPCell(Phrase(log.time ?: "", normalFont))
-                timeCell.horizontalAlignment = Element.ALIGN_CENTER
-                timeCell.verticalAlignment = Element.ALIGN_MIDDLE
-                timeCell.setPadding(6f)
-                timeCell.border = Rectangle.BOX
-                timeCell.borderWidth = 0.5f
-                table.addCell(timeCell)
-                
-                // Engine Hours
-                val engineCell = PdfPCell(Phrase(log.eng_hours ?: "", normalFont))
-                engineCell.horizontalAlignment = Element.ALIGN_CENTER
-                engineCell.verticalAlignment = Element.ALIGN_MIDDLE
-                engineCell.setPadding(6f)
-                engineCell.border = Rectangle.BOX
-                engineCell.borderWidth = 0.5f
-                table.addCell(engineCell)
-                
-                // Odometer
-                val odometerCell = PdfPCell(Phrase(log.odometerreading ?: "", normalFont))
-                odometerCell.horizontalAlignment = Element.ALIGN_CENTER
-                odometerCell.verticalAlignment = Element.ALIGN_MIDDLE
-                odometerCell.setPadding(6f)
-                odometerCell.border = Rectangle.BOX
-                odometerCell.borderWidth = 0.5f
-                table.addCell(odometerCell)
-                
-                // Location
-                val locationCell = PdfPCell(Phrase(log.location ?: "", normalFont))
-                locationCell.horizontalAlignment = Element.ALIGN_CENTER
-                locationCell.verticalAlignment = Element.ALIGN_MIDDLE
-                locationCell.setPadding(6f)
-                locationCell.border = Rectangle.BOX
-                locationCell.borderWidth = 0.5f
-                table.addCell(locationCell)
+                fun makeCell(text: String): PdfPCell {
+                    val c = PdfPCell(Phrase(text, normalFont))
+                    c.backgroundColor = bgColor
+                    c.horizontalAlignment = Element.ALIGN_CENTER
+                    c.verticalAlignment = Element.ALIGN_MIDDLE
+                    c.setPaddingTop(4f)
+                    c.setPaddingBottom(4f)
+                    c.border = Rectangle.NO_BORDER
+                    return c
+                }
+                table.addCell(makeCell(log.modename?.uppercase() ?: ""))
+                table.addCell(makeCell(log.time ?: ""))
+                table.addCell(makeCell(log.eng_hours ?: ""))
+                table.addCell(makeCell(log.odometerreading ?: ""))
+                table.addCell(makeCell(log.location ?: ""))
+                table.addCell(makeCell(log.discreption?.toString() ?: "")) // Comment column
             }
             
             document.add(table)
         } else {
             document.add(Paragraph("No event logs available for the selected date.", normalFont))
-            document.add(Paragraph("Please select a different date or check your data.", normalFont))
         }
         
-        document.add(Paragraph(" "))
+        document.add(Paragraph("\n", FontFactory.getFont(FontFactory.HELVETICA, 4f)))
     }
-
-    private fun addEldGraph(document: Document, reportData: GetLogsByDateResponse) {
+    private fun addEldGraph(document: Document, reportData: GetLogsByDateResponse, timeZone: String?) {
         try {
-            val headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_TITLE)
-            
-            // Add graph header
-            val graphHeader = Paragraph("ELD Duty Status Graph", headerFont)
-            document.add(graphHeader)
-            document.add(Paragraph(" "))
-            
-            // Generate ELD graph bitmap
-            val logs = reportData.results?.userLogs ?: emptyList()
-            val graphBitmap = generateEldGraphBitmap(logs)
+            // Generate ELD graph bitmap using the app's own graph widget
+            val graphBitmap = generateEldGraphBitmap(reportData, timeZone)
             
             if (graphBitmap != null) {
-                // Convert bitmap to PDF image using ByteArrayOutputStream
                 val stream = java.io.ByteArrayOutputStream()
                 graphBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                 val image = Image.getInstance(stream.toByteArray())
                 
-                // Scale image to fit page width while maintaining aspect ratio
+                // Scale to fit page width
                 val pageWidth = PageSize.A4.width - (MARGIN * 2)
                 val scale = pageWidth / graphBitmap.width.toFloat()
                 image.scaleAbsolute(graphBitmap.width * scale, graphBitmap.height * scale)
-                
-                // Center the image
                 image.alignment = Element.ALIGN_CENTER
                 
                 document.add(image)
-                document.add(Paragraph(" "))
-                
-                // Add graph legend
-                addGraphLegend(document)
+                document.add(Paragraph("\n", FontFactory.getFont(FontFactory.HELVETICA, 4f)))
                 
                 Log.d("PdfReportGenerator", "ELD graph added successfully")
             } else {
@@ -492,55 +408,14 @@ class PdfReportGenerator(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e("PdfReportGenerator", "Error adding ELD graph: ${e.message}", e)
-            document.add(Paragraph("Error generating ELD graph: ${e.message}", FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)))
         }
-    }
-
-    private fun addGraphLegend(document: Document) {
-        val normalFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_SMALL)
-        val boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_SMALL)
-        
-        // Create legend table
-        val legendTable = PdfPTable(2)
-        legendTable.widthPercentage = 100f
-        legendTable.setWidths(floatArrayOf(20f, 80f))
-        
-        // Legend entries
-        val legendEntries = listOf(
-            "OFF" to "Off Duty (Light Blue)",
-            "SB" to "Sleeper Berth (Dark Blue)", 
-            "D" to "Driving (Orange)",
-            "ON" to "On Duty (Yellow)"
-        )
-        
-        legendEntries.forEach { (status, description) ->
-            val statusCell = PdfPCell(Phrase(status, boldFont))
-            statusCell.horizontalAlignment = Element.ALIGN_CENTER
-            statusCell.verticalAlignment = Element.ALIGN_MIDDLE
-            statusCell.setPadding(4f)
-            statusCell.border = Rectangle.BOX
-            statusCell.borderWidth = 0.5f
-            legendTable.addCell(statusCell)
-            
-            val descCell = PdfPCell(Phrase(description, normalFont))
-            descCell.horizontalAlignment = Element.ALIGN_LEFT
-            descCell.verticalAlignment = Element.ALIGN_MIDDLE
-            descCell.setPadding(4f)
-            descCell.border = Rectangle.BOX
-            descCell.borderWidth = 0.5f
-            legendTable.addCell(descCell)
-        }
-        
-        document.add(legendTable)
-        document.add(Paragraph(" "))
     }
 
     private fun addCertification(document: Document, reportData: GetLogsByDateResponse, driverName: String) {
         val normalFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_NORMAL)
         val boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_NORMAL)
         
-        document.add(Paragraph(" "))
-        document.add(Paragraph(" "))
+        document.add(Paragraph("\n", FontFactory.getFont(FontFactory.HELVETICA, 4f)))
         
         val certificationText = "I certify that these entries are true and correct"
         val certification = Paragraph(certificationText, normalFont)
@@ -587,8 +462,9 @@ class PdfReportGenerator(private val context: Context) {
     }
 
     // Keep the existing methods for backward compatibility
-    fun generateEldGraphBitmap(logs: List<GetLogsByDateResponse.Results.UserLog>): Bitmap? {
+    fun generateEldGraphBitmap(reportData: GetLogsByDateResponse, timeZone: String?): Bitmap? {
         return try {
+            val logs = reportData.results?.userLogs ?: emptyList()
             Log.d("PdfReportGenerator", "Starting ELD graph bitmap generation with ${logs.size} logs")
             
             // Create ELD graph view
@@ -596,45 +472,72 @@ class PdfReportGenerator(private val context: Context) {
             val graphBinding = LayoutEldGraphBinding.inflate(inflater)
             val graphView = graphBinding.root
             
-            // Set up the graph data
+            // Show legend pills
+            graphBinding.graphTitle.visibility = View.GONE
+            graphBinding.graphSubtitle.visibility = View.GONE
+            graphBinding.legendContainer.visibility = View.VISIBLE
+            
+            // Set white background for PDF rendering
+            graphView.setBackgroundColor(Color.WHITE)
+            
+            // Set up the graph data using robust logic from LogsFragment
             val logList = mutableListOf<ELDGraphData>()
             
-            // Add previous day log if available
-            val previousDayLog = logs.firstOrNull()
-            if (previousDayLog != null) {
-                logList.add(ELDGraphData(0f, previousDayLog.modename ?: "off", 0L))
-                Log.d("PdfReportGenerator", "Added previous day log: ${previousDayLog.modename}")
+            fun addGraphPoint(time: Float, modename: String?) {
+                if (modename.isNullOrBlank()) return
+                val status = modename.trim().lowercase()
+                val normalizedStatus = when (status) {
+                    "dr" -> "d"
+                    "e_on", "power_on" -> "eng_on"
+                    "e_off", "power_off" -> "eng_off"
+                    else -> status
+                }
+                if (normalizedStatus in setOf("on", "off", "d", "sb", "eng_on", "eng_off")) {
+                    logList.add(ELDGraphData(time, normalizedStatus, time.toLong()))
+                }
+            }
+
+            if (reportData.results?.previousDayLog?.modename != null) {
+                addGraphPoint(0f, reportData.results?.previousDayLog?.modename)
             }
             
-            // Add current day logs
             logs.forEach { log ->
-                val time = log.time?.let { AlertCalculationUtils.refinedTimeStringToFloat(it) } ?: 0f
-                logList.add(ELDGraphData(time, log.modename ?: "off", time.toLong()))
-                Log.d("PdfReportGenerator", "Added log: ${log.modename} at time $time")
+                val time = log.time?.let { t -> AlertCalculationUtils.refinedTimeStringToFloat(t) } ?: 0f
+                addGraphPoint(time, log.modename)
             }
             
-            // Add next day log if available
-            val nextDayLog = logs.lastOrNull()
-            if (nextDayLog != null) {
-                logList.add(ELDGraphData(24f, nextDayLog.modename ?: "off", 24L))
-                Log.d("PdfReportGenerator", "Added next day log: ${nextDayLog.modename}")
+            var isViewingToday = false
+            var nowFloat = 24f
+            if (!timeZone.isNullOrEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val todayStr = AlertCalculationUtils.getCurrentDateInTimezone(timeZone)
+                val reportDate = logs.firstOrNull()?.date ?: ""
+                isViewingToday = (reportDate == todayStr)
+                if (isViewingToday) {
+                    nowFloat = AlertCalculationUtils.getCurrentTimeAsFloatInTimezone(timeZone)
+                }
             }
             
-            // If no logs available, create sample data to show all duty statuses
+            if (reportData.results?.nextDayLog?.modename != null) {
+                addGraphPoint(24f, reportData.results?.nextDayLog?.modename)
+            } else {
+                val dutyStatuses = setOf("on", "off", "d", "sb")
+                val lastDutyStatus = logList.lastOrNull { it.status?.lowercase() in dutyStatuses }?.status?.lowercase()
+                if (logList.isNotEmpty() && lastDutyStatus != null) {
+                    val lastPoint = logList.last()
+                    val endFloat = if (isViewingToday) nowFloat else 24f
+                    if (lastPoint.time < endFloat) {
+                        logList.add(ELDGraphData(endFloat, lastDutyStatus, endFloat.toLong()))
+                    }
+                }
+            }
+            
+            // If no logs available, create sample data
             if (logList.isEmpty()) {
                 logList.add(ELDGraphData(0f, "off", 0L))
-                logList.add(ELDGraphData(6f, "sb", 6L))
-                logList.add(ELDGraphData(8f, "d", 8L))
-                logList.add(ELDGraphData(10f, "on", 10L))
-                logList.add(ELDGraphData(12f, "off", 12L))
-                logList.add(ELDGraphData(14f, "d", 14L))
-                logList.add(ELDGraphData(16f, "on", 16L))
-                logList.add(ELDGraphData(18f, "sb", 18L))
                 logList.add(ELDGraphData(24f, "off", 24L))
-                Log.d("PdfReportGenerator", "Added sample data to show all duty statuses")
             }
             
-            // Filter out non-duty status logs
+            // Filter out events that ELDGraph doesn't render lines for
             val filteredList = logList.filter { 
                 it.status != "login" && it.status != "logout" && it.status != "personal" && 
                 it.status != "yard" && it.status != "certification" && it.status != "INT" && 
@@ -643,26 +546,58 @@ class PdfReportGenerator(private val context: Context) {
             }
             
             Log.d("PdfReportGenerator", "Filtered list has ${filteredList.size} items")
-            Log.d("PdfReportGenerator", "Filtered items: ${filteredList.map { "${it.status}@${it.time}" }}")
             
-            // Plot the graph
-            graphBinding.graph.plotGraph(filteredList)
+            // Plot the graph data
+            val meta = reportData.results?.meta
+            val off = meta?.off ?: 0
+            val sb = meta?.sb ?: 0
+            val d = meta?.d ?: 0
+            val on = meta?.on ?: 0
             
-            // Force the graph to redraw
-            graphBinding.graph.invalidate()
+            fun formatTimeFromSeconds(totalSeconds: Int): String {
+                if (totalSeconds < 0) return "00:00"
+                val hours = totalSeconds / 3600
+                val remainingSeconds = totalSeconds % 3600
+                val minutes = remainingSeconds / 60
+                return String.format("%02d:%02d", hours, minutes)
+            }
             
-            // Measure and layout the view - use proper dimensions to show all 4 rows
-            val widthSpec = View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY)
-            val heightSpec = View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY) // Increased height to show all rows clearly
-            graphView.measure(widthSpec, heightSpec)
+            graphBinding.offDutyHours.text = formatTimeFromSeconds(off)
+            graphBinding.sbHours.text = formatTimeFromSeconds(sb)
+            graphBinding.drivingHours.text = formatTimeFromSeconds(d)
+            graphBinding.onDutyHours.text = formatTimeFromSeconds(on)
+            val totalSec = off + sb + d + on
+            graphBinding.totalHours.text = formatTimeFromSeconds(totalSec)
+            
+            graphBinding.graph.plotGraph(filteredList, off, sb, d, on)
+            
+            // Use exact width, but let the view determine its required height
+            val bitmapWidth = 1200
+            
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(bitmapWidth, View.MeasureSpec.EXACTLY)
+            val wrapHeightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            
+            // First measure pass to get required height
+            graphView.measure(widthSpec, wrapHeightSpec)
+            val bitmapHeight = Math.max(graphView.measuredHeight, 200) // Ensure a minimum height
+            
+            val exactHeightSpec = View.MeasureSpec.makeMeasureSpec(bitmapHeight, View.MeasureSpec.EXACTLY)
+            
+            graphView.measure(widthSpec, exactHeightSpec)
             graphView.layout(0, 0, graphView.measuredWidth, graphView.measuredHeight)
             
-            // Small delay to ensure proper rendering
-            Thread.sleep(100)
+            // Force the graph custom view to redraw after layout
+            graphBinding.graph.invalidate()
+            graphBinding.graph.requestLayout()
             
-            // Create bitmap and draw the view
-            val bitmap = Bitmap.createBitmap(graphView.measuredWidth, graphView.measuredHeight, Bitmap.Config.ARGB_8888)
+            // Re-measure and re-layout to pick up redrawn state
+            graphView.measure(widthSpec, exactHeightSpec)
+            graphView.layout(0, 0, graphView.measuredWidth, graphView.measuredHeight)
+            
+            // Create bitmap and draw
+            val bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
+            canvas.drawColor(Color.WHITE) // Ensure white background
             graphView.draw(canvas)
             
             Log.d("PdfReportGenerator", "ELD graph bitmap generated successfully: ${bitmap.width}x${bitmap.height}")

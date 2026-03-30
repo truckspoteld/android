@@ -69,6 +69,7 @@ class LogAdaptor  (
         val tvOdo: TextView = view.findViewById(R.id.odo_txt)
         val tvEng: TextView = view.findViewById(R.id.eng_txt)
         val tvorigon: TextView = view.findViewById(R.id.origin_txt)
+        val tvUnit: TextView = view.findViewById(R.id.unit_txt)
         val statusIndicator: View = view.findViewById(R.id.status_indicator)
         val tile: View = view.findViewById(R.id.logTIle)
     }
@@ -101,9 +102,7 @@ class LogAdaptor  (
             .playOn(viewHolder.itemView)
 
         viewHolder.itemView.setOnClickListener {
-            if (modeValue == "d") {
-                showEditLogDialog(contect)
-            } else if(modeValue == "login" || modeValue == "logout" || modeValue == "yard" || modeValue == "personal" || modeValue == "certification" || normalizedEngineMode.isNotEmpty()){
+            if (modeValue == "login" || modeValue == "logout" || modeValue == "certification" || normalizedEngineMode.isNotEmpty()) {
                 // No action for system/other logs
             } else {
                 val modalFragment = LogModalFragment(userLog)
@@ -163,9 +162,24 @@ class LogAdaptor  (
         // Odometer
         val odometerValue = userLog.odometerreading.toDoubleOrNull()
         viewHolder.tvOdo.text = if (odometerValue != null) {
-            String.format(Locale.US, "%.1f mi", odometerValue)
+            String.format(Locale.US, "%.1f", odometerValue)
         } else {
-            "${userLog.odometerreading} mi"
+            userLog.odometerreading.ifEmpty { "0.0" }
+        }
+
+        // Engine Hours
+        val engHoursValue = userLog.eng_hours.toDoubleOrNull()
+        viewHolder.tvEng.text = if (engHoursValue != null) {
+            String.format(Locale.US, "%.1f", engHoursValue)
+        } else {
+            userLog.eng_hours.ifEmpty { "0.0" }
+        }
+
+        // Unit Number
+        viewHolder.tvUnit.text = if (!userLog.powerunitnumber.isNullOrEmpty()) {
+            if (userLog.powerunitnumber.startsWith("#")) userLog.powerunitnumber else "#${userLog.powerunitnumber}"
+        } else {
+            "N/A"
         }
         
         // Location - Cleaned up

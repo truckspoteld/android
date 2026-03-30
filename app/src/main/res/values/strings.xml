@@ -206,8 +206,8 @@
     <string name="event_logs">event_logs</string>
     <string name="event_logs_settings">Settings</string>
     <string name="event_logs_offset">filter</string>
-    <string name="shipping_number">Shipping Number : </string>
-    <string name="trailer_number">Trailer Number : </string>
+    <string name="shipping_number">: </string>
+    <string name="trailer_number">: </string>
     <string name="logout">Logout</string>
     <string name="review_and_certify_your_daily_logs">Review and certify your daily logs</string>
     <string name="pending_certification">Pending Certification</string>

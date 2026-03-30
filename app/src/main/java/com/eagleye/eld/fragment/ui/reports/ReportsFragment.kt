@@ -87,8 +87,8 @@ class ReportsFragment : Fragment() {
     
     // Company and driver information
     private var companyInfo: GetCompanyById.Results? = null
-    private var driverName: String = "SUKHDEEP SINGH"
-    private var driverLicense: String = "CA / Y46O8156"
+    private var driverName: String = "-"
+    private var driverLicense: String = "-"
     private var vehicleVin: String = "-"
 
     private fun showFmcsaResultDialog(title: String, body: String) {
@@ -170,6 +170,14 @@ class ReportsFragment : Fragment() {
             playClickAnimation(it)
             showPaperLogsEmailDialog()
         }
+
+        // Load real driver data from shared preferences
+        driverName = prefRepository.getName().ifBlank { "-" }
+        val driverId = prefRepository.getDriverId()
+        Log.d("ReportsFragment", "Loaded driver: name=$driverName, id=$driverId")
+
+        // Fetch company data from API
+        homeViewModel.getCompanyName(requireContext())
 
         entranceAnimations()
 
@@ -295,12 +303,10 @@ class ReportsFragment : Fragment() {
                         // Generate PDF
                         Log.d("ReportsFragment", "Starting PDF generation...")
                         
-                        // Extract driver information from logs
                         val firstLog = reportData.results?.userLogs?.firstOrNull()
-                        val extractedDriverName = firstLog?.let { log ->
-                            // Try to get driver name from log data or use default
-                            "Driver ${log.driverid ?: "Unknown"}"
-                        } ?: driverName
+                        val extractedDriverName = driverName.ifBlank {
+                            firstLog?.let { "Driver ${it.driverid ?: "Unknown"}" } ?: "-"
+                        }
                         
                         val extractedVehicleVin = firstLog?.vin ?: vehicleVin
                         
@@ -748,6 +754,7 @@ class ReportsFragment : Fragment() {
             .show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun sendPaperLogsPdfToEmail(email: String) {
         val progressDialog = ProgressDialog(requireContext()).apply {
             setMessage("Preparing paper logs PDF...")
@@ -770,7 +777,9 @@ class ReportsFragment : Fragment() {
                             val fileName = "Paper_Logs_${startDate}_to_${endDate}.pdf"
                             val pdfFile = File(requireContext().getExternalFilesDir(null), fileName)
                             val firstLog = reportData.results?.userLogs?.firstOrNull()
-                            val extractedDriverName = firstLog?.let { "Driver ${it.driverid ?: "Unknown"}" } ?: driverName
+                            val extractedDriverName = driverName.ifBlank {
+                                firstLog?.let { "Driver ${it.driverid ?: "Unknown"}" } ?: "-"
+                            }
                             val extractedVehicleVin = firstLog?.vin ?: vehicleVin
 
                             val pdfOk = pdfGenerator.generateDriverDailyReportByDateRange(

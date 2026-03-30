@@ -37,7 +37,7 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
         editTextModename.setText(userLog.modename)
 
         val editTextLocation = view.findViewById<EditText>(R.id.editTextlocation)
-//        editTextLocation.setText(userLog.location)
+        editTextLocation.setText(userLog.location)
 
         val editTextOdometer = view.findViewById<EditText>(R.id.editTextodometer)
         editTextOdometer.setText(userLog.odometerreading)
@@ -64,6 +64,7 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
                 updatedOdometer,
                 updatedEngineHours,
                 updatedTime,
+                updatedLocation,
                 1
             )
 

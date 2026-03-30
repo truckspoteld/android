@@ -1,12 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/logTIle"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="4dp"
-    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
     app:cardBackgroundColor="@color/white"
-    app:cardCornerRadius="14dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:strokeColor="@color/strockColor"
     app:strokeWidth="1dp">
@@ -14,27 +15,28 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp">
+        android:padding="10dp">
 
         <!-- Vertical Status Indicator -->
         <View
             android:id="@+id/status_indicator"
             android:layout_width="4dp"
-            android:layout_height="40dp"
+            android:layout_height="0dp"
             android:background="@drawable/bg_log_item_indicator"
             android:backgroundTint="@color/nav_icon_inactive"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/location_row"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Status Pill & Title -->
+        <!-- Status Header Info -->
         <LinearLayout
             android:id="@+id/status_header"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="16dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
+            app:layout_constraintEnd_toStartOf="@+id/time_txt"
             app:layout_constraintStart_toEndOf="@id/status_indicator"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -43,100 +45,178 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_status_pill"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:tag="binding_2"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="3dp"
                 android:text="OFF"
                 android:textColor="@color/home_text_main"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/status_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:text="Off Duty"
                 android:textColor="@color/home_text_main"
-                android:textSize="13sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Meta Info (Location & Distance) -->
+        <!-- Time Right Top -->
+        <TextView
+            android:id="@+id/time_txt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="08:45 PM"
+            android:textColor="@color/home_text_main"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Location Row -->
         <LinearLayout
+            android:id="@+id/location_row"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginTop="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            app:layout_constraintEnd_toStartOf="@+id/time_container"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@id/status_header"
             app:layout_constraintTop_toBottomOf="@id/status_header">
 
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/baseline_location_on_24"
+                app:tint="@color/home_text_sub" />
+
             <TextView
                 android:id="@+id/location_txt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Los Angeles, CA"
+                android:textColor="@color/home_text_sub"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Detailed Metrics Divider -->
+        <View
+            android:id="@+id/metrics_divider"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="6dp"
+            android:background="@color/strockColor"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/status_header"
+            app:layout_constraintTop_toBottomOf="@id/location_row" />
+
+        <!-- Detailed Metrics Grid (Odo, Eng, Unit, Origin) -->
+        <LinearLayout
+            android:id="@+id/metrics_grid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:orientation="horizontal"
+            android:weightSum="4"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/status_header"
+            app:layout_constraintTop_toBottomOf="@id/metrics_divider">
+
+            <!-- Odometer -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Odo"
+                    android:textColor="@color/login_text_gray"
+                    android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/odo_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2,450.5"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Eng Hours -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.9"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Eng"
+                    android:textColor="@color/login_text_gray"
+                    android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/eng_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="145.2"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Unit # -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:tag="binding_3"
-                android:text="Los Angeles, CA"
-                android:textColor="@color/home_text_sub"
-                android:textSize="12sp" />
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Unit"
+                    android:textColor="@color/login_text_gray"
+                    android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/unit_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="#101"
+                    android:textColor="@color/home_text_main"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Origin (Auto/Manual) -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="4dp"
-                android:text="•"
-                android:textColor="@color/home_text_sub" />
-
-            <TextView
-                android:id="@+id/odo_txt"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:tag="binding_4"
-                android:text="24.5 mi"
-                android:textColor="@color/home_text_sub"
-                android:textSize="12sp" />
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="end">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Source"
+                    android:textColor="@color/login_text_gray"
+                    android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/origin_txt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Manual"
+                    android:textColor="@color/nav_icon_active"
+                    android:textSize="11sp"
+                    android:textStyle="bold|italic" />
+            </LinearLayout>
         </LinearLayout>
-
-        <!-- Time Column on Right -->
-        <LinearLayout
-            android:id="@+id/time_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:orientation="vertical"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/time_txt"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:tag="binding_1"
-                android:text="08:24 PM"
-                android:textColor="@color/home_text_main"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/origin_txt"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:tag="binding_6"
-                android:text="Auto"
-                android:textColor="@color/home_text_sub"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- Hidden elements for adapter compatibility -->
-        <TextView android:id="@+id/eng_txt" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" android:tag="binding_5" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

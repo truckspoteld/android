@@ -116,35 +116,35 @@ class LogAdaptor  (
         
         // Status & Colors
         var statusLabel = modeValue.uppercase(Locale.US)
-        var statusColor = Color.parseColor("#8DA0B6") // Default OFF Grey
+        var statusColor = Color.parseColor("#8DA0B6") // Default Grey
+        val isPersonal = userLog.discreption == "personal" || modeValue == "personal"
+        val isYard = userLog.discreption == "yard" || modeValue == "yard"
         
         when {
-            modeValue == "off" -> {
+            isPersonal || modeValue == "off" -> {
                 statusLabel = "OFF"
-                statusColor = Color.parseColor("#8DA0B6")
+                statusColor = Color.parseColor("#000000") // Black
             }
             modeValue == "sb" -> {
                 statusLabel = "SB"
-                statusColor = Color.parseColor("#4169E1")
+                statusColor = Color.parseColor("#FFEB3B") // Yellow
             }
             modeValue == "d" -> {
                 statusLabel = if (userLog.discreption == "Intermediate log") "INT" else "DR"
-                statusColor = Color.parseColor("#2D7BFE")
+                statusColor = Color.parseColor("#8DA0B6") // Grey
             }
-            modeValue == "on" -> {
+            isYard || modeValue == "on" -> {
                 statusLabel = "ON"
-                statusColor = Color.parseColor("#10B981")
+                statusColor = Color.parseColor("#FF9800") // Orange
             }
             normalizedEngineMode == "eng_on" -> {
                 statusLabel = "ENG ON"
-                statusColor = Color.parseColor("#0ea5e9")
+                statusColor = Color.parseColor("#8DA0B6") // Grey
             }
             normalizedEngineMode == "eng_off" -> {
                 statusLabel = "ENG OFF"
-                statusColor = Color.parseColor("#64748b")
+                statusColor = Color.parseColor("#8DA0B6") // Grey
             }
-            userLog.discreption == "yard" -> statusLabel = "YARD"
-            userLog.discreption == "personal" -> statusLabel = "PERSONAL"
         }
         
         viewHolder.tvStatusPill.text = statusLabel
@@ -185,7 +185,15 @@ class LogAdaptor  (
         // Location - Cleaned up
         val fullLocation = userLog.location ?: ""
         val cleanLocation = extractCityAndState(fullLocation)
-        viewHolder.tvLocation.text = if (cleanLocation.isNotEmpty()) cleanLocation else fullLocation
+        var locText = if (cleanLocation.isNotEmpty()) cleanLocation else fullLocation
+        
+        if (isPersonal) {
+            locText = "(PC) $locText"
+        } else if (isYard) {
+            locText = "(YM) $locText"
+        }
+        
+        viewHolder.tvLocation.text = locText
         
         // Origin
         viewHolder.tvorigon.text = if (userLog.is_autoinsert == 1) "Auto" else "Manual"

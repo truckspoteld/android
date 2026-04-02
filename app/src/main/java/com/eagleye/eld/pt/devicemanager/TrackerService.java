@@ -107,8 +107,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private String lastPushedEngineState = "";
     private int engineStateStableCount = 0;
     private long lastEngineApiCallTime = 0;
-    private static final int ENGINE_STATE_STABLE_THRESHOLD = 3;
-    private static final long ENGINE_API_DEBOUNCE_MS = 30000L; // 30 seconds
+    private static final int ENGINE_STATE_STABLE_THRESHOLD = 2;
+    private static final long ENGINE_API_DEBOUNCE_MS = 10000L; // 10 seconds
 
     public class TrackerBinder extends LocalBinder {
         public void sendResponse(@NonNull final BaseResponse response) {
@@ -497,33 +497,49 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private void handleEngineStateUpdate(int rpm) {
         String currentState = (rpm > 0) ? "eng_on" : "eng_off";
         
-        // Initialize if empty (from preferences or previous day logs)
-        if (lastPushedEngineState.isEmpty()) {
+        // Ensure prefRepository is initialized
+        if (prefRepository == null) {
             prefRepository = new PrefRepository(this);
-            // We'll initialize from the last known state from pref or wait for the first known state
-            // For now, let's just wait for a stable transition to avoid bogus logs on start
+        }
+
+        String persistedState = prefRepository.getLastEngineState();
+        if (!persistedState.isEmpty() && !persistedState.equals(lastPushedEngineState)) {
+            lastPushedEngineState = persistedState;
+        }
+
+        // Initialize: record the first observed state so the NEXT change can be logged
+        if (lastPushedEngineState.isEmpty()) {
             lastPushedEngineState = currentState;
+            prefRepository.setLastEngineState(currentState);
+            Log.d(TAG, "Engine state initialized to: " + currentState + " (RPM=" + rpm + ")");
             return;
         }
 
+        // Same state as before — reset the stability counter
         if (currentState.equals(lastPushedEngineState)) {
             engineStateStableCount = 0;
             return;
         }
 
+        // State changed — increment stability counter
         engineStateStableCount++;
+        Log.d(TAG, "Engine state change detected: " + lastPushedEngineState + " -> " + currentState 
+                + " (stable count: " + engineStateStableCount + "/" + ENGINE_STATE_STABLE_THRESHOLD + ", RPM=" + rpm + ")");
+        
         if (engineStateStableCount < ENGINE_STATE_STABLE_THRESHOLD) {
             return;
         }
 
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastEngineApiCallTime < ENGINE_API_DEBOUNCE_MS) {
+            Log.d(TAG, "Engine state log debounced. Wait " + ((ENGINE_API_DEBOUNCE_MS - (currentTime - lastEngineApiCallTime)) / 1000) + "s");
             return;
         }
 
-        Log.d(TAG, "Engine state stable transition: " + currentState + ". Pushing to API.");
+        Log.d(TAG, "✅ Engine state stable transition: " + lastPushedEngineState + " -> " + currentState + ". Pushing to API.");
         lastEngineApiCallTime = currentTime;
         lastPushedEngineState = currentState;
+        prefRepository.setLastEngineState(currentState);
         engineStateStableCount = 0;
 
         TelemetryEvent te = AppModel.getInstance().mLastEvent;
@@ -540,7 +556,11 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         String vin = AppModel.getInstance().mPT30Vin;
         if (vin == null || vin.equals("n/a") || vin.isEmpty()) {
-            vin = "1HGCM82633A004352"; // Fallback static VIN or from prefs
+            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
+                vin = AppModel.getInstance().mVehicleInfo.VIN;
+            } else {
+                vin = "1HGCM82633A004352";
+            }
         }
 
         AddLogRequest logRequest = new AddLogRequest(
@@ -560,9 +580,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         new Thread(() -> {
             try {
                 repository.addLogJava(logRequest);
-                Log.i(TAG, "SUCCESS: Pushed automatic engine state log: " + currentState);
+                Log.i(TAG, "✅ SUCCESS: Pushed automatic engine state log: " + currentState);
             } catch (Exception e) {
-                Log.e(TAG, "ERROR: Failed to push engine state log: " + e.getMessage(), e);
+                Log.e(TAG, "❌ ERROR: Failed to push engine state log: " + e.getMessage(), e);
             }
         }).start();
     }

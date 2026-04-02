@@ -64,6 +64,10 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_CURRENT_MODE.put(mode)
     }
 
+    fun setLastEngineState(state: String) {
+        PREF_LAST_ENGINE_STATE.put(state)
+    }
+
     fun setRemoveableIndex(index: Int) {
         PREF_REMOVEDINDEX.put(index)
     }
@@ -144,6 +148,10 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         val mode = PREF_CURRENT_MODE.getString()
         if (mode == null || mode.isEmpty()) return "inital"
         return mode
+    }
+
+    fun getLastEngineState(): String {
+        return PREF_LAST_ENGINE_STATE.getString()
     }
 //    fun setLogs(userLogs: List<UserLog>) {
 //        val gson = Gson()

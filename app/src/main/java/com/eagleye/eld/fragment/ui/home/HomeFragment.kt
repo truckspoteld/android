@@ -119,13 +119,8 @@ class HomeFragment : Fragment(), OnClickListener {
     private var latestConditionsSnapshot: HomeDataModel.Conditions? = null
     private var latestConditionsSnapshotAtMs: Long = 0L
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
-    private var lastEngineApiCallTime: Long = 0
-    private val ENGINE_API_DEBOUNCE_MS = 30000L // 30 seconds debounce
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
-    private var lastPushedEngineState: String = ""
-    private var engineStateStableCount: Int = 0
-    private val ENGINE_STATE_STABLE_THRESHOLD = 3
 
     private lateinit var mediaPlayer: MediaPlayer
 
@@ -163,7 +158,6 @@ class HomeFragment : Fragment(), OnClickListener {
     // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
     private var lastLog: String = ""
 
-    var lastEngineLogName: String = ""
     var tmRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
@@ -726,24 +720,6 @@ class HomeFragment : Fragment(), OnClickListener {
                     time.toLong()
                 )
             )
-        }
-        val latestEngineFromLogs = data?.logs
-            ?.asReversed()
-            ?.map { normalizeEngineMode(it.modename) }
-            ?.firstOrNull { it.isNotEmpty() }
-            ?: ""
-        val latestEngineFromUpdated = normalizeEngineMode(data?.latestUpdatedLog?.modename)
-        val latestEngineFromPrevious = normalizeEngineMode(data?.previousDayLog?.modename)
-        lastEngineLogName = when {
-            latestEngineFromLogs.isNotEmpty() -> latestEngineFromLogs
-            latestEngineFromUpdated.isNotEmpty() -> latestEngineFromUpdated
-            latestEngineFromPrevious.isNotEmpty() -> latestEngineFromPrevious
-            else -> ""
-        }
-        if (lastPushedEngineState.isEmpty() && lastEngineLogName.isNotEmpty()) {
-            lastPushedEngineState = lastEngineLogName
-            prefRepository.setLastEngineState(lastPushedEngineState)
-            Log.d(TAG, "Initialized lastPushedEngineState to: $lastPushedEngineState")
         }
 
         // Exclude login/logout (and other non-duty) so current mode reflects duty status only
@@ -1639,81 +1615,11 @@ class HomeFragment : Fragment(), OnClickListener {
             // binding.drivingSpeed.text = "Driving Speed: ${speed} km/h" // Removed
             // Use actual Bluetooth speed for mode switching (not dashboardSpeed)
             handleLocationUpdate(speed, rpm, lastEvent.mEvent.name)
-            handleEngineStateUpdate(rpm)
         } catch (e: Exception) {
             Log.e(TAG, "Error in checkAndPrintSpeed: ${e.message}", e)
         }
     }
 
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleEngineStateUpdate(rpm: Int) {
-        val currentState = if (rpm > 0) "eng_on" else "eng_off"
-        val persistedState = prefRepository.getLastEngineState().trim().lowercase(Locale.US)
-
-        if (persistedState.isNotEmpty() && persistedState != lastPushedEngineState) {
-            lastPushedEngineState = persistedState
-        }
-
-        if (lastPushedEngineState.isEmpty()) {
-            lastPushedEngineState = if (lastEngineLogName.isNotEmpty()) lastEngineLogName else currentState
-            prefRepository.setLastEngineState(lastPushedEngineState)
-            Log.d(TAG, "Engine state initialized to: $lastPushedEngineState (RPM=$rpm)")
-            return
-        }
-
-        if (currentState == lastPushedEngineState) {
-            engineStateStableCount = 0
-            return
-        }
-
-        engineStateStableCount++
-        Log.d(
-            TAG,
-            "Engine state change detected: $lastPushedEngineState -> $currentState (stable count: $engineStateStableCount/$ENGINE_STATE_STABLE_THRESHOLD, RPM=$rpm)"
-        )
-
-        if (engineStateStableCount < ENGINE_STATE_STABLE_THRESHOLD) {
-            return
-        }
-
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastEngineApiCallTime < ENGINE_API_DEBOUNCE_MS) {
-            Log.d(
-                TAG,
-                "Engine state log debounced. Wait ${((ENGINE_API_DEBOUNCE_MS - (currentTime - lastEngineApiCallTime)) / 1000)}s"
-            )
-            return
-        }
-
-        lastEngineApiCallTime = currentTime
-        lastPushedEngineState = currentState
-        prefRepository.setLastEngineState(currentState)
-        engineStateStableCount = 0
-
-        val appModel = AppModel.getInstance()
-        val telemetryEvent = appModel.mLastEvent
-        val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
-        val defaultLongitude = (activity as? Dashboard)?.glong ?: 0.0
-        val vinNumber = appModel.mVehicleInfo?.VIN?.takeIf { it.isNotBlank() } ?: "1HGCM82633A004352"
-
-        val logRequest = AddLogRequest(
-            modename = currentState,
-            odometerreading = telemetryEvent?.mOdometer?.takeIf { it.isNotEmpty() } ?: "0.0",
-            lat = telemetryEvent?.mGeoloc?.latitude ?: defaultLatitude,
-            long = telemetryEvent?.mGeoloc?.longitude ?: defaultLongitude,
-            location = true,
-            eng_hours = telemetryEvent?.mEngineHours?.takeIf { it.isNotEmpty() } ?: "0.0",
-            vin = vinNumber,
-            is_active = 1,
-            is_autoinsert = 1,
-            eventcode = 1,
-            eventtype = 1
-        )
-
-        Log.d(TAG, "Pushing automatic engine state log: $currentState")
-        context?.let { homeViewModel.logUser(logRequest, it) }
-    }
 
     private fun updateShipmentInfoUI() {
         val shippingText = prefRepository.getShippingNumber().ifBlank { "Not set" }

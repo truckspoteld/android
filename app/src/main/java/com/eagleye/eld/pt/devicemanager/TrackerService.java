@@ -107,8 +107,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private String lastPushedEngineState = "";
     private int engineStateStableCount = 0;
     private long lastEngineApiCallTime = 0;
-    private static final int ENGINE_STATE_STABLE_THRESHOLD = 2;
-    private static final long ENGINE_API_DEBOUNCE_MS = 10000L; // 10 seconds
+    private static final int ENGINE_STATE_STABLE_THRESHOLD = 3;
+    private static final long ENGINE_API_DEBOUNCE_MS = 30000L; // 30 seconds
 
     public class TrackerBinder extends LocalBinder {
         public void sendResponse(@NonNull final BaseResponse response) {
@@ -485,7 +485,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         AppModel.getInstance().dashboard = mTracker.getVirtualDashboard().get();
         AppModel.getInstance().vdbParams.addAll(updatedParams);
         
-        // Handle automatic engine ON/OFF logs
+        // Mirror iOS parity here in the tracker service so engine logs still work
+        // even when the Home screen is not on screen.
         if (AppModel.getInstance().dashboard != null) {
             handleEngineStateUpdate(AppModel.getInstance().dashboard.engineRPM);
         }

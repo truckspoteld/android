@@ -51,6 +51,7 @@ import com.eagleye.eld.LoginActivity
 import com.eagleye.eld.models.DRIVE_MODE.*
 import com.eagleye.eld.models.UserLog
 import com.eagleye.eld.pt.devicemanager.AppModel
+import com.eagleye.eld.pt.devicemanager.BleProfileService
 import com.eagleye.eld.pt.devicemanager.TrackerManagerActivity
 import com.eagleye.eld.pt.devicemanager.TrackerService
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -121,6 +122,9 @@ class HomeFragment : Fragment(), OnClickListener {
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
+    private var pendingModeSelection: String? = null
+    private var pendingModeSelectionAtMs: Long = 0L
+    private val MODE_SELECTION_GRACE_MS = 20_000L
 
     private lateinit var mediaPlayer: MediaPlayer
 
@@ -153,6 +157,7 @@ class HomeFragment : Fragment(), OnClickListener {
 
     val svcIf = IntentFilter()
     val tmIf = IntentFilter()
+    val connectionStateIf = IntentFilter(BleProfileService.BROADCAST_CONNECTION_STATE)
 
     // Simple last log tracking like EagleEye
     // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
@@ -187,6 +192,27 @@ class HomeFragment : Fragment(), OnClickListener {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
             checkAndPrintSpeed()
+        }
+    }
+
+    var connectionStateRefresh: BroadcastReceiver = object : BroadcastReceiver() {
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onReceive(context: Context, intent: Intent) {
+            val connectionState = intent.getIntExtra(
+                BleProfileService.EXTRA_CONNECTION_STATE,
+                BleProfileService.STATE_DISCONNECTED
+            )
+            Log.d(TAG, "Bluetooth connection state changed: $connectionState")
+
+            if (connectionState == BleProfileService.STATE_DISCONNECTED ||
+                connectionState == BleProfileService.STATE_LINK_LOSS
+            ) {
+                stopSpeedMonitoring()
+            }
+
+            if (!isBluetoothConnecting) {
+                updateTelemetryInfo()
+            }
         }
     }
     private lateinit var progressBar: CircularProgressIndicator
@@ -270,8 +296,13 @@ class HomeFragment : Fragment(), OnClickListener {
                     .setTitle("Bluetooth Disconnection")
                     .setMessage("Are you sure you want to disconnect the Bluetooth device?")
                     .setPositiveButton("Disconnect") { _, _ ->
-                        val disconnectIntent = Intent(TrackerService.ACTION_DISCONNECT)
-                        disconnectIntent.putExtra(TrackerService.EXTRA_SOURCE, TrackerService.SOURCE_NOTIFICATION)
+                        val disconnectIntent = Intent(TrackerService.ACTION_DISCONNECT).apply {
+                            setPackage(requireContext().packageName)
+                            putExtra(
+                                TrackerService.EXTRA_SOURCE,
+                                TrackerService.SOURCE_NOTIFICATION
+                            )
+                        }
                         requireContext().sendBroadcast(disconnectIntent)
                     }
                     .setNegativeButton("Cancel", null)
@@ -608,6 +639,38 @@ class HomeFragment : Fragment(), OnClickListener {
         updateUI(getButtonForMode(mode))
     }
 
+    private fun markPendingModeSelection(mode: String) {
+        pendingModeSelection = mode.trim().lowercase(Locale.US)
+        pendingModeSelectionAtMs = SystemClock.elapsedRealtime()
+    }
+
+    private fun clearPendingModeSelection() {
+        pendingModeSelection = null
+        pendingModeSelectionAtMs = 0L
+    }
+
+    private fun shouldHoldPendingModeSelection(latestMode: String): Boolean {
+        val pendingMode = pendingModeSelection ?: return false
+        val isWithinGraceWindow =
+            SystemClock.elapsedRealtime() - pendingModeSelectionAtMs <= MODE_SELECTION_GRACE_MS
+
+        if (!isWithinGraceWindow) {
+            clearPendingModeSelection()
+            return false
+        }
+
+        if (latestMode == pendingMode) {
+            clearPendingModeSelection()
+            return false
+        }
+
+        Log.d(
+            TAG,
+            "Holding local mode '$pendingMode' because server still reports '$latestMode'"
+        )
+        return true
+    }
+
     private fun cacheConditionsSnapshot(conditions: HomeDataModel.Conditions?) {
         latestConditionsSnapshot = conditions?.copy()
         latestConditionsSnapshotAtMs = SystemClock.elapsedRealtime()
@@ -727,6 +790,10 @@ class HomeFragment : Fragment(), OnClickListener {
 
         if (filterForSelection != null && filterForSelection.isNotEmpty()) {
             val latestMode = filterForSelection.last().status
+            if (shouldHoldPendingModeSelection(latestMode)) {
+                updateUIAfterModeChange(selectedLog.ifEmpty { TRUCK_MODE_OFF })
+                return
+            }
             applySelectedMode(latestMode)
         } else {
             // Only set OFF if user is not already on an active mode
@@ -924,38 +991,46 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun handleLocationUpdate(speed: Int, rpm: Int, name: String) {
         Log.d(TAG, "📍 handleLocationUpdate: Speed=$speed, RPM=$rpm, Event=$name, lastLog=$lastLog")
 
-        // IMPORTANT: Only auto-switch between 'on' and 'd' (driving).
-        // Never override manually set modes: off, sb, personal, yard.
-        // If lastLog is empty (e.g. after screen refresh), initialize it from the
-        // persisted mode so we don't accidentally force the mode to 'on'.
-        if (lastLog.isEmpty()) {
-            val savedMode = prefRepository.getMode()
-            lastLog = if (savedMode.isNotEmpty()) savedMode else "on"
-            Log.d(TAG, "📍 lastLog was empty, initialized from saved mode: $lastLog")
-        }
+        val currentMode = resolveModeForAutoSwitch()
+        lastLog = currentMode
 
-        // Only auto-switch when in 'on' or 'd' mode — never touch off/sb/personal/yard
-        val autoSwitchableModes = setOf("on", "d")
-        if (lastLog !in autoSwitchableModes) {
-            Log.d(TAG, "📍 Skipping auto mode switch — current mode '$lastLog' is manually set")
-            return
-        }
+        val modesThatMustSwitchToDriving = setOf(
+            TRUCK_MODE_OFF,
+            TRUCK_MODE_ON,
+            TRUCK_MODE_SLEEPING,
+            TRUCK_MODE_PERSONAL,
+            TRUCK_MODE_YARD
+        )
 
-        if (speed > 0 && lastLog == "on") {
-            Log.d(TAG, "🚗 Truck is running & in on mode — switching to DRIVE")
-            lastLog = "d"
+        if (speed > 0 && currentMode in modesThatMustSwitchToDriving) {
+            Log.d(TAG, "🚗 Truck is moving in '$currentMode' mode — switching to DRIVE")
+            lastLog = TRUCK_MODE_DRIVING
             activity?.runOnUiThread {
                 updateUI(binding.btnDrive)
             }
-            updateModeChange(hrs_MODE_D, "d", "")
-        } else if (speed <= 0 && lastLog == "d") {
+            updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
+        } else if (speed <= 0 && currentMode == TRUCK_MODE_DRIVING) {
             Log.d(TAG, "🛑 Driving mode found & speed is zero — switching to ON")
             activity?.runOnUiThread {
                 updateUI(binding.btnOn)
             }
-            lastLog = "on"
-            updateModeChange(hrs_MODE_ON, "on", "")
+            lastLog = TRUCK_MODE_ON
+            updateModeChange(hrs_MODE_ON, TRUCK_MODE_ON, "")
         }
+    }
+
+    private fun resolveModeForAutoSwitch(): String {
+        val candidates = listOf(
+            lastLog,
+            selectedLog,
+            prefRepository.getMode(),
+            lastRelevantLog?.modename.orEmpty()
+        )
+
+        return candidates
+            .map { it.trim().lowercase(Locale.US) }
+            .firstOrNull { it in relevantLogTypes }
+            ?: TRUCK_MODE_ON
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -967,6 +1042,7 @@ class HomeFragment : Fragment(), OnClickListener {
             }
             Log.d(TAG, "updating mode --> $mode")
             applySelectedMode(mode)
+            markPendingModeSelection(mode)
             val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
             val te = AppModel.getInstance().mLastEvent
             val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
@@ -1203,6 +1279,7 @@ class HomeFragment : Fragment(), OnClickListener {
             logVinState()
             instance.registerReceiver(tmRefresh, tmIf)
             instance.registerReceiver(svcRefresh, svcIf)
+            instance.registerReceiver(connectionStateRefresh, connectionStateIf)
             receiversRegistered = true
         } catch (e: Exception) {
             Log.e(TAG, "Receiver registration error: ${e.message}")
@@ -1215,6 +1292,7 @@ class HomeFragment : Fragment(), OnClickListener {
             val instance = getInstance(requireContext())
             instance.unregisterReceiver(tmRefresh)
             instance.unregisterReceiver(svcRefresh)
+            instance.unregisterReceiver(connectionStateRefresh)
         } catch (e: Exception) {
             Log.e(TAG, "Receiver unregistration error: ${e.message}")
         } finally {

@@ -619,6 +619,35 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    private fun resolveActualMode(modeName: String?, description: Any? = null): String {
+        val normalizedDescription = description?.toString()?.trim()?.lowercase(Locale.US).orEmpty()
+        val normalizedMode = modeName?.trim()?.lowercase(Locale.US).orEmpty()
+
+        return when {
+            normalizedDescription == TRUCK_MODE_PERSONAL || normalizedMode == TRUCK_MODE_PERSONAL -> TRUCK_MODE_PERSONAL
+            normalizedDescription == TRUCK_MODE_YARD || normalizedMode == TRUCK_MODE_YARD -> TRUCK_MODE_YARD
+            normalizedMode == "drive" || normalizedMode == "driving" -> TRUCK_MODE_DRIVING
+            else -> normalizedMode
+        }
+    }
+
+    private fun resolveActualMode(log: HomeDataModel.Log?): String {
+        if (log == null) return ""
+        return resolveActualMode(log.modename, log.discreption)
+    }
+
+    private fun formatModeLabel(mode: String): String {
+        return when (resolveActualMode(mode)) {
+            TRUCK_MODE_OFF -> "OFF"
+            TRUCK_MODE_SLEEPING -> "SB"
+            TRUCK_MODE_DRIVING -> "DR"
+            TRUCK_MODE_ON -> "ON"
+            TRUCK_MODE_YARD -> "YM"
+            TRUCK_MODE_PERSONAL -> "PC"
+            else -> mode.trim().uppercase(Locale.US)
+        }
+    }
+
     private fun getButtonForMode(mode: String): com.google.android.material.card.MaterialCardView? {
         return when (mode) {
             TRUCK_MODE_OFF -> binding.btnOff
@@ -671,6 +700,16 @@ class HomeFragment : Fragment(), OnClickListener {
         return true
     }
 
+    private fun rememberTimerStartForModeChange(mode: String) {
+        val normalizedMode = resolveActualMode(mode)
+        if (normalizedMode.isEmpty()) return
+
+        val currentMode = getCurrentModeForLiveConditions()
+        if (normalizedMode != currentMode) {
+            prefRepository.setTimerStartTime(System.currentTimeMillis())
+        }
+    }
+
     private fun cacheConditionsSnapshot(conditions: HomeDataModel.Conditions?) {
         latestConditionsSnapshot = conditions?.copy()
         latestConditionsSnapshotAtMs = SystemClock.elapsedRealtime()
@@ -682,7 +721,7 @@ class HomeFragment : Fragment(), OnClickListener {
             return selectedMode
         }
 
-        val relevantMode = lastRelevantLog?.modename?.trim()?.lowercase(Locale.US).orEmpty()
+        val relevantMode = resolveActualMode(lastRelevantLog)
         if (relevantMode.isNotEmpty()) {
             return relevantMode
         }
@@ -744,10 +783,7 @@ class HomeFragment : Fragment(), OnClickListener {
         var logList: MutableList<ELDGraphData>? = mutableListOf()
         logList?.clear()
         data?.previousDayLog?.let {
-            val desc = it.discreption?.toString() ?: ""
-            val actualMode = if (desc == "personal" || it.modename == "personal") "personal"
-                             else if (desc == "yard" || it.modename == "yard") "yard"
-                             else it.modename ?: ""
+            val actualMode = resolveActualMode(it.modename, it.discreption)
             logList?.add(
                 ELDGraphData(
                     0.0.toFloat(),
@@ -758,10 +794,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         data?.logs?.forEach {
             val time: Float = AlertCalculationUtils.refinedTimeStringToFloat(it.time ?: "0")
-            val desc = it.discreption?.toString() ?: ""
-            val actualMode = if (desc == "personal" || it.modename == "personal") "personal"
-                             else if (desc == "yard" || it.modename == "yard") "yard"
-                             else it.modename ?: ""
+            val actualMode = resolveActualMode(it.modename, it.discreption)
             logList?.add(
                 ELDGraphData(
                     time,
@@ -772,10 +805,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         data?.latestUpdatedLog?.let {
             val time: Float = AlertCalculationUtils.refinedTimeStringToFloat(it.time ?: "0")
-            val desc = it.discreption?.toString() ?: ""
-            val actualMode = if (desc == "personal" || it.modename == "personal") "personal"
-                             else if (desc == "yard" || it.modename == "yard") "yard"
-                             else it.modename ?: ""
+            val actualMode = resolveActualMode(it.modename, it.discreption)
             logList?.add(
                 ELDGraphData(
                     time,
@@ -1041,8 +1071,12 @@ class HomeFragment : Fragment(), OnClickListener {
                 prefRepository.setShowUnidentifiedDialog(false)
             }
             Log.d(TAG, "updating mode --> $mode")
+            rememberTimerStartForModeChange(mode)
             applySelectedMode(mode)
             markPendingModeSelection(mode)
+            if (_binding != null) {
+                updateClockDisplay()
+            }
             val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
             val te = AppModel.getInstance().mLastEvent
             val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
@@ -1203,18 +1237,36 @@ class HomeFragment : Fragment(), OnClickListener {
             val currentTimezoneTime = String.format("%02d:%02d:%02d", companyTime.hour, companyTime.minute, companyTime.second)
             binding.liveClock.text = currentTimezoneTime
 
+            val currentMode = getCurrentModeForLiveConditions()
+            val localTimerStartMs = prefRepository.getTimerStartTime()
             val lastLog = lastRelevantLog
-            if (lastLog != null) {
+            val lastServerMode = resolveActualMode(lastLog)
+            val shouldUseLocalTimer =
+                currentMode in relevantLogTypes &&
+                    localTimerStartMs > 0L &&
+                    (lastServerMode.isEmpty() || lastServerMode != currentMode)
+
+            if (shouldUseLocalTimer) {
+                val elapsedSeconds =
+                    ((System.currentTimeMillis() - localTimerStartMs) / 1000L).coerceAtLeast(0L)
+                binding.timerTv.text = formatElapsedDuration(elapsedSeconds)
+                binding.timerLabelTv.text = "Time spent in ${formatModeLabel(currentMode)}"
+            } else if (lastLog != null) {
                 lastLogTime = lastLog.time ?: "00:00"
-                lastLogMode = lastLog.modename ?: ""
+                lastLogMode = lastServerMode
                 val elapsedTime = calculateElapsedTime(currentTimezoneTime, lastLogTime)
                 binding.timerTv.text = elapsedTime
-                binding.timerLabelTv.text = "Time spent in ${lastLogMode.uppercase()}"
+                binding.timerLabelTv.text = "Time spent in ${formatModeLabel(lastLogMode)}"
             } else {
-                if (lastLogTime.isNotEmpty() && lastLogMode.isNotEmpty()) {
+                if (localTimerStartMs > 0L && currentMode in relevantLogTypes) {
+                    val elapsedSeconds =
+                        ((System.currentTimeMillis() - localTimerStartMs) / 1000L).coerceAtLeast(0L)
+                    binding.timerTv.text = formatElapsedDuration(elapsedSeconds)
+                    binding.timerLabelTv.text = "Time spent in ${formatModeLabel(currentMode)}"
+                } else if (lastLogTime.isNotEmpty() && lastLogMode.isNotEmpty()) {
                     val elapsedTime = calculateElapsedTime(currentTimezoneTime, lastLogTime)
                     binding.timerTv.text = elapsedTime
-                    binding.timerLabelTv.text = "Time spent in ${lastLogMode.uppercase()}"
+                    binding.timerLabelTv.text = "Time spent in ${formatModeLabel(lastLogMode)}"
                 } else {
                     binding.timerTv.text = currentTimezoneTime
                     binding.timerLabelTv.text = "Current $timeZone time"
@@ -1227,13 +1279,27 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    private fun formatElapsedDuration(totalSeconds: Long): String {
+        val normalizedSeconds = totalSeconds.coerceAtLeast(0L)
+        val elapsedHours = normalizedSeconds / 3600
+        val elapsedMinutes = (normalizedSeconds % 3600) / 60
+        val elapsedSecondsRemainder = normalizedSeconds % 60
+        return String.format(
+            Locale.US,
+            "%02d:%02d:%02d",
+            elapsedHours,
+            elapsedMinutes,
+            elapsedSecondsRemainder
+        )
+    }
+
     private fun updateLastRelevantLog(logs: List<HomeDataModel.Log>?) {
         if (logs.isNullOrEmpty()) {
             lastRelevantLog = null
             return
         }
         for (index in logs.size - 1 downTo 0) {
-            val mode = logs[index].modename?.lowercase() ?: continue
+            val mode = resolveActualMode(logs[index])
             if (relevantLogTypes.contains(mode)) {
                 lastRelevantLog = logs[index]
                 return
@@ -1631,6 +1697,8 @@ class HomeFragment : Fragment(), OnClickListener {
                 
                 // Stop speed monitoring when disconnected
                 stopSpeedMonitoring()
+                // Reset speed pill to zero
+                updateSpeedPill(0)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateTelemetryInfo: ${e.message}", e)
@@ -1686,15 +1754,30 @@ class HomeFragment : Fragment(), OnClickListener {
             }
             lastSpeedCheckTime = currentTime
             val appModel = AppModel.getInstance()
-            val lastEvent = appModel.mLastEvent ?: return
+            val lastEvent = appModel.mLastEvent ?: run {
+                // No event — show 0
+                updateSpeedPill(0)
+                return
+            }
             val speed = lastEvent.mGeoloc.speed
             val dashboard = appModel.dashboard
             val rpm = dashboard?.engineRPM ?: 0
-            // binding.drivingSpeed.text = "Driving Speed: ${speed} km/h" // Removed
+            // Update speed pill on home screen
+            updateSpeedPill(speed)
             // Use actual Bluetooth speed for mode switching (not dashboardSpeed)
             handleLocationUpdate(speed, rpm, lastEvent.mEvent.name)
         } catch (e: Exception) {
             Log.e(TAG, "Error in checkAndPrintSpeed: ${e.message}", e)
+        }
+    }
+
+    private fun updateSpeedPill(speed: Int) {
+        try {
+            if (_binding == null) return
+            val mph = (speed * 0.621371).toInt()
+            binding.tvSpeedValue.text = "$mph mph"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating speed pill: ${e.message}")
         }
     }
 

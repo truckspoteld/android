@@ -732,6 +732,7 @@ class ReportsFragment : Fragment() {
             .show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun showPaperLogsEmailDialog() {
         val input = EditText(requireContext()).apply {
             hint = "Enter email address"

@@ -661,6 +661,15 @@ public class TrackerManagerActivity extends BleProfileServiceReadyActivity<Track
     @Override
     public void onDeviceConnected(final BluetoothDevice device) {
         super.onDeviceConnected(device);
+        // Persist the last connected ELD device so the reconnect dialog can use it
+        try {
+            com.eagleye.eld.utils.PrefRepository prefRepo =
+                    new com.eagleye.eld.utils.PrefRepository(getApplicationContext());
+            String deviceName = device.getName() != null ? device.getName() : "ELD Device";
+            prefRepo.setLastEldDevice(deviceName, device.getAddress());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save ELD device info: " + e.getMessage());
+        }
         _onConnected();
     }
 

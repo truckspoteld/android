@@ -181,4 +181,13 @@
     <color name="strockColor">#E7E7E7</color>
     <color name="home_bg_blue_light">#EBF3FF</color>
 
+    <!-- ELD Reconnect Dialog -->
+    <color name="eld_dialog_bg">#FFFFFF</color>
+    <color name="eld_connect_btn_start">#2D7BFE</color>
+    <color name="eld_connect_btn_end">#10B9B2</color>
+    <color name="eld_bluetooth_glow">#1A2D7BFE</color>
+    <color name="eld_device_card_bg">#F5F9FF</color>
+    <color name="eld_device_card_stroke">#E0EAFF</color>
+
 </resources>
+

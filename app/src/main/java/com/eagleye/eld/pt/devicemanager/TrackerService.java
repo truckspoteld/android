@@ -55,6 +55,7 @@ import com.eagleye.eld.R;
 import com.eagleye.eld.repository.DashboardRepository;
 import com.eagleye.eld.request.AddLogRequest;
 import com.eagleye.eld.utils.PrefRepository;
+import com.eagleye.eld.utils.TelemetryLogValueUtils;
 
 import java.util.List;
 
@@ -239,16 +240,17 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             String mode = "d";
             AddLogRequest logRequest = new AddLogRequest(
                     mode,
-                    mTm.mOdometer,
+                    TelemetryLogValueUtils.normalizeOdometerForLog(mTm.mOdometer, prefRepository.getDiffinOdo()),
                     mTm.mGeoloc.latitude,
                     mTm.mGeoloc.longitude,
                     true,
-                    mTm.mEngineHours,
+                    TelemetryLogValueUtils.normalizeEngineHoursForLog(mTm.mEngineHours, prefRepository.getDiffinEng()),
                     "1C6RREHT5NN451094",
                     1,
                     1,
                     1,
                     1, "", "",
+                    isConnected() ? "connected" : "disconnected",
                     "");
             // Execute API call on background thread to prevent ANR
             new Thread(() -> {
@@ -508,11 +510,12 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             lastPushedEngineState = persistedState;
         }
 
-        // Initialize: record the first observed state so the NEXT change can be logged
-        if (lastPushedEngineState.isEmpty()) {
+        // Initialize: if engine is OFF during first telemetry, just record it.
+        // If engine is ON, we want to log it immediately, so we don't return early.
+        if (lastPushedEngineState.isEmpty() && currentState.equals("eng_off")) {
             lastPushedEngineState = currentState;
             prefRepository.setLastEngineState(currentState);
-            Log.d(TAG, "Engine state initialized to: " + currentState + " (RPM=" + rpm + ")");
+            Log.d(TAG, "Engine state initialized to eng_off (RPM=" + rpm + ")");
             return;
         }
 
@@ -546,6 +549,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         TelemetryEvent te = AppModel.getInstance().mLastEvent;
         double defaultLat = 0.0;
         double defaultLong = 0.0;
+        boolean hasTelemetryLocation = false;
         if (te != null && te.mGeoloc != null) {
             if (te.mGeoloc.latitude != null) {
                 defaultLat = te.mGeoloc.latitude.doubleValue();
@@ -553,29 +557,38 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             if (te.mGeoloc.longitude != null) {
                 defaultLong = te.mGeoloc.longitude.doubleValue();
             }
+            hasTelemetryLocation = defaultLat != 0.0 || defaultLong != 0.0;
         }
 
         String vin = AppModel.getInstance().mPT30Vin;
         if (vin == null || vin.equals("n/a") || vin.isEmpty()) {
             if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
                 vin = AppModel.getInstance().mVehicleInfo.VIN;
-            } else {
-                vin = "1HGCM82633A004352";
             }
+//            else {
+//               // vin = "1HGCM82633A004352";
+//            }
         }
 
         AddLogRequest logRequest = new AddLogRequest(
                 currentState,
-                (te != null && te.mOdometer != null && !te.mOdometer.isEmpty()) ? te.mOdometer : "0.0",
+                TelemetryLogValueUtils.normalizeOdometerForLog(
+                        te != null ? te.mOdometer : null,
+                        prefRepository.getDiffinOdo()
+                ),
                 defaultLat,
                 defaultLong,
-                true,
-                (te != null && te.mEngineHours != null && !te.mEngineHours.isEmpty()) ? te.mEngineHours : "0.0",
+                hasTelemetryLocation,
+                TelemetryLogValueUtils.normalizeEngineHoursForLog(
+                        te != null ? te.mEngineHours : null,
+                        prefRepository.getDiffinEng()
+                ),
                 vin,
                 1,
                 1,
                 1,
                 1, "", "",
+                isConnected() ? "connected" : "disconnected",
                 "");
 
         new Thread(() -> {

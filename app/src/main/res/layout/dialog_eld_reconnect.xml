@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/eld_dialog_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_eld_dialog"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Close Button (top-right) -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/btn_dialog_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:background="@drawable/bg_modern_card"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/home_text_sub" />
+    </RelativeLayout>
+
+    <!-- Bluetooth Icon with Pulsing Glow -->
+    <FrameLayout
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp">
+
+        <!-- Outer glow ring (larger, more transparent) -->
+        <View
+            android:id="@+id/iv_bt_glow_outer"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_bluetooth_glow"
+            android:alpha="0.4" />
+
+        <!-- Inner glow ring -->
+        <View
+            android:id="@+id/iv_bt_glow_inner"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_bluetooth_glow"
+            android:alpha="0.7" />
+
+        <!-- Bluetooth icon -->
+        <ImageView
+            android:id="@+id/iv_bluetooth_icon"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_sign_in_button"
+            android:padding="12dp"
+            android:src="@drawable/ic_bluetooth_disconnected"
+            app:tint="@color/white" />
+
+    </FrameLayout>
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_eld_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:text="ELD Device Found"
+        android:textColor="@color/home_text_main"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tv_eld_dialog_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:text="Your previously connected ELD device is available. Reconnect to start logging."
+        android:textColor="@color/home_text_sub"
+        android:textSize="14sp"
+        android:lineSpacingExtra="2dp" />
+
+    <!-- Device List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_bluetooth_devices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <!-- Scanning Indicator -->
+    <LinearLayout
+        android:id="@+id/ll_scanning_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="visible">
+
+        <ProgressBar
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:indeterminateTint="@color/nav_icon_active" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="Scanning for nearby ELDs..."
+            android:textColor="@color/home_text_sub"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Scan New Device Button (Secondary) -->
+    <Button
+        android:id="@+id/btn_eld_scan_new"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_scan_button"
+        android:fontFamily="sans-serif-medium"
+        android:stateListAnimator="@null"
+        android:text="Scan for New Device"
+        android:textColor="@color/nav_icon_active"
+        android:textSize="15sp" />
+
+    <!-- Skip link -->
+    <TextView
+        android:id="@+id/tv_eld_skip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="center"
+        android:padding="6dp"
+        android:text="Skip for now"
+        android:textColor="@color/home_text_sub"
+        android:textSize="13sp" />
+
+</LinearLayout>

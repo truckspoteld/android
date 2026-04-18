@@ -2,20 +2,34 @@ package com.eagleye.eld.fragment
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.AnimationUtils
 import android.view.animation.OvershootInterpolator
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import com.daimajia.androidanimations.library.Techniques
@@ -47,7 +61,15 @@ import com.eagleye.eld.utils.NetworkResult
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import android.view.LayoutInflater
+import androidx.annotation.RequiresPermission
+import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat
+import no.nordicsemi.android.support.v18.scanner.ScanCallback
+import no.nordicsemi.android.support.v18.scanner.ScanResult
+import no.nordicsemi.android.support.v18.scanner.ScanSettings
+import com.pt.sdk.Uart
+
 
 
 @AndroidEntryPoint
@@ -81,6 +103,16 @@ class Dashboard : AppCompatActivity() {
         }
         prefRepository = PrefRepository(this)
         checkAndRequestBluetoothPermission()
+
+        // Show ELD reconnect dialog after login
+        if (prefRepository.getJustLoggedIn()) {
+            prefRepository.setJustLoggedIn(false)
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!isFinishing && !isDestroyed) {
+                    showEldReconnectDialog()
+                }
+            }, 800L)
+        }
 
         binding.appBarDashboard.menuicon.setOnClickListener {
             binding.drawerLayout.open()
@@ -311,6 +343,7 @@ class Dashboard : AppCompatActivity() {
                     )
                     glat = loc.latitude
                     glong = loc.longitude
+                    lastPhoneLocationAtMs = System.currentTimeMillis()
                     gSpeed = loc.speed
                     insertInDrive(loc)
                 }
@@ -352,6 +385,171 @@ class Dashboard : AppCompatActivity() {
 
 
     }
+    // ─────────────────────────────────────────────────────────────────────
+    //  ELD Reconnect Dialog
+    // ─────────────────────────────────────────────────────────────────────
+
+    @SuppressLint("MissingPermission")
+    private fun showEldReconnectDialog() {
+        // We show the dialog to allow scanning even if no previous device is found
+        // but we can still log info about saved devices.
+        val savedName = prefRepository.getLastEldDeviceName()
+        val savedAddress = prefRepository.getLastEldDeviceAddress()
+        
+        Log.d("Dashboard", "Showing ELD dialog. Last saved: $savedName ($savedAddress)")
+
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setContentView(R.layout.dialog_eld_reconnect)
+
+        // Transparent background so our rounded drawable shows
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.90).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        // ── Wire up views ──────────────────────────────────────────────
+        val rvDevices       = dialog.findViewById<RecyclerView>(R.id.rv_bluetooth_devices)
+        val llScanning      = dialog.findViewById<LinearLayout>(R.id.ll_scanning_indicator)
+        val ivBluetooth     = dialog.findViewById<ImageView>(R.id.iv_bluetooth_icon)
+        val glowOuter       = dialog.findViewById<View>(R.id.iv_bt_glow_outer)
+        val glowInner       = dialog.findViewById<View>(R.id.iv_bt_glow_inner)
+        val btnScanNew      = dialog.findViewById<Button>(R.id.btn_eld_scan_new)
+        val tvSkip          = dialog.findViewById<TextView>(R.id.tv_eld_skip)
+        val btnClose        = dialog.findViewById<ImageView>(R.id.btn_dialog_close)
+        val dialogRoot      = dialog.findViewById<LinearLayout>(R.id.eld_dialog_root)
+
+        // ── Setup List & Adapter ───────────────────────────────────────
+        val deviceList = mutableListOf<ScanResult>()
+        var scanCallback: ScanCallback? = null
+
+        val adapter = EldDeviceAdapter(deviceList) { selectedResult ->
+            // Stop scan and connect
+            scanCallback?.let { 
+                BluetoothLeScannerCompat.getScanner().stopScan(it) 
+            }
+            dialog.dismiss()
+            val intent = Intent(this, TrackerManagerActivity::class.java).apply {
+                putExtra("auto_connect_address", selectedResult.device.address)
+                putExtra("auto_connect_name", selectedResult.scanRecord?.deviceName ?: selectedResult.device.name)
+            }
+            startActivity(intent)
+        }
+        rvDevices.adapter = adapter
+
+        // ── Bluetooth Scanning Logic ──────────────────────────────────
+        scanCallback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                if (deviceList.none { it.device.address == result.device.address }) {
+                    deviceList.add(result)
+                    adapter.notifyItemInserted(deviceList.size - 1)
+                    llScanning.visibility = View.GONE
+                }
+            }
+
+            override fun onBatchScanResults(results: MutableList<ScanResult>) {
+                for (result in results) {
+                    if (deviceList.none { it.device.address == result.device.address }) {
+                        deviceList.add(result)
+                    }
+                }
+                adapter.notifyDataSetChanged()
+                if (deviceList.isNotEmpty()) llScanning.visibility = View.GONE
+            }
+        }
+
+        // Start scanning with filter for ELD service (UART RX)
+        val scanner = BluetoothLeScannerCompat.getScanner()
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(1000)
+            .build()
+        
+        try {
+            scanCallback?.let { scanner.startScan(null, settings, it) }
+        } catch (e: Exception) {
+            Log.e("Dashboard", "Scan failed: ${e.message}")
+        }
+
+        // Auto-stop scan after 10 seconds
+        Handler(Looper.getMainLooper()).postDelayed({
+            scanCallback?.let { scanner.stopScan(it) }
+            llScanning.visibility = View.GONE
+        }, 10000L)
+
+        // ── Entrance animation ─────────────────────────────────────────
+        val slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up_dialog)
+        dialogRoot.startAnimation(slideUp)
+
+        // ── Pulse animations on icon and glow rings ────────────────────
+        val pulseAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth)
+        ivBluetooth.startAnimation(pulseAnim)
+
+        val glowOuterAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth).apply {
+            startOffset = 150L
+        }
+        glowOuter.startAnimation(glowOuterAnim)
+
+        val glowInnerAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth).apply {
+            startOffset = 75L
+        }
+        glowInner.startAnimation(glowInnerAnim)
+
+        // ── Button click: Scan new device ──────────────────────────────
+        btnScanNew.setOnClickListener {
+            scanCallback?.let { scanner.stopScan(it) }
+            dialog.dismiss()
+            startActivity(Intent(this, TrackerManagerActivity::class.java))
+        }
+
+        // ── Dismiss actions ────────────────────────────────────────────
+        tvSkip.setOnClickListener   { 
+            scanCallback?.let { scanner.stopScan(it) }
+            dialog.dismiss() 
+        }
+        btnClose.setOnClickListener { 
+            scanCallback?.let { scanner.stopScan(it) }
+            dialog.dismiss() 
+        }
+
+        dialog.show()
+    }
+
+    // ── Device Adapter for RecyclerView ────────────────────────────────
+    private inner class EldDeviceAdapter(
+        private val devices: List<ScanResult>,
+        private val onPairClick: (ScanResult) -> Unit
+    ) : RecyclerView.Adapter<EldDeviceAdapter.ViewHolder>() {
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val tvName: TextView = view.findViewById(R.id.tv_item_device_name)
+            val tvAddress: TextView = view.findViewById(R.id.tv_item_device_address)
+            val btnPair: Button = view.findViewById(R.id.btn_item_pair)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_bluetooth_device, parent, false)
+            return ViewHolder(view)
+        }
+
+        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val result = devices[position]
+            val deviceName = result.scanRecord?.deviceName ?: result.device.name ?: "Unknown ELD"
+            holder.tvName.text = deviceName
+            holder.tvAddress.text = result.device.address
+            holder.btnPair.setOnClickListener { onPairClick(result) }
+        }
+
+        override fun getItemCount() = devices.size
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Bluetooth permissions
+    // ─────────────────────────────────────────────────────────────────────
+
     private fun checkAndRequestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12+
             val permissions = mutableListOf(
@@ -416,6 +614,93 @@ class Dashboard : AppCompatActivity() {
     var glat: Double? = null
     var glong: Double? = null
     var gSpeed: Float = 0f
+    var lastPhoneLocationAtMs: Long = 0L
+
+    fun getFreshPhoneLocation(maxAgeMs: Long = 2 * 60 * 1000L): Pair<Double, Double>? {
+        val lat = glat
+        val long = glong
+        val isFresh = lastPhoneLocationAtMs > 0L &&
+            System.currentTimeMillis() - lastPhoneLocationAtMs <= maxAgeMs
+
+        return if (lat != null && long != null && isFresh) {
+            lat to long
+        } else {
+            null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun fetchCurrentGeoLocation(onLocationResolved: (Pair<Double, Double>?) -> Unit) {
+        val hasFine = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFine && !hasCoarse) {
+            Log.w(TAG, "fetchCurrentGeoLocation: No location permissions granted")
+            onLocationResolved(null)
+            return
+        }
+
+        if (fusedClient == null) {
+            fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        }
+
+        fusedClient?.lastLocation
+            ?.addOnSuccessListener { location ->
+                if (location != null) {
+                    Log.d(TAG, "fetchCurrentGeoLocation: lastLocation success lat=${location.latitude}, lng=${location.longitude}")
+                    glat = location.latitude
+                    glong = location.longitude
+                    lastPhoneLocationAtMs = System.currentTimeMillis()
+                    gSpeed = location.speed
+                    onLocationResolved(location.latitude to location.longitude)
+                } else {
+                    // lastLocation was null — fire a fresh one-shot request
+                    Log.w(TAG, "fetchCurrentGeoLocation: lastLocation null, requesting fresh location...")
+                    requestFreshLocation(onLocationResolved)
+                }
+            }
+            ?.addOnFailureListener { e ->
+                Log.e(TAG, "fetchCurrentGeoLocation: lastLocation failed: ${e.message}")
+                requestFreshLocation(onLocationResolved)
+            }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestFreshLocation(onLocationResolved: (Pair<Double, Double>?) -> Unit) {
+        if (fusedClient == null) {
+            fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        }
+
+        // Try getCurrentLocation first (API 21+)
+        val cancellationTokenSource = com.google.android.gms.tasks.CancellationTokenSource()
+        fusedClient?.getCurrentLocation(
+            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+            cancellationTokenSource.token
+        )
+            ?.addOnSuccessListener { location ->
+                if (location != null) {
+                    Log.d(TAG, "requestFreshLocation: success lat=${location.latitude}, lng=${location.longitude}")
+                    glat = location.latitude
+                    glong = location.longitude
+                    lastPhoneLocationAtMs = System.currentTimeMillis()
+                    gSpeed = location.speed
+                    onLocationResolved(location.latitude to location.longitude)
+                } else {
+                    Log.w(TAG, "requestFreshLocation: getCurrentLocation returned null, using cached")
+                    onLocationResolved(getFreshPhoneLocation())
+                }
+            }
+            ?.addOnFailureListener { e ->
+                Log.e(TAG, "requestFreshLocation: getCurrentLocation failed: ${e.message}")
+                onLocationResolved(getFreshPhoneLocation())
+            }
+    }
 
     @SuppressLint("MissingPermission")
     private fun locationWizardry() {
@@ -427,6 +712,7 @@ class Dashboard : AppCompatActivity() {
                     location.provider + ":Accu:(" + location.accuracy + "). Lat:" + location.latitude + ",Lon:" + location.longitude
                 glat = location.latitude
                 glong = location.longitude
+                lastPhoneLocationAtMs = System.currentTimeMillis()
                 gSpeed = location.speed
                 insertInDrive(location)
             }

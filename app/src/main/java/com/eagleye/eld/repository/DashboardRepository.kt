@@ -658,7 +658,8 @@ class DashboardRepository @Inject constructor(
         try {
             val response = truckSpotAPI.addLog(addLogRequest)
             if(response.isSuccessful && response.body() != null){
-                Log.d("DashboardRepository", "addLog: Success")
+                val responseBody = Gson().toJson(response.body())
+                Log.d("DashboardRepository", "addLog: Success - Response: $responseBody")
                 _addLog.postValue(NetworkResult.Success(response.body()!!))
             } else if(response.errorBody() != null){
                 val errorJson = response.errorBody()?.string()
@@ -667,6 +668,7 @@ class DashboardRepository @Inject constructor(
                 } catch (e: Exception) {
                     "Network error occurred"
                 }
+                Log.w("DashboardRepository", "addLog: Error - $errorMessage")
                 _addLog.postValue(NetworkResult.Error(errorMessage))
             } else {
                 _addLog.postValue(NetworkResult.Error("Network Error"))
@@ -682,7 +684,12 @@ class DashboardRepository @Inject constructor(
         _logResponseLiveData.postValue(NetworkResult.Loading())
         try {
             val response = truckSpotAPI.addLogUnauth(addLogRequest)
-            Log.d(TAG, response.body().toString())
+            if (response.isSuccessful && response.body() != null) {
+                val responseBody = Gson().toJson(response.body())
+                Log.d("DashboardRepository", "addLogUnauth: Success - Response: $responseBody")
+            } else {
+                Log.w("DashboardRepository", "addLogUnauth: Error - ${response.code()}")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in addLogUnauth: ${e.message}", e)
             _logResponseLiveData.postValue(NetworkResult.Error("Network error: ${e.message}"))

@@ -35,6 +35,7 @@ import com.eagleye.eld.models.GetLogsByDateResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.utils.AlertCalculationUtils.setDateAndTimeBasedOnTimezone
 import com.eagleye.eld.utils.AlertCalculationUtils.formatTimeWithTimezone
+import com.eagleye.eld.utils.TelemetryLogValueUtils
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -160,20 +161,10 @@ class LogAdaptor  (
         viewHolder.statusIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(statusColor)
         
         // Odometer
-        val odometerValue = userLog.odometerreading.toDoubleOrNull()
-        viewHolder.tvOdo.text = if (odometerValue != null) {
-            String.format(Locale.US, "%.1f", odometerValue)
-        } else {
-            userLog.odometerreading.ifEmpty { "0.0" }
-        }
+        viewHolder.tvOdo.text = TelemetryLogValueUtils.formatLogValueForDisplay(userLog.odometerreading)
 
         // Engine Hours
-        val engHoursValue = userLog.eng_hours.toDoubleOrNull()
-        viewHolder.tvEng.text = if (engHoursValue != null) {
-            String.format(Locale.US, "%.1f", engHoursValue)
-        } else {
-            userLog.eng_hours.ifEmpty { "0.0" }
-        }
+        viewHolder.tvEng.text = TelemetryLogValueUtils.formatLogValueForDisplay(userLog.eng_hours)
 
         // Unit Number
         viewHolder.tvUnit.text = if (!userLog.powerunitnumber.isNullOrEmpty()) {
@@ -185,14 +176,15 @@ class LogAdaptor  (
         // Location - Cleaned up
         val fullLocation = userLog.location ?: ""
         val cleanLocation = extractCityAndState(fullLocation)
-        var locText = if (cleanLocation.isNotEmpty()) cleanLocation else fullLocation
+        val baseLocationText = if (cleanLocation.isNotEmpty()) cleanLocation else fullLocation
+        var locText = baseLocationText.ifBlank { "Location unavailable" }
         
         if (isPersonal) {
             locText = "(PC) $locText"
         } else if (isYard) {
             locText = "(YM) $locText"
         }
-        
+
         viewHolder.tvLocation.text = locText
         
         // Origin

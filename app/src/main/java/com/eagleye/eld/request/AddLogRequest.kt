@@ -16,6 +16,7 @@ data class AddLogRequest(
     val eventtype: Int = 1,
     val date: String = "",
     val time: String = "",
+    val connection_status: String = "",
     var discreption: String = ""
 )
 //{

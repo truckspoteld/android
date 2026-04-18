@@ -296,6 +296,20 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         editor.commit()
     }
 
+    fun setLastEldDevice(name: String, address: String) {
+        PREF_LAST_ELD_DEVICE_NAME.put(name)
+        PREF_LAST_ELD_DEVICE_ADDRESS.put(address)
+    }
+
+    fun getLastEldDeviceName(): String = PREF_LAST_ELD_DEVICE_NAME.getString()
+    fun getLastEldDeviceAddress(): String = PREF_LAST_ELD_DEVICE_ADDRESS.getString()
+
+    fun setJustLoggedIn(isJustLoggedIn: Boolean) {
+        PREF_JUST_LOGGED_IN.put(isJustLoggedIn)
+    }
+
+    fun getJustLoggedIn(): Boolean = PREF_JUST_LOGGED_IN.getBoolean()
+
     fun clearData() {
         editor.clear()
         editor.commit()

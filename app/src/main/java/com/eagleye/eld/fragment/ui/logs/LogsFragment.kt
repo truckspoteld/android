@@ -270,8 +270,10 @@ class LogsFragment : Fragment() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun setupObservers() {
         logViewMode.logByDateLiveData.observe(viewLifecycleOwner) { result ->
+            Log.d("LogsFragment", "logByDateLiveData observer: result status=${result.javaClass.simpleName}")
             when (result) {
                 is NetworkResult.Loading -> {
+                    Log.d("LogsFragment", "Logs Loading...")
                     showLoading(true)
                     showError(false)
                     disableNavigation(true)
@@ -361,6 +363,7 @@ class LogsFragment : Fragment() {
                     binding.eldPlot.totalHours.text = formatTimeFromSeconds(off + sb + d + on)
                 }
                 is NetworkResult.Error -> {
+                    Log.e("LogsFragment", "Logs Error: ${result.message ?: "Unknown error"}")
                     showLoading(false)
                     showError(true, result.message ?: "Unknown error occurred")
                     disableNavigation(false)
@@ -428,10 +431,13 @@ class LogsFragment : Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadInitialData() {
+        Log.d("LogsFragment", "loadInitialData: timeZone='$timeZone', days=$days")
         if(timeZone.isEmpty()){
+            Log.w("LogsFragment", "loadInitialData: timeZone is empty, skipping load")
             return
         }
         val requestDate = getDateForDaysOffset(days, "")
+        Log.d("LogsFragment", "loadInitialData: requestDate='$requestDate'")
         loadLogsForDate(requestDate, updateAutoRefresh = true)
         
         homeViewModel.getDriverReview(requireContext())

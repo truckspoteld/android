@@ -31,6 +31,9 @@ import com.eagleye.eld.utils.PrefRepository
 import com.daimajia.androidanimations.library.Techniques
 import com.daimajia.androidanimations.library.YoYo
 import com.eagleye.eld.viewmodel.LoginViewModel
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -41,16 +44,14 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var prefRepository: PrefRepository
     private lateinit var sharedPreferences: SharedPreferences
     private var connection: Boolean = false
+    private var fusedLocationClient: FusedLocationProviderClient? = null
 
-    // ⚙️ Runtime permission launcher (Android 12+)
-    private val bluetoothPermissionLauncher =
+    // ⚙️ Runtime permission launcher
+    private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val granted = permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
-            if (granted) {
-                goToTrackerManager()
-            } else {
-                Toast.makeText(this, "Bluetooth permission is required!", Toast.LENGTH_LONG).show()
-            }
+            // We proceed to tracker manager regardless of grant status for now, 
+            // but location-aware features will fallback gracefully if denied.
+            goToTrackerManager()
         }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -74,10 +75,11 @@ class LoginActivity : AppCompatActivity() {
         // ✅ Already logged in
         if (prefRepository.getRememberMe() && prefRepository.getLoggedIn() && prefRepository.getToken().isNotEmpty()) {
             if (connection) {
+                prefRepository.setJustLoggedIn(true)
                 goToDashboard()
             } else {
                 saveData("saveConnection", true)
-                checkBluetoothPermissionsAndProceed()
+                checkAllPermissionsAndProceed()
             }
             return
         }
@@ -135,20 +137,26 @@ class LoginActivity : AppCompatActivity() {
         return sharedPreferences.getBoolean(key, defaultValue)
     }
 
-    private fun checkBluetoothPermissionsAndProceed() {
+    private fun checkAllPermissionsAndProceed() {
+        val permissions = mutableListOf<String>()
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val hasConnect = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-            if (hasConnect != PackageManager.PERMISSION_GRANTED) {
-                bluetoothPermissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.BLUETOOTH_CONNECT,
-                        Manifest.permission.BLUETOOTH_SCAN
-                    )
-                )
-                return
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+                permissions.add(Manifest.permission.BLUETOOTH_SCAN)
             }
         }
-        goToTrackerManager()
+        
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+
+        if (permissions.isNotEmpty()) {
+            permissionLauncher.launch(permissions.toTypedArray())
+        } else {
+            goToTrackerManager()
+        }
     }
 
     private fun goToTrackerManager() {
@@ -182,20 +190,7 @@ class LoginActivity : AppCompatActivity() {
                             if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
                         }
 
-                        val logRequest = AddLogRequest(
-                            modename = "login",
-                            odometerreading = "0.0",
-                            lat = 0.0,
-                            long = 0.0,
-                            location = true,
-                            eng_hours = "10",
-                            vin = "1111",
-                            is_active = 1,
-                            is_autoinsert = 1,
-                            eventcode = 1,
-                            eventtype = 1
-                        )
-                        homeViewModel.logUser(logRequest, this)
+                        fetchLocationAndSendLoginLog()
 
                         if (binding.rememberme.isChecked) {
                             prefRepository.setRememberMe(true)
@@ -208,10 +203,11 @@ class LoginActivity : AppCompatActivity() {
                         }
 
                         if (connection) {
+                            prefRepository.setJustLoggedIn(true)
                             goToDashboard()
                         } else {
                             saveData("saveConnection", true)
-                            checkBluetoothPermissionsAndProceed()
+                            checkAllPermissionsAndProceed()
                         }
                     } else {
                         showValidationErrors(it.data.message)
@@ -279,5 +275,66 @@ class LoginActivity : AppCompatActivity() {
                     .start()
             }
             .start()
+    }
+    @SuppressLint("MissingPermission")
+    private fun fetchLocationAndSendLoginLog() {
+        if (fusedLocationClient == null) {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        }
+
+        val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFine && !hasCoarse) {
+            Log.w("LoginActivity", "Location permissions not granted, sending login log with 0,0")
+            sendLog(0.0, 0.0, false)
+            return
+        }
+
+        fusedLocationClient?.lastLocation?.addOnSuccessListener { location ->
+            if (location != null) {
+                Log.d("LoginActivity", "Login Location (last): ${location.latitude}, ${location.longitude}")
+                sendLog(location.latitude, location.longitude, true)
+            } else {
+                Log.d("LoginActivity", "lastLocation null, trying getCurrentLocation")
+                val cancellationTokenSource = com.google.android.gms.tasks.CancellationTokenSource()
+                fusedLocationClient?.getCurrentLocation(
+                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                    cancellationTokenSource.token
+                )?.addOnSuccessListener { loc ->
+                    if (loc != null) {
+                        Log.d("LoginActivity", "Login Location (fresh): ${loc.latitude}, ${loc.longitude}")
+                        sendLog(loc.latitude, loc.longitude, true)
+                    } else {
+                        Log.w("LoginActivity", "Location still null, sending 0,0")
+                        sendLog(0.0, 0.0, false)
+                    }
+                }?.addOnFailureListener {
+                    Log.e("LoginActivity", "getCurrentLocation failed: ${it.message}")
+                    sendLog(0.0, 0.0, false)
+                }
+            }
+        }?.addOnFailureListener {
+            Log.e("LoginActivity", "lastLocation failed: ${it.message}")
+            sendLog(0.0, 0.0, false)
+        }
+    }
+
+    private fun sendLog(lat: Double, lng: Double, hasLocation: Boolean) {
+        val logRequest = AddLogRequest(
+            modename = "login",
+            odometerreading = "0.0",
+            lat = lat,
+            long = lng,
+            location = hasLocation,
+            eng_hours = "10",
+            vin = "1111",
+            is_active = 1,
+            is_autoinsert = 1,
+            eventcode = 1,
+            eventtype = 1,
+            connection_status = "disconnected"
+        )
+        homeViewModel.logUser(logRequest, this)
     }
 }

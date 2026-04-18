@@ -138,6 +138,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastPauseTime: Long = 0
     private val API_CALL_DEBOUNCE_MS = 30000L // 30 seconds debounce for API calls
     private val LONG_PAUSE_THRESHOLD_MS = 60000L // 1 minute - considered long pause
+    private val DRIVE_DETECTION_THRESHOLD_KMH = 8 // ~5 mph threshold for auto-driving
     private var isFetchingLogs = false // Flag to prevent concurrent API calls
 
     var hrs_MODE_OFF = 0.0
@@ -367,9 +368,9 @@ class HomeFragment : Fragment(), OnClickListener {
             R.color.blue
         )
         
-        // Set OFF mode as default on initial load
-        homeViewModel.trackingMode.set(MODE_OFF)
-        updateUI(binding.btnOff)
+        // Restore the last known duty mode so disconnected sessions don't jump back to OFF.
+        updateDrivingButtonAvailability()
+        restoreSelectedModeFromState()
         
         updateShipmentInfoUI()
         loadShipmentContext()
@@ -465,7 +466,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     Log.d(TAG, "Mode UI updated despite API error - user can still use the app")
                 }
                 is NetworkResult.Loading<*> -> {
-                    Log.d(TAG, "⏳ addLogReponse LOADING")
+                    Log.d(TAG, "⏳ addLogRepose LOADING")
                     binding.progressBar.visibility = View.VISIBLE
                 }
             }
@@ -648,6 +649,54 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    private data class LogLocationPayload(
+        val latitude: Double,
+        val longitude: Double,
+        val shouldSendLocation: Boolean
+    )
+
+    private fun hasValidCoordinates(latitude: Double?, longitude: Double?): Boolean {
+        if (latitude == null || longitude == null) return false
+        if (latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return false
+        return !(latitude == 0.0 && longitude == 0.0)
+    }
+
+    private fun resolveTrackerLocationPayload(): LogLocationPayload {
+        val lastTelemetryEvent = AppModel.getInstance().mLastEvent
+        val trackerLatitude = lastTelemetryEvent?.mGeoloc?.latitude?.toDouble()
+        val trackerLongitude = lastTelemetryEvent?.mGeoloc?.longitude?.toDouble()
+
+        if (hasValidCoordinates(trackerLatitude, trackerLongitude)) {
+            return LogLocationPayload(
+                latitude = trackerLatitude!!,
+                longitude = trackerLongitude!!,
+                shouldSendLocation = true
+            )
+        }
+
+        return LogLocationPayload(
+            latitude = 0.0,
+            longitude = 0.0,
+            shouldSendLocation = false
+        )
+    }
+
+    private fun resolvePhoneLocationPayload(phoneLocation: Pair<Double, Double>?): LogLocationPayload {
+        if (phoneLocation != null && hasValidCoordinates(phoneLocation.first, phoneLocation.second)) {
+            return LogLocationPayload(
+                latitude = phoneLocation.first,
+                longitude = phoneLocation.second,
+                shouldSendLocation = true
+            )
+        }
+
+        return LogLocationPayload(
+            latitude = 0.0,
+            longitude = 0.0,
+            shouldSendLocation = false
+        )
+    }
+
     private fun getButtonForMode(mode: String): com.google.android.material.card.MaterialCardView? {
         return when (mode) {
             TRUCK_MODE_OFF -> binding.btnOff
@@ -660,12 +709,48 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    private fun isDrivingModeAllowed(): Boolean {
+        return !isNeedToconnect && AppModel.getInstance().mLastEvent != null
+    }
+
+    private fun sanitizeModeForCurrentConnection(mode: String): String {
+        val normalizedMode = resolveActualMode(mode)
+        return if (!isDrivingModeAllowed() && normalizedMode == TRUCK_MODE_DRIVING) {
+            TRUCK_MODE_ON
+        } else {
+            normalizedMode
+        }
+    }
+
+    private fun updateDrivingButtonAvailability() {
+        if (_binding == null) return
+
+        val isEnabled = isDrivingModeAllowed()
+        binding.btnDrive.isEnabled = isEnabled
+        binding.btnDrive.isClickable = isEnabled
+        binding.btnDrive.isFocusable = isEnabled
+        binding.btnDrive.alpha = if (isEnabled) 1f else 0.45f
+        binding.tvDrive.alpha = if (isEnabled) 1f else 0.6f
+    }
+
+    private fun restoreSelectedModeFromState() {
+        val persistedMode = prefRepository.getMode().trim().lowercase(Locale.US)
+        val modeToRestore = if (persistedMode in relevantLogTypes) {
+            persistedMode
+        } else {
+            TRUCK_MODE_OFF
+        }
+        applySelectedMode(sanitizeModeForCurrentConnection(modeToRestore))
+    }
+
     private fun applySelectedMode(mode: String) {
-        selectedLog = mode
-        lastLog = mode
-        prefRepository.setMode(mode)
-        updateTrackingModeForSelection(mode)
-        updateUI(getButtonForMode(mode))
+        val sanitizedMode = sanitizeModeForCurrentConnection(mode)
+        selectedLog = sanitizedMode
+        lastLog = sanitizedMode
+        prefRepository.setMode(sanitizedMode)
+        updateTrackingModeForSelection(sanitizedMode)
+        updateDrivingButtonAvailability()
+        updateUI(getButtonForMode(sanitizedMode))
     }
 
     private fun markPendingModeSelection(mode: String) {
@@ -1032,8 +1117,8 @@ class HomeFragment : Fragment(), OnClickListener {
             TRUCK_MODE_YARD
         )
 
-        if (speed > 0 && currentMode in modesThatMustSwitchToDriving) {
-            Log.d(TAG, "🚗 Truck is moving in '$currentMode' mode — switching to DRIVE")
+        if (speed >= DRIVE_DETECTION_THRESHOLD_KMH && currentMode in modesThatMustSwitchToDriving) {
+            Log.d(TAG, "🚗 Truck is moving ($speed km/h) in '$currentMode' mode — switching to DRIVE")
             lastLog = TRUCK_MODE_DRIVING
             activity?.runOnUiThread {
                 updateUI(binding.btnDrive)
@@ -1067,6 +1152,14 @@ class HomeFragment : Fragment(), OnClickListener {
     @SuppressLint("SuspiciousIndentation", "DefaultLocale")
     private fun updateModeChange(hoursLast: Double, mode: String, selectedOptionText: String) {
         try {
+            if (mode == TRUCK_MODE_DRIVING && !isDrivingModeAllowed()) {
+                Log.d(TAG, "Blocked DR mode change because tracker is disconnected")
+                if (isAdded) {
+                    showValidationErrors("Driving mode is only available when a tracker is connected.")
+                }
+                updateDrivingButtonAvailability()
+                return
+            }
             if (mode == TRUCK_MODE_DRIVING) {
                 prefRepository.setShowUnidentifiedDialog(false)
             }
@@ -1077,50 +1170,22 @@ class HomeFragment : Fragment(), OnClickListener {
             if (_binding != null) {
                 updateClockDisplay()
             }
-            val vin_no = AppModel.getInstance().mVehicleInfo?.VIN ?: "1HGCM82633A004352"
+            val vin_no = AppModel.getInstance().mVehicleInfo?.VIN
             val te = AppModel.getInstance().mLastEvent
-            val defaultLatitude = (activity as? Dashboard)?.glat ?: 0.0
-            val defaultLongitude = (activity as? Dashboard)?.glong ?: 0.0
 
-            val odoact = prefRepository.getDiffinOdo().toDoubleOrNull() ?: 0.0
-            val engact = prefRepository.getDiffinEng().toDoubleOrNull() ?: 0.0
-            val teOdometer = te?.mOdometer?.toDoubleOrNull() ?: 1.0
-            val teEngineHours = te?.mEngineHours?.toDoubleOrNull() ?: 1.0
-
-            var odometer_updated = teOdometer
-            var enghour_updated = teEngineHours
-            if (odoact != 0.0 && engact != 0.0) {
-                odometer_updated = teOdometer - odoact
-                enghour_updated = teEngineHours - engact
-            }
-
-            val miles = ((odometer_updated - getDouble(prefRepository.getDiffinOdo())) * 0.621371)
-            val roundedMiles = String.format("%.2f", miles)
+            val normalizedOdometer = TelemetryLogValueUtils.normalizeOdometerForLog(
+                te?.mOdometer,
+                prefRepository.getDiffinOdo()
+            )
+            val normalizedEngineHours = TelemetryLogValueUtils.normalizeEngineHoursForLog(
+                te?.mEngineHours,
+                prefRepository.getDiffinEng()
+            )
             var finalMode = mode
             if (selectedOptionText == "yard") {
                 finalMode = TRUCK_MODE_ON
             } else if (selectedOptionText == "personal") {
                 finalMode = TRUCK_MODE_OFF
-            }
-
-            val logRequest = AddLogRequest(
-                modename = finalMode,
-                odometerreading = roundedMiles,
-                lat = te?.mGeoloc?.latitude ?: defaultLatitude,
-                long = te?.mGeoloc?.longitude ?: defaultLongitude,
-                location = true,
-                eng_hours = (enghour_updated - getDouble(prefRepository.getDiffinEng())).toString(),
-                vin = vin_no,
-                is_active = 1,
-                is_autoinsert = 1,
-                eventcode = 1,
-                eventtype = 1
-            )
-
-            if (selectedOptionText == "yard") {
-                logRequest.discreption = "yard"
-            } else if (selectedOptionText == "personal") {
-                logRequest.discreption = "personal"
             }
 
             if (homeViewModel.getUserLogs().isNotEmpty()) {
@@ -1139,7 +1204,54 @@ class HomeFragment : Fragment(), OnClickListener {
                 )
                 context?.let { homeViewModel.updateLog(updateLogRequest, false, it) }
             }
-            context?.let { homeViewModel.logUser(logRequest, it) }
+
+            val submitModeChangeLog: (LogLocationPayload) -> Unit = { logLocationPayload ->
+                val logRequest = AddLogRequest(
+                    modename = finalMode,
+                    odometerreading = normalizedOdometer,
+                    lat = logLocationPayload.latitude,
+                    long = logLocationPayload.longitude,
+                    location = logLocationPayload.shouldSendLocation,
+                    eng_hours = normalizedEngineHours,
+                    vin = vin_no.toString(),
+                    is_active = 1,
+                    is_autoinsert = 1,
+                    eventcode = 1,
+                    eventtype = 1,
+                    connection_status = if (isNeedToconnect) "disconnected" else "connected"
+                )
+
+                if (selectedOptionText == "yard") {
+                    logRequest.discreption = "yard"
+                } else if (selectedOptionText == "personal") {
+                    logRequest.discreption = "personal"
+                }
+
+                context?.let { homeViewModel.logUser(logRequest, it) }
+            }
+
+            if (!isNeedToconnect) {
+                val trackerPayload = resolveTrackerLocationPayload()
+                Log.d(TAG, "📍 Mode change location (TRACKER): lat=${trackerPayload.latitude}, lng=${trackerPayload.longitude}, valid=${trackerPayload.shouldSendLocation}")
+                submitModeChangeLog(trackerPayload)
+            } else {
+                val dashboard = activity as? Dashboard
+                if (dashboard != null) {
+                    Log.d(TAG, "📍 Mode change location: Requesting PHONE geolocation (disconnected)...")
+                    dashboard.fetchCurrentGeoLocation { phoneLocation ->
+                        if (!isAdded) return@fetchCurrentGeoLocation
+                        Log.d(TAG, "📍 Mode change location (PHONE): received=${phoneLocation != null}, lat=${phoneLocation?.first}, lng=${phoneLocation?.second}")
+                        val phoneLocationPayload = resolvePhoneLocationPayload(phoneLocation)
+                        Log.d(TAG, "📍 Mode change location (PHONE payload): lat=${phoneLocationPayload.latitude}, lng=${phoneLocationPayload.longitude}, valid=${phoneLocationPayload.shouldSendLocation}")
+                        activity?.runOnUiThread {
+                            submitModeChangeLog(phoneLocationPayload)
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "📍 Mode change location: Dashboard is null, sending empty location")
+                    submitModeChangeLog(resolvePhoneLocationPayload(null))
+                }
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateModeChange: ${e.message}", e)
@@ -1391,13 +1503,14 @@ class HomeFragment : Fragment(), OnClickListener {
             odometerreading = 0.0.toString(),
             lat = 0.0,
             long = 0.0,
-            location = true,
-            eng_hours = 10.toString(),
+            location = false,
+            eng_hours = 0.toString(),
             vin = "1111",
             is_active = 1,
             is_autoinsert = 1,
             eventcode = 1,
-            eventtype = 1
+            eventtype = 1,
+            connection_status = if (isNeedToconnect) "disconnected" else "connected"
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
         prefRepository.setLoggedIn(false)
@@ -1414,6 +1527,11 @@ class HomeFragment : Fragment(), OnClickListener {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onClick(v: View) {
         playClickAnimation(v)
+        if (v.id == R.id.btnDrive && !isDrivingModeAllowed()) {
+            updateDrivingButtonAvailability()
+            showValidationErrors("Driving mode is only available when a tracker is connected.")
+            return
+        }
         if (mEngineHours.isNullOrEmpty() && isNeedToconnect && !isTesting) {
             Utils.dialog(
                 requireContext(),
@@ -1476,6 +1594,11 @@ class HomeFragment : Fragment(), OnClickListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun drivingMode() {
+        if (!isDrivingModeAllowed()) {
+            Log.d(TAG, "Blocked manual DRIVING mode while tracker is disconnected")
+            showValidationErrors("Driving mode is only available when a tracker is connected.")
+            return
+        }
         Log.d(TAG, "🚗 Manual switch to DRIVING mode")
         updateUI(binding.btnDrive)
         mediaPlayer.start()
@@ -1665,6 +1788,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 dashboard.binding.appBarDashboard.fab.setIconResource(R.drawable.ic_action_disconnect)
                 // binding.tvConected.text = "Connected" // Removed
                 isNeedToconnect = false
+                updateDrivingButtonAvailability()
                 
                 // Update top-left pill to CONNECTED (Green)
                 binding.tvBluetoothStatusText.text = "Connected"
@@ -1684,6 +1808,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 // binding.tvConected.text = "Not Connected" // Removed
                 isNeedToconnect = true
                 prefRepository.setShowUnidentifiedDialog(true)
+                updateDrivingButtonAvailability()
                 
                 // Update top-left pill to DISCONNECTED (Red)
                 binding.tvBluetoothStatusText.text = "Disconnected"
@@ -1699,6 +1824,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 stopSpeedMonitoring()
                 // Reset speed pill to zero
                 updateSpeedPill(0)
+                restoreSelectedModeFromState()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateTelemetryInfo: ${e.message}", e)
@@ -2115,6 +2241,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun showDriverProfileDialog() {
         val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
         val view = layoutInflater.inflate(R.layout.dialog_driver_profile, null)

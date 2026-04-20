@@ -3,7 +3,8 @@ package com.eagleye.eld.models
 import com.google.gson.annotations.SerializedName
 
 data class TelemetryRequest(
-    @SerializedName("vehicle_id") val vehicleId: Int,
+    @SerializedName("vehicle_id") val vehicleId: Int? = null,
+    @SerializedName("vin_no") val vinNo: String? = null,
     @SerializedName("recorded_at") val recordedAt: String? = null,
     @SerializedName("engine_rpm") val engineRpm: Double? = null,
     @SerializedName("engine_speed") val engineSpeed: Double? = null,

@@ -23,11 +23,11 @@ class TelemetryRepository(private val api: TruckSpotAPI) {
     private val _fleetDashboard = MutableLiveData<FleetDashboardResponse?>()
     val fleetDashboard: LiveData<FleetDashboardResponse?> = _fleetDashboard
 
-    suspend fun sendTelemetry(vehicleId: Int, snapshot: VirtualDashboard.Snapshot): TelemetryResponse? {
+    suspend fun sendTelemetry(vin: String, snapshot: VirtualDashboard.Snapshot): TelemetryResponse? {
         return try {
             val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
             val request = TelemetryRequest(
-                vehicleId = vehicleId,
+                vinNo = vin,
                 recordedAt = isoDate,
                 engineRpm = snapshot.engineRPM?.toDouble(),
                 engineSpeed = snapshot.engineSpeed?.toDouble(),

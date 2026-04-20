@@ -52,11 +52,12 @@ object TelemetryUploadManager {
         val now = System.currentTimeMillis()
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
 
-        val prefs = PrefRepository(context)
-        val vehicleId = prefs.getVehicleId()
-        if (vehicleId <= 0) return
+        // Resolve VIN directly from the PT-40 device — always the correct truck
+        val vin = AppModel.getInstance().mPT30Vin?.takeIf { it.isNotBlank() && it != "n/a" }
+            ?: AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { !it.isNullOrBlank() }
+            ?: return
 
-        val token = prefs.getToken()
+        val token = PrefRepository(context).getToken()
         if (token.isNullOrBlank()) return
 
         lastUploadTime = now
@@ -67,9 +68,9 @@ object TelemetryUploadManager {
 
         scope.launch {
             try {
-                val result = TelemetryRepository(cachedApi!!).sendTelemetry(vehicleId, snapshot)
+                val result = TelemetryRepository(cachedApi!!).sendTelemetry(vin, snapshot)
                 if (result != null) {
-                    Log.d(TAG, "Telemetry saved — health: ${result.healthScore} (${result.healthStatus})")
+                    Log.d(TAG, "Telemetry saved [VIN=$vin] — health: ${result.healthScore} (${result.healthStatus})")
                     if (!result.warnings.isNullOrEmpty()) {
                         Log.w(TAG, "Warnings: ${result.warnings.joinToString()}")
                     }

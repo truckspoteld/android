@@ -491,6 +491,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         // even when the Home screen is not on screen.
         if (AppModel.getInstance().dashboard != null) {
             handleEngineStateUpdate(AppModel.getInstance().dashboard.engineRPM);
+            TelemetryUploadManager.INSTANCE.onDashboardUpdated(this, AppModel.getInstance().dashboard);
         }
 
         Intent broadcast = new Intent("TRACKER-DASHBOARD-REFRESH");

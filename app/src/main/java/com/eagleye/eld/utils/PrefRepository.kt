@@ -325,4 +325,11 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         return  "timer_start_time".getLong()
 
     }
+
+    fun setVehicleId(id: Int) {
+        editor.putInt("pref_vehicle_id", id)
+        editor.apply()
+    }
+
+    fun getVehicleId(): Int = pref.getInt("pref_vehicle_id", 0)
 }

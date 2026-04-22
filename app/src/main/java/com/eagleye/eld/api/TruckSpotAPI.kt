@@ -1,6 +1,10 @@
 package com.eagleye.eld.api
 
 import com.eagleye.eld.models.AddLogSuccessResponse
+import com.eagleye.eld.models.TelemetryRequest
+import com.eagleye.eld.models.TelemetryResponse
+import com.eagleye.eld.models.VehicleHealthResponse
+import com.eagleye.eld.models.FleetDashboardResponse
 import com.eagleye.eld.models.AllLogsResponse
 import com.eagleye.eld.models.CertifyModelItem
 import com.eagleye.eld.models.GetAllLogsResponse
@@ -157,4 +161,14 @@ interface TruckSpotAPI {
 
     @GET("api/v1/driver/review")
     suspend fun getDriverReview(): Response<com.eagleye.eld.models.DriverReviewResponse>
+
+    // Predictive Maintenance
+    @POST("api/v1/telemetry")
+    suspend fun saveTelemetry(@Body request: TelemetryRequest): Response<TelemetryResponse>
+
+    @GET("api/v1/telemetry/vehicle/{vehicleId}/health")
+    suspend fun getVehicleHealth(@Path("vehicleId") vehicleId: Int): Response<VehicleHealthResponse>
+
+    @GET("api/v1/telemetry/fleet/dashboard")
+    suspend fun getFleetDashboard(): Response<FleetDashboardResponse>
 }

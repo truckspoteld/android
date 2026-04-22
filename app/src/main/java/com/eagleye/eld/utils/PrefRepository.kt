@@ -190,6 +190,11 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_SHIPPING_NUMBER.put(number)
     }
 
+    fun getShippingId() = PREF_SHIPPING_NUMBER.getString()
+    fun setShippingId(id: String) = PREF_SHIPPING_NUMBER.put(id)
+    fun getPayload() = PREF_PAYLOAD.getString()
+    fun setPayload(payload: String) = PREF_PAYLOAD.put(payload)
+
     fun setTrailerNumber(number: String) {
         PREF_TRAILER_NO.put(number)
     }

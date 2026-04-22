@@ -1,3 +1,5 @@
+package com.eagleye.eld.fragment.ui.certify
+
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View

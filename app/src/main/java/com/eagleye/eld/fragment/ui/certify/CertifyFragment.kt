@@ -1,6 +1,5 @@
 package com.eagleye.eld.fragment.ui.certify
 
-import CertifyAdapter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View

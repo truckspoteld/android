@@ -418,6 +418,31 @@ class HomeFragment : Fragment(), OnClickListener {
                         updateClockDisplay()
                     }
                     updateUIBasedOnLogs(it.data)
+
+                    // Update M and D indicators
+                    val logs = it.data.logs ?: emptyList()
+                    val hasMalfunction = logs.any { log -> (log.malfunctioneld ?: 0) > 0 }
+                    val hasDiagnostic = logs.any { log -> (log.datadiagnostic ?: 0) > 0 }
+
+                    if (hasMalfunction) {
+                        binding.tvMalfunction.alpha = 1.0f
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
+                    } else {
+                        binding.tvMalfunction.alpha = 0.3f
+                        binding.tvMalfunction.clearAnimation()
+                    }
+
+                    if (hasDiagnostic) {
+                        binding.tvDiagnostic.alpha = 1.0f
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
+                    } else {
+                        binding.tvDiagnostic.alpha = 0.3f
+                        binding.tvDiagnostic.clearAnimation()
+                    }
+                    
+                    val jsonResponse = Gson().toJson(it.data)
+                    Log.d("HOME_API_RESPONSE", "Response: $jsonResponse")
+                    Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction, Diagnostic: $hasDiagnostic")
                 }
                 is NetworkResult.Error<*> -> {
                     binding.progressBar.visibility = View.GONE

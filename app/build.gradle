@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
     id 'com.google.dagger.hilt.android'
+//    id 'com.google.gms.google-services'
 }
 
 android {
@@ -13,8 +14,8 @@ android {
         applicationId "com.eagleye.eld"
         minSdk 24
         targetSdk 36
-        versionCode 16
-        versionName "1.1.31"
+        versionCode 18
+        versionName "1.1.33"
         //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField('String', 'API_KEY', "\"sSUmrxH9rS2q6LOL38WXXFgXhLKAf9e34cRv5Xn5\"")
     }
@@ -159,4 +160,8 @@ dependencies {
     implementation 'com.github.whizpool:smartlogs-android:1.8'
     implementation 'com.github.ibrahimsn98:SmoothBottomBar:1.7.9'
 
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.8.0')
+    implementation 'com.google.firebase:firebase-messaging-ktx'
+    implementation 'com.google.firebase:firebase-analytics-ktx'
 }

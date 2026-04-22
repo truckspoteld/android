@@ -1,5 +1,7 @@
 package com.eagleye.eld.fragment
 
+import com.eagleye.eld.PdfViewerActivity
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Dialog
@@ -15,6 +17,7 @@ import android.graphics.drawable.ColorDrawable
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -64,11 +67,14 @@ import kotlinx.coroutines.*
 import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import androidx.annotation.RequiresPermission
+import com.eagleye.eld.UploadDocumentsActivity
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat
 import no.nordicsemi.android.support.v18.scanner.ScanCallback
 import no.nordicsemi.android.support.v18.scanner.ScanResult
 import no.nordicsemi.android.support.v18.scanner.ScanSettings
 import com.pt.sdk.Uart
+import java.io.File
+import java.io.FileOutputStream
 
 
 
@@ -223,23 +229,36 @@ class Dashboard : AppCompatActivity() {
         }
         headerView.findViewById<View>(R.id.nav_shipping).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "Shipping", Toast.LENGTH_SHORT).show()
+            showShippingDialog()
         }
         headerView.findViewById<View>(R.id.nav_request).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "Request", Toast.LENGTH_SHORT).show()
+            val navOptions = androidx.navigation.NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(R.id.nav_home, false)
+                .build()
+            navController.navigate(R.id.nav_reports, null, navOptions)
         }
         headerView.findViewById<View>(R.id.nav_fmcsa).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "FMCSA", Toast.LENGTH_SHORT).show()
+            val navOptions = androidx.navigation.NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(R.id.nav_home, false)
+                .build()
+            navController.navigate(R.id.nav_reports, null, navOptions)
         }
         headerView.findViewById<View>(R.id.nav_upload_documents).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "Upload Documents", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, UploadDocumentsActivity::class.java))
         }
         headerView.findViewById<View>(R.id.nav_more_options).setOnClickListener {
             Toast.makeText(this, "More Options", Toast.LENGTH_SHORT).show()
         }
+        headerView.findViewById<View>(R.id.nav_user_manual).setOnClickListener {
+            binding.drawerLayout.close()
+            downloadUserManual()
+        }
+
         headerView.findViewById<View>(R.id.btnLogout).setOnClickListener {
             binding.drawerLayout.close()
             Toast.makeText(this, "Logging out...", Toast.LENGTH_SHORT).show()
@@ -761,6 +780,90 @@ class Dashboard : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         fusedClient?.removeLocationUpdates(mCallback!!)
+    }
+
+    private fun downloadUserManual() {
+        val fileName = "TruckSpot(usermanual-betaversion).pdf"
+        try {
+            // 1. Copy from assets to internal storage (so we can share it via FileProvider)
+            val inputStream = assets.open(fileName)
+            val internalFile = File(getExternalFilesDir(null), fileName)
+            val outputStream = FileOutputStream(internalFile)
+            
+            val buffer = ByteArray(1024)
+            var length: Int
+            while (inputStream.read(buffer).also { length = it } > 0) {
+                outputStream.write(buffer, 0, length)
+            }
+            outputStream.flush()
+            outputStream.close()
+            inputStream.close()
+
+            // 2. Also try to copy to public Downloads folder for the user (optional but good for "download" request)
+            try {
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (downloadsDir.exists() || downloadsDir.mkdirs()) {
+                    val publicFile = File(downloadsDir, fileName)
+                    internalFile.copyTo(publicFile, overwrite = true)
+                    Log.d("Dashboard", "Manual copied to public downloads: ${publicFile.absolutePath}")
+                }
+            } catch (e: Exception) {
+                Log.w("Dashboard", "Could not copy to public downloads (likely permission/scoped storage), but internal copy is ready.")
+            }
+
+            // 3. Open the PDF using PdfViewerActivity
+            val intent = Intent(this, PdfViewerActivity::class.java).apply {
+                putExtra(PdfViewerActivity.EXTRA_PDF_PATH, internalFile.absolutePath)
+                putExtra(PdfViewerActivity.EXTRA_PDF_TITLE, "User Manual")
+            }
+            startActivity(intent)
+            
+            Toast.makeText(this, "Opening User Manual...", Toast.LENGTH_SHORT).show()
+            
+        } catch (e: Exception) {
+            Log.e("Dashboard", "Error handling manual", e)
+            Toast.makeText(this, "Failed to load User Manual", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showShippingDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_shipping)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        
+        val etShippingNumber = dialog.findViewById<android.widget.EditText>(R.id.etShippingNumber)
+        val etTrailerNumber = dialog.findViewById<android.widget.EditText>(R.id.etTrailerNumber)
+        val tvCoDriver = dialog.findViewById<android.widget.TextView>(R.id.tvCoDriver)
+        val btnUpdate = dialog.findViewById<Button>(R.id.btnUpdate)
+        val btnCancel = dialog.findViewById<Button>(R.id.btnCancel)
+        
+        // Load existing values
+        etShippingNumber.setText(prefRepository.getShippingNumber())
+        etTrailerNumber.setText(prefRepository.getTrailerNumber())
+        val coDriverName = prefRepository.getCoDriverName()
+        tvCoDriver.text = if (coDriverName.isEmpty()) "No Co-driver" else coDriverName
+        
+        btnUpdate.setOnClickListener {
+            val shippingNo = etShippingNumber.text.toString()
+            val trailerNo = etTrailerNumber.text.toString()
+            
+            if (shippingNo.isNotEmpty()) {
+                prefRepository.setShippingNumber(shippingNo)
+                prefRepository.setTrailerNumber(trailerNo)
+                Toast.makeText(this, "Shipment updated", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Shipping Number is required", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.show()
     }
 
     override fun onDestroy() {

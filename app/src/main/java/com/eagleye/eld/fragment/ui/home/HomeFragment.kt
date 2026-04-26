@@ -159,6 +159,7 @@ class HomeFragment : Fragment(), OnClickListener {
     val svcIf = IntentFilter()
     val tmIf = IntentFilter()
     val connectionStateIf = IntentFilter(BleProfileService.BROADCAST_CONNECTION_STATE)
+    val disconnectedMilesIf = IntentFilter(TrackerService.ACTION_DISCONNECTED_DRIVING_MILES_READY)
 
     // Simple last log tracking like EagleEye
     // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
@@ -216,6 +217,13 @@ class HomeFragment : Fragment(), OnClickListener {
             }
         }
     }
+    var disconnectedDrivingMilesRefresh: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            maybeShowDisconnectedDrivingMilesDialog(
+                intent.getStringExtra(TrackerService.EXTRA_DISCONNECTED_DRIVING_MILES)
+            )
+        }
+    }
     private lateinit var progressBar: CircularProgressIndicator
     private lateinit var progressBarShift: CircularProgressIndicator
     private lateinit var cycleRemaining: CircularProgressIndicator
@@ -223,6 +231,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private var selectedLog: String = TRUCK_MODE_OFF
     private var observersSet = false
     private var codrivers: List<CodriverItem> = emptyList()
+    private var disconnectedDrivingMilesDialog: androidx.appcompat.app.AlertDialog? = null
 
     @SuppressLint("SuspiciousIndentation")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1018,6 +1027,50 @@ class HomeFragment : Fragment(), OnClickListener {
         alertDialog.show()
     }
 
+    private fun maybeShowDisconnectedDrivingMilesDialog(rawMiles: String?) {
+        if (!isAdded || _binding == null) return
+
+        val milesCovered = rawMiles?.trim()?.toDoubleOrNull() ?: run {
+            prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+            return
+        }
+
+        if (milesCovered <= 0.0) {
+            prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+            return
+        }
+
+        if (disconnectedDrivingMilesDialog?.isShowing == true) {
+            return
+        }
+
+        val milesText = String.format(Locale.US, "%.2f", milesCovered)
+        val message =
+            "You covered $milesText miles while disconnected. Are these yours? Would you like to submit them?"
+
+        disconnectedDrivingMilesDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Disconnected Driving")
+            .setMessage(message)
+            .setPositiveButton("Yes") { dialog, _ ->
+                prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                dialog.dismiss()
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                disconnectedDrivingMilesDialog = null
+            }
+            .show()
+    }
+
+    private fun showPendingDisconnectedDrivingMilesDialogIfNeeded() {
+        val pendingMiles = prefRepository.getPendingDisconnectedDrivingMilesDialog()
+        if (pendingMiles.isBlank()) return
+        maybeShowDisconnectedDrivingMilesDialog(pendingMiles)
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onResume() {
         super.onResume()
@@ -1055,6 +1108,7 @@ class HomeFragment : Fragment(), OnClickListener {
             
             // Register receivers (guarded to prevent duplicate registrations)
             registerLocalReceivers()
+            showPendingDisconnectedDrivingMilesDialogIfNeeded()
             
             // Fetch data with debounce - but skip if long pause to avoid immediate loading
             if (!wasLongPause && !isFetchingLogs && currentTime - lastApiCallTime > API_CALL_DEBOUNCE_MS) {
@@ -1483,6 +1537,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.registerReceiver(tmRefresh, tmIf)
             instance.registerReceiver(svcRefresh, svcIf)
             instance.registerReceiver(connectionStateRefresh, connectionStateIf)
+            instance.registerReceiver(disconnectedDrivingMilesRefresh, disconnectedMilesIf)
             receiversRegistered = true
         } catch (e: Exception) {
             Log.e(TAG, "Receiver registration error: ${e.message}")
@@ -1496,6 +1551,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.unregisterReceiver(tmRefresh)
             instance.unregisterReceiver(svcRefresh)
             instance.unregisterReceiver(connectionStateRefresh)
+            instance.unregisterReceiver(disconnectedDrivingMilesRefresh)
         } catch (e: Exception) {
             Log.e(TAG, "Receiver unregistration error: ${e.message}")
         } finally {
@@ -1772,6 +1828,63 @@ class HomeFragment : Fragment(), OnClickListener {
                 it.strokeColor = strokeSelected
                 it.strokeWidth = 2
             }
+        }
+
+        if (viewSelect == binding.btnDrive) {
+            if (!isChangingStatus) {
+                showDrivingOverlay()
+            }
+        } else {
+            isChangingStatus = false
+            hideDrivingOverlay()
+        }
+    }
+
+    private var isChangingStatus = false
+
+    private fun showDrivingOverlay() {
+        val overlay = binding.root.findViewById<View>(R.id.cl_dr_overlay)
+        if (overlay?.visibility != View.VISIBLE) {
+            overlay?.visibility = View.VISIBLE
+            overlay?.alpha = 0f
+            overlay?.animate()?.alpha(1f)?.setDuration(300)?.start()
+        }
+        
+        // Update values
+        val progressCircle = binding.root.findViewById<com.google.android.material.progressindicator.CircularProgressIndicator>(R.id.dr_progress_circle)
+        val timeText = binding.root.findViewById<TextView>(R.id.tv_dr_time_remaining)
+        val changeStatusBtn = binding.root.findViewById<View>(R.id.btn_dr_change_status)
+        
+        changeStatusBtn?.setOnClickListener {
+            isChangingStatus = true
+            hideDrivingOverlay()
+        }
+
+        // Animate progress to current drive time remaining
+        // We can get remaining drive time from homeLiveData
+        val conditions = homeViewModel.homeLiveData.value?.data?.conditions
+        val remainingDrive = conditions?.drive ?: 0
+        val maxDrive = 11 * 3600 // 11 hours
+        val progress = if (remainingDrive > 0) ((remainingDrive.toFloat() / maxDrive) * 100).toInt() else 0
+        
+        timeText?.text = Utils.formatTimeFromSeconds(remainingDrive)
+        
+        progressCircle?.progress = 0
+        progressCircle?.let {
+            android.animation.ObjectAnimator.ofInt(it, "progress", progress).apply {
+                duration = 1000
+                interpolator = android.view.animation.DecelerateInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun hideDrivingOverlay() {
+        val overlay = binding.root.findViewById<View>(R.id.cl_dr_overlay)
+        if (overlay?.visibility == View.VISIBLE) {
+            overlay.animate().alpha(0f).setDuration(200).withEndAction {
+                overlay.visibility = View.GONE
+            }.start()
         }
     }
 

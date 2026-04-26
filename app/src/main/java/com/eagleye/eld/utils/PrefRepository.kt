@@ -315,6 +315,39 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getJustLoggedIn(): Boolean = PREF_JUST_LOGGED_IN.getBoolean()
 
+    fun setDisconnectedDrivingReviewPending(isPending: Boolean) {
+        PREF_DISCONNECTED_DRIVING_REVIEW_PENDING.put(isPending)
+    }
+
+    fun isDisconnectedDrivingReviewPending(): Boolean {
+        return PREF_DISCONNECTED_DRIVING_REVIEW_PENDING.getBoolean()
+    }
+
+    fun setDisconnectedDrivingBaselineOdometerKm(odometerKm: String) {
+        PREF_DISCONNECTED_DRIVING_BASELINE_ODO_KM.put(odometerKm)
+    }
+
+    fun getDisconnectedDrivingBaselineOdometerKm(): String {
+        return PREF_DISCONNECTED_DRIVING_BASELINE_ODO_KM.getString()
+    }
+
+    fun clearDisconnectedDrivingRecovery() {
+        PREF_DISCONNECTED_DRIVING_REVIEW_PENDING.put(false)
+        PREF_DISCONNECTED_DRIVING_BASELINE_ODO_KM.put("")
+    }
+
+    fun setPendingDisconnectedDrivingMilesDialog(miles: String) {
+        PREF_PENDING_DISCONNECTED_DRIVING_MILES_DIALOG.put(miles)
+    }
+
+    fun getPendingDisconnectedDrivingMilesDialog(): String {
+        return PREF_PENDING_DISCONNECTED_DRIVING_MILES_DIALOG.getString()
+    }
+
+    fun clearPendingDisconnectedDrivingMilesDialog() {
+        PREF_PENDING_DISCONNECTED_DRIVING_MILES_DIALOG.put("")
+    }
+
     fun clearData() {
         editor.clear()
         editor.commit()

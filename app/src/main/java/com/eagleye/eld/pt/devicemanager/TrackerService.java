@@ -35,6 +35,7 @@ import com.pt.sdk.TrackerManagerCallbacks;
 import com.pt.sdk.request.GetStoredEventsCount;
 import com.pt.sdk.request.GetSystemVar;
 import com.pt.sdk.request.GetTrackerInfo;
+import com.pt.sdk.request.RetrieveStoredEvents;
 import com.pt.sdk.request.inbound.SPNEventRequest;
 import com.pt.sdk.request.inbound.StoredTelemetryEventRequest;
 import com.pt.sdk.request.inbound.TelemetryEventRequest;
@@ -58,6 +59,7 @@ import com.eagleye.eld.utils.PrefRepository;
 import com.eagleye.eld.utils.TelemetryLogValueUtils;
 
 import java.util.List;
+import java.util.Locale;
 
 import javax.inject.Inject;
 
@@ -67,6 +69,13 @@ import no.nordicsemi.android.log.Logger;
 @AndroidEntryPoint
 public class TrackerService extends BleProfileService implements TrackerManagerCallbacks {
     private static final String TAG = "TrackerService";
+    private static final double KM_TO_MILES = 0.621371d;
+    private static final double MIN_DISCONNECTED_DRIVING_MILES = 0.1d;
+    private static final long STORED_EVENTS_REVIEW_SETTLE_MS = 1500L;
+    public static final String ACTION_DISCONNECTED_DRIVING_MILES_READY =
+            "TRACKER-DISCONNECTED-DRIVING-MILES-READY";
+    public static final String EXTRA_DISCONNECTED_DRIVING_MILES =
+            "extra_disconnected_driving_miles";
 
     /**
      * A broadcast message with this action and the message in
@@ -110,6 +119,16 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private long lastEngineApiCallTime = 0;
     private static final int ENGINE_STATE_STABLE_THRESHOLD = 3;
     private static final long ENGINE_API_DEBOUNCE_MS = 30000L; // 30 seconds
+    private int pendingReconnectStoredEventsCount = 0;
+    private int receivedReconnectStoredEventsCount = 0;
+    private double pendingReconnectBaselineOdometerKm = 0.0d;
+    private double pendingReconnectMaxOdometerKm = 0.0d;
+    private final Runnable finalizeReconnectStoredEventsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            finalizePendingDisconnectedDrivingReview();
+        }
+    };
 
     public class TrackerBinder extends LocalBinder {
         public void sendResponse(@NonNull final BaseResponse response) {
@@ -196,6 +215,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         // Get Stored Events count
         Log.i(TAG, "Get Stored Events count ...");
+        AppModel.getInstance().wereSERequested = false;
         GetStoredEventsCount gsec = new GetStoredEventsCount();
         mTracker.sendRequest(gsec, null, null);
 
@@ -217,6 +237,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     @Override
     public void onDeviceDisconnected(@NonNull BluetoothDevice device, int code) {
+        capturePendingDisconnectedDrivingState();
         super.onDeviceDisconnected(device, code);
         cancelNotifications();
     }
@@ -224,7 +245,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     @Override
     public void onDeviceConnected(@NonNull BluetoothDevice device) {
         super.onDeviceConnected(device);
-
+        resetReconnectStoredEventCollection();
     }
 
     @Override
@@ -314,6 +335,22 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         Intent broadcast = new Intent("TRACKER-SE-REFRESH");
         AppModel.getInstance().mLastSEvent = stmr.mTm;
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+
+        if (!shouldCollectReconnectStoredEvents()) {
+            return;
+        }
+
+        receivedReconnectStoredEventsCount++;
+        double storedEventOdometerKm = parseNonNegative(stmr.mTm != null ? stmr.mTm.mOdometer : null);
+        if (storedEventOdometerKm > pendingReconnectMaxOdometerKm) {
+            pendingReconnectMaxOdometerKm = storedEventOdometerKm;
+        }
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
+
+        if (pendingReconnectStoredEventsCount > 0
+                && receivedReconnectStoredEventsCount >= pendingReconnectStoredEventsCount) {
+            finalizePendingDisconnectedDrivingReview();
+        }
     }
 
     @Override
@@ -387,7 +424,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             Log.w(TAG, "RetrieveStoredEventsResponse: S=" + rser.getStatus());
             return;
         }
-        // NOP - The events shall be updated in the Stored events tile
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
     }
 
     @Override
@@ -415,6 +452,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         Intent broadcast = new Intent("TRACKER-SE-REFRESH");
         AppModel.getInstance().mLastSECount = gsecr.mCount;
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+
+        maybeRequestReconnectStoredEvents(gsecr.mCount);
     }
 
     public static final String EXTRA_RESP_STATUS_KEY = "status";
@@ -611,6 +650,150 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     public static final int EXTRA_TRACKER_UPDATE_ACTION_COMPLETED = 3;
     public static final int EXTRA_TRACKER_UPDATE_ACTION_UPDATED = 4;
     public static final int EXTRA_TRACKER_UPDATE_ACTION_FAILED = -1;
+
+    private void capturePendingDisconnectedDrivingState() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+
+        TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
+        String currentMode = prefRepository.getMode();
+        boolean isDrivingMode = "d".equalsIgnoreCase(currentMode);
+        double baselineOdometerKm = parseNonNegative(lastEvent != null ? lastEvent.mOdometer : null);
+
+        if (!isDrivingMode || baselineOdometerKm <= 0.0d) {
+            prefRepository.clearDisconnectedDrivingRecovery();
+            resetReconnectStoredEventCollection();
+            return;
+        }
+
+        prefRepository.setDisconnectedDrivingReviewPending(true);
+        prefRepository.setDisconnectedDrivingBaselineOdometerKm(
+                String.format(Locale.US, "%.2f", baselineOdometerKm)
+        );
+        prefRepository.clearPendingDisconnectedDrivingMilesDialog();
+        Log.d(
+                TAG,
+                "Captured disconnect driving baseline odo=" + baselineOdometerKm + " km"
+        );
+    }
+
+    private void maybeRequestReconnectStoredEvents(int storedEventsCount) {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+
+        if (!prefRepository.isDisconnectedDrivingReviewPending()) {
+            resetReconnectStoredEventCollection();
+            return;
+        }
+
+        pendingReconnectBaselineOdometerKm = parseNonNegative(
+                prefRepository.getDisconnectedDrivingBaselineOdometerKm()
+        );
+
+        if (pendingReconnectBaselineOdometerKm <= 0.0d) {
+            prefRepository.clearDisconnectedDrivingRecovery();
+            resetReconnectStoredEventCollection();
+            return;
+        }
+
+        if (storedEventsCount <= 0) {
+            prefRepository.clearDisconnectedDrivingRecovery();
+            resetReconnectStoredEventCollection();
+            return;
+        }
+
+        pendingReconnectStoredEventsCount = storedEventsCount;
+        receivedReconnectStoredEventsCount = 0;
+        pendingReconnectMaxOdometerKm = pendingReconnectBaselineOdometerKm;
+
+        if (AppModel.getInstance().wereSERequested) {
+            scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
+            return;
+        }
+
+        Log.d(TAG, "Retrieving " + storedEventsCount + " stored events for disconnected driving review");
+        AppModel.getInstance().wereSERequested = true;
+        RetrieveStoredEvents retrieveStoredEvents = new RetrieveStoredEvents();
+        mTracker.sendRequest(retrieveStoredEvents, null, null);
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS * 2);
+    }
+
+    private boolean shouldCollectReconnectStoredEvents() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        return prefRepository.isDisconnectedDrivingReviewPending()
+                && pendingReconnectStoredEventsCount > 0
+                && pendingReconnectBaselineOdometerKm > 0.0d;
+    }
+
+    private void scheduleReconnectStoredEventsFinalize(long delayMs) {
+        if (getHandler() == null) {
+            return;
+        }
+        getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+        getHandler().postDelayed(finalizeReconnectStoredEventsRunnable, delayMs);
+    }
+
+    private void finalizePendingDisconnectedDrivingReview() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        if (getHandler() != null) {
+            getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+        }
+
+        if (!prefRepository.isDisconnectedDrivingReviewPending()) {
+            resetReconnectStoredEventCollection();
+            return;
+        }
+
+        double milesCovered = Math.max(
+                0.0d,
+                pendingReconnectMaxOdometerKm - pendingReconnectBaselineOdometerKm
+        ) * KM_TO_MILES;
+
+        prefRepository.clearDisconnectedDrivingRecovery();
+        resetReconnectStoredEventCollection();
+
+        if (milesCovered < MIN_DISCONNECTED_DRIVING_MILES) {
+            prefRepository.clearPendingDisconnectedDrivingMilesDialog();
+            Log.d(TAG, "No disconnected driving miles found in stored events");
+            return;
+        }
+
+        String milesText = String.format(Locale.US, "%.2f", milesCovered);
+        prefRepository.setPendingDisconnectedDrivingMilesDialog(milesText);
+
+        Intent broadcast = new Intent(ACTION_DISCONNECTED_DRIVING_MILES_READY);
+        broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_MILES, milesText);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+        Log.d(TAG, "Disconnected driving review ready for " + milesText + " miles");
+    }
+
+    private void resetReconnectStoredEventCollection() {
+        if (getHandler() != null) {
+            getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+        }
+        pendingReconnectStoredEventsCount = 0;
+        receivedReconnectStoredEventsCount = 0;
+        pendingReconnectBaselineOdometerKm = 0.0d;
+        pendingReconnectMaxOdometerKm = 0.0d;
+        AppModel.getInstance().wereSERequested = false;
+    }
+
+    private double parseNonNegative(String value) {
+        if (value == null) {
+            return 0.0d;
+        }
+        try {
+            return Math.max(0.0d, Double.parseDouble(value.trim()));
+        } catch (NumberFormatException ignored) {
+            return 0.0d;
+        }
+    }
 
     @Override
     public void onFwUptodate(final String address) {

@@ -1,7 +1,7 @@
 package com.eagleye.eld.request
 
 
-data class AddLogRequest(
+data class AddLogRequest @JvmOverloads constructor(
     val modename: String,
     val odometerreading: String,
 //    val location: String? = "Location Not Available",
@@ -17,7 +17,8 @@ data class AddLogRequest(
     val date: String = "",
     val time: String = "",
     val connection_status: String = "",
-    var discreption: String = ""
+    var discreption: String = "",
+    val datetime: String = ""
 )
 //{
 //    "error": "You can only log 'on' during the first 15 minutes after reset.",

@@ -171,4 +171,7 @@ interface TruckSpotAPI {
 
     @GET("api/v1/telemetry/fleet/dashboard")
     suspend fun getFleetDashboard(): Response<FleetDashboardResponse>
+
+    @POST("api/v1/addLogWithException")
+    suspend fun addLogWithException(@Body request: com.eagleye.eld.request.AddLogWithExceptionRequest): Response<AddLogSuccessResponse>
 }

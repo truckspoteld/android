@@ -211,5 +211,6 @@
     <string name="logout">Logout</string>
     <string name="review_and_certify_your_daily_logs">Review and certify your daily logs</string>
     <string name="pending_certification">Pending Certification</string>
+    <string name="log_review">Log Review</string>
 
 </resources>

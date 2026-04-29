@@ -7,9 +7,11 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -20,12 +22,14 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AnimationUtils
 import android.view.animation.OvershootInterpolator
@@ -57,7 +61,9 @@ import com.eagleye.eld.R
 import com.eagleye.eld.databinding.ActivityDashboardBinding
 import com.eagleye.eld.fragment.ui.home.HomeViewModel
 import com.eagleye.eld.fragment.ui.viewmodels.DashboardViewModel
+import com.eagleye.eld.pt.devicemanager.BleProfileService
 import com.eagleye.eld.pt.devicemanager.TrackerManagerActivity
+import com.eagleye.eld.pt.devicemanager.TrackerService
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.utils.PrefRepository
 import com.eagleye.eld.utils.NetworkResult
@@ -68,6 +74,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import androidx.annotation.RequiresPermission
 import com.eagleye.eld.UploadDocumentsActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat
 import no.nordicsemi.android.support.v18.scanner.ScanCallback
 import no.nordicsemi.android.support.v18.scanner.ScanResult
@@ -94,6 +101,8 @@ class Dashboard : AppCompatActivity() {
     private val job = Job()
     private val scope = CoroutineScope(job + Dispatchers.IO)
     private val REQUEST_BLUETOOTH_PERMISSIONS = 1001
+    private val reconnectHandler = Handler(Looper.getMainLooper())
+    private var reconnectDialog: Dialog? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -409,131 +418,197 @@ class Dashboard : AppCompatActivity() {
     // ─────────────────────────────────────────────────────────────────────
 
     @SuppressLint("MissingPermission")
-    private fun showEldReconnectDialog() {
-        // We show the dialog to allow scanning even if no previous device is found
-        // but we can still log info about saved devices.
+    fun showEldReconnectDialog() {
         val savedName = prefRepository.getLastEldDeviceName()
-        val savedAddress = prefRepository.getLastEldDeviceAddress()
+        val savedAddress = prefRepository.getLastEldDeviceAddress().trim()
         
-        Log.d("Dashboard", "Showing ELD dialog. Last saved: $savedName ($savedAddress)")
+        if (savedAddress.isEmpty()) {
+            Log.d("Dashboard", "Skipping ELD reconnect overlay: no saved device")
+            return
+        }
+
+        if (reconnectDialog?.isShowing == true) return
+
+        if (!hasBluetoothScanPermission()) {
+            checkAndRequestBluetoothPermission()
+            return
+        }
+
+        Log.d("Dashboard", "Showing ELD reconnect overlay. Last saved: $savedName ($savedAddress)")
 
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setCanceledOnTouchOutside(true)
-        dialog.setContentView(R.layout.dialog_eld_reconnect)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.setCancelable(false)
+        dialog.setContentView(R.layout.dialog_eld_reconnect_overlay)
 
-        // Transparent background so our rounded drawable shows
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.90).toInt(),
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        val scanner = BluetoothLeScannerCompat.getScanner()
+        val deviceLabel = savedName.ifBlank { "ELD" }
+        val root = dialog.findViewById<View>(R.id.eld_reconnect_overlay_root)
+        val title = dialog.findViewById<TextView>(R.id.tv_eld_reconnect_title)
+        val status = dialog.findViewById<TextView>(R.id.tv_eld_reconnect_status)
+        title.text = "Reconnecting to ELD"
+        status.text = "Searching for $deviceLabel..."
 
-        // ── Wire up views ──────────────────────────────────────────────
-        val rvDevices       = dialog.findViewById<RecyclerView>(R.id.rv_bluetooth_devices)
-        val llScanning      = dialog.findViewById<LinearLayout>(R.id.ll_scanning_indicator)
-        val ivBluetooth     = dialog.findViewById<ImageView>(R.id.iv_bluetooth_icon)
-        val glowOuter       = dialog.findViewById<View>(R.id.iv_bt_glow_outer)
-        val glowInner       = dialog.findViewById<View>(R.id.iv_bt_glow_inner)
-        val btnScanNew      = dialog.findViewById<Button>(R.id.btn_eld_scan_new)
-        val tvSkip          = dialog.findViewById<TextView>(R.id.tv_eld_skip)
-        val btnClose        = dialog.findViewById<ImageView>(R.id.btn_dialog_close)
-        val dialogRoot      = dialog.findViewById<LinearLayout>(R.id.eld_dialog_root)
+        var finished = false
+        var isScanning = false
+        var isConnecting = false
+        var lastTapMs = 0L
 
-        // ── Setup List & Adapter ───────────────────────────────────────
-        val deviceList = mutableListOf<ScanResult>()
-        var scanCallback: ScanCallback? = null
+        lateinit var scanCallback: ScanCallback
+        lateinit var retryRunnable: Runnable
+        lateinit var timeoutRunnable: Runnable
+        lateinit var reconnectReceiver: BroadcastReceiver
 
-        val adapter = EldDeviceAdapter(deviceList) { selectedResult ->
-            // Stop scan and connect
-            scanCallback?.let { 
-                BluetoothLeScannerCompat.getScanner().stopScan(it) 
-            }
-            dialog.dismiss()
-            val intent = Intent(this, TrackerManagerActivity::class.java).apply {
-                putExtra("auto_connect_address", selectedResult.device.address)
-                putExtra("auto_connect_name", selectedResult.scanRecord?.deviceName ?: selectedResult.device.name)
-            }
-            startActivity(intent)
+        fun stopScan() {
+            if (!isScanning) return
+            runCatching { scanner.stopScan(scanCallback) }
+            isScanning = false
         }
-        rvDevices.adapter = adapter
 
-        // ── Bluetooth Scanning Logic ──────────────────────────────────
+        fun cleanup() {
+            stopScan()
+            reconnectHandler.removeCallbacks(retryRunnable)
+            reconnectHandler.removeCallbacks(timeoutRunnable)
+            runCatching {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(reconnectReceiver)
+            }
+            reconnectDialog = null
+        }
+
+        fun finishReconnect(showTimeoutToast: Boolean = false) {
+            if (finished) return
+            finished = true
+            cleanup()
+            if (dialog.isShowing) dialog.dismiss()
+            if (showTimeoutToast) {
+                Toast.makeText(this, "ELD reconnect timed out", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        fun startTrackerConnection(address: String, name: String) {
+            if (isConnecting) return
+            isConnecting = true
+            status.text = "Connecting to ${name.ifBlank { deviceLabel }}..."
+            stopScan()
+
+            val service = Intent(this, TrackerService::class.java).apply {
+                putExtra(BleProfileService.EXTRA_DEVICE_ADDRESS, address)
+                putExtra(BleProfileService.EXTRA_DEVICE_NAME, name.ifBlank { deviceLabel })
+            }
+            startService(service)
+        }
+
+        fun startScan() {
+            if (finished || isScanning || isConnecting) return
+            status.text = "Searching for $deviceLabel..."
+            val settings = ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setReportDelay(1000)
+                .build()
+
+            try {
+                scanner.startScan(null, settings, scanCallback)
+                isScanning = true
+            } catch (e: Exception) {
+                Log.e("Dashboard", "Reconnect scan failed: ${e.message}")
+            }
+        }
+
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                if (deviceList.none { it.device.address == result.device.address }) {
-                    deviceList.add(result)
-                    adapter.notifyItemInserted(deviceList.size - 1)
-                    llScanning.visibility = View.GONE
+                if (result.device.address.equals(savedAddress, ignoreCase = true)) {
+                    val name = result.scanRecord?.deviceName ?: result.device.name ?: savedName
+                    startTrackerConnection(result.device.address, name)
                 }
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
-                for (result in results) {
-                    if (deviceList.none { it.device.address == result.device.address }) {
-                        deviceList.add(result)
+                results.firstOrNull { it.device.address.equals(savedAddress, ignoreCase = true) }
+                    ?.let { result ->
+                        val name = result.scanRecord?.deviceName ?: result.device.name ?: savedName
+                        startTrackerConnection(result.device.address, name)
                     }
-                }
-                adapter.notifyDataSetChanged()
-                if (deviceList.isNotEmpty()) llScanning.visibility = View.GONE
             }
         }
 
-        // Start scanning with filter for ELD service (UART RX)
-        val scanner = BluetoothLeScannerCompat.getScanner()
-        val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .setReportDelay(1000)
-            .build()
-        
-        try {
-            scanCallback?.let { scanner.startScan(null, settings, it) }
-        } catch (e: Exception) {
-            Log.e("Dashboard", "Scan failed: ${e.message}")
+        reconnectReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    BleProfileService.BROADCAST_CONNECTION_STATE -> {
+                        when (intent.getIntExtra(BleProfileService.EXTRA_CONNECTION_STATE, BleProfileService.STATE_DISCONNECTED)) {
+                            BleProfileService.STATE_CONNECTED -> finishReconnect()
+                            BleProfileService.STATE_DISCONNECTED,
+                            BleProfileService.STATE_LINK_LOSS -> {
+                                isConnecting = false
+                                startScan()
+                            }
+                        }
+                    }
+                    BleProfileService.BROADCAST_FAILED_TO_CONNECT -> {
+                        isConnecting = false
+                        startScan()
+                    }
+                }
+            }
         }
 
-        // Auto-stop scan after 10 seconds
-        Handler(Looper.getMainLooper()).postDelayed({
-            scanCallback?.let { scanner.stopScan(it) }
-            llScanning.visibility = View.GONE
-        }, 10000L)
-
-        // ── Entrance animation ─────────────────────────────────────────
-        val slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up_dialog)
-        dialogRoot.startAnimation(slideUp)
-
-        // ── Pulse animations on icon and glow rings ────────────────────
-        val pulseAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth)
-        ivBluetooth.startAnimation(pulseAnim)
-
-        val glowOuterAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth).apply {
-            startOffset = 150L
-        }
-        glowOuter.startAnimation(glowOuterAnim)
-
-        val glowInnerAnim = AnimationUtils.loadAnimation(this, R.anim.pulse_bluetooth).apply {
-            startOffset = 75L
-        }
-        glowInner.startAnimation(glowInnerAnim)
-
-        // ── Button click: Scan new device ──────────────────────────────
-        btnScanNew.setOnClickListener {
-            scanCallback?.let { scanner.stopScan(it) }
-            dialog.dismiss()
-            startActivity(Intent(this, TrackerManagerActivity::class.java))
+        retryRunnable = object : Runnable {
+            override fun run() {
+                if (!finished) {
+                    if (!isConnecting) {
+                        stopScan()
+                        startScan()
+                    }
+                    reconnectHandler.postDelayed(this, RECONNECT_SCAN_INTERVAL_MS)
+                }
+            }
         }
 
-        // ── Dismiss actions ────────────────────────────────────────────
-        tvSkip.setOnClickListener   { 
-            scanCallback?.let { scanner.stopScan(it) }
-            dialog.dismiss() 
+        timeoutRunnable = Runnable {
+            finishReconnect(showTimeoutToast = true)
         }
-        btnClose.setOnClickListener { 
-            scanCallback?.let { scanner.stopScan(it) }
-            dialog.dismiss() 
+
+        root.setOnClickListener {
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastTapMs <= DOUBLE_TAP_DISMISS_MS) {
+                finishReconnect()
+            }
+            lastTapMs = now
+        }
+
+        dialog.setOnDismissListener {
+            cleanup()
         }
 
         dialog.show()
+        reconnectDialog = dialog
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            attributes = attributes.apply { dimAmount = 0.65f }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BleProfileService.BROADCAST_CONNECTION_STATE)
+            addAction(BleProfileService.BROADCAST_FAILED_TO_CONNECT)
+        }
+        LocalBroadcastManager.getInstance(this).registerReceiver(reconnectReceiver, filter)
+
+        startScan()
+        reconnectHandler.postDelayed(retryRunnable, RECONNECT_SCAN_INTERVAL_MS)
+        reconnectHandler.postDelayed(timeoutRunnable, RECONNECT_TIMEOUT_MS)
+    }
+
+    fun dismissEldReconnectDialog() {
+        reconnectDialog?.dismiss()
+    }
+
+    private fun hasBluetoothScanPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
     }
 
     // ── Device Adapter for RecyclerView ────────────────────────────────
@@ -867,6 +942,8 @@ class Dashboard : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        dismissEldReconnectDialog()
+        reconnectHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
         job.cancel()
     }
@@ -923,6 +1000,9 @@ class Dashboard : AppCompatActivity() {
 
     companion object {
         private const val TAG = "LocationActivity"
+        private const val RECONNECT_SCAN_INTERVAL_MS = 10_000L
+        private const val RECONNECT_TIMEOUT_MS = 120_000L
+        private const val DOUBLE_TAP_DISMISS_MS = 350L
     }
 
     private fun performLogout() {

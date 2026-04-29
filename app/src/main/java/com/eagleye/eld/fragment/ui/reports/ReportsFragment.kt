@@ -149,7 +149,10 @@ class ReportsFragment : Fragment() {
 
         binding.btnStartReview.setOnClickListener {
             playClickAnimation(it)
-            findNavController().navigate(R.id.nav_gallery)
+            val bundle = Bundle().apply {
+                putBoolean("isReviewMode", true)
+            }
+            findNavController().navigate(R.id.nav_gallery, bundle)
         }
         
         binding.btnBack.setOnClickListener {

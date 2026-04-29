@@ -442,7 +442,7 @@ private fun overallHours(
 
     // Check if there is any "ON" or "DRIVING" log after shift reset
     val hasValidLogAfterReset = userLogs.drop(startIndex).any {
-        it.modename.trim().lowercase() in listOf(TRUCK_MODE_ON)
+        it.modename.trim().lowercase() in listOf(TRUCK_MODE_ON, TRUCK_MODE_DRIVING)
     }
 
     if (!hasValidLogAfterReset) return 0.0
@@ -786,7 +786,7 @@ private fun overallHours(
             }
 
 
-            if (currentMode in listOf(TRUCK_MODE_OFF, TRUCK_MODE_SLEEPING, TRUCK_MODE_ON)) {
+            if (currentMode in listOf(TRUCK_MODE_OFF, TRUCK_MODE_SLEEPING)) {
                 val timeDiff = if (hasNextLog != null) {
                     getDifferenceInHours(logs.time, hasNextLog.time)
                 } else {

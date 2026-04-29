@@ -558,13 +558,13 @@ public final class ELDGraph extends View {
         if (value == null)
             return 0;
         String v = value.trim().toLowerCase();
-        if ("off".equals(v))
+        if ("off".equals(v) || "personal".equals(v))
             return 1;
         if ("sb".equals(v))
             return 2;
         if ("d".equals(v) || "dr".equals(v))
             return 3;
-        if ("on".equals(v))
+        if ("on".equals(v) || "yard".equals(v))
             return 4;
         if ("eng_on".equals(v) || "e_on".equals(v) || "power_on".equals(v))
             return 5;

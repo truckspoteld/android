@@ -44,6 +44,34 @@ class LogViewModel @Inject constructor(
         }
     }
 
+    val addLogLiveData: LiveData<NetworkResult<com.eagleye.eld.models.AddLogSuccessResponse>> get() = dashboardRespository.addlogResponse
+
+    fun addLogWithException(request: com.eagleye.eld.request.AddLogWithExceptionRequest, context: Context) {
+        viewModelScope.launch {
+            if (isInternetAvailable(context)) {
+                dashboardRespository.addLogWithException(request)
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val updateLogLiveData: LiveData<NetworkResult<com.eagleye.eld.models.LogResponse>> get() = dashboardRespository.logResponseLiveData
+
+    fun updateLog(request: com.eagleye.eld.request.updateLogRequest, context: Context) {
+        viewModelScope.launch {
+            if (isInternetAvailable(context)) {
+                dashboardRespository.updateLog(request, true)
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "No internet connection", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.M)
     fun isInternetAvailable(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

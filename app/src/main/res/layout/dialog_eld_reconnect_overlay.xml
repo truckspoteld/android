@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/eld_reconnect_overlay_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#8F000000"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <ProgressBar
+            android:id="@+id/pb_eld_reconnect"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/nav_icon_active" />
+
+        <TextView
+            android:id="@+id/tv_eld_reconnect_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="Reconnecting to ELD"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_eld_reconnect_status"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="Searching for saved device..."
+            android:textColor="#DDE6F3"
+            android:textSize="14sp" />
+    </LinearLayout>
+</FrameLayout>

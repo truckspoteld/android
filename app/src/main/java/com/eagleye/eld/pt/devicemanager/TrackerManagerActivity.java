@@ -394,6 +394,7 @@ package com.eagleye.eld.pt.devicemanager;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -497,6 +498,31 @@ public class TrackerManagerActivity extends BleProfileServiceReadyActivity<Track
                 ft.replace(R.id.fragment_container, DefaultFragment.newInstance());
             }
             ft.commit();
+        }
+    }
+
+    @Override
+    protected void onViewCreated(Bundle savedInstanceState) {
+        super.onViewCreated(savedInstanceState);
+        if (savedInstanceState != null || AppModel.MODE_USB || !isBLEEnabled()) {
+            return;
+        }
+
+        String autoAddress = getIntent().getStringExtra("auto_connect_address");
+        if (autoAddress == null || autoAddress.trim().isEmpty()) {
+            return;
+        }
+
+        String autoName = getIntent().getStringExtra("auto_connect_name");
+        if (autoName == null || autoName.trim().isEmpty()) {
+            autoName = "ELD Device";
+        }
+
+        try {
+            BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(autoAddress);
+            onDeviceSelected(device, autoName);
+        } catch (Exception e) {
+            Log.e(TAG, "Auto-connect failed for saved ELD device: " + e.getMessage(), e);
         }
     }
 
@@ -793,6 +819,5 @@ public class TrackerManagerActivity extends BleProfileServiceReadyActivity<Track
         }
     }
 }
-
 
 

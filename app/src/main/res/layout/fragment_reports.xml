@@ -114,9 +114,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:gravity="center"
-                        android:text="Tap Start Review button and give your device to the DOT Officer"
+                        android:text="Tap Start Review button and give your device to the FMCSA Officer"
                         android:textColor="#111827"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
 
                     <com.google.android.material.button.MaterialButton
@@ -169,7 +169,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="FMCSA Data Transfer"
+                            android:text="Dot Data Transfer"
                             android:textColor="#111827"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -180,7 +180,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:gravity="center"
-                        android:text="FMCSA transfer (Email or Web Service API) for the last 7 days"
+                        android:text="Dot transfer (Email or Web Service API) for the last 7 days"
                         android:textColor="#4B5563"
                         android:textSize="14sp" />
 

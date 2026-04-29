@@ -333,7 +333,8 @@ class PdfReportGenerator(private val context: Context) {
         val headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, FONT_SIZE_SMALL)
         val normalFont = FontFactory.getFont(FontFactory.HELVETICA, FONT_SIZE_SMALL)
         
-        val logs = reportData.results?.userLogs ?: emptyList()
+        val logs = (reportData.results?.userLogs ?: emptyList())
+            .sortedBy { it.datetime.ifBlank { "${it.date} ${it.time}" } }
         if (logs.isNotEmpty()) {
             // 6-column table matching reference image
             val table = PdfPTable(6)
@@ -367,7 +368,13 @@ class PdfReportGenerator(private val context: Context) {
                     c.border = Rectangle.NO_BORDER
                     return c
                 }
-                table.addCell(makeCell(log.modename?.uppercase() ?: ""))
+                val normalizedMode = log.modename.trim().lowercase()
+                val statusText = when {
+                    normalizedMode == "personal" || log.discreption?.toString()?.trim()?.lowercase() == "personal" -> "Off Duty (PC)"
+                    normalizedMode == "yard" || log.discreption?.toString()?.trim()?.lowercase() == "yard" -> "On Duty (YM)"
+                    else -> log.modename.uppercase()
+                }
+                table.addCell(makeCell(statusText))
                 table.addCell(makeCell(log.time ?: ""))
                 table.addCell(makeCell(log.eng_hours ?: ""))
                 table.addCell(makeCell(log.odometerreading ?: ""))
@@ -464,7 +471,8 @@ class PdfReportGenerator(private val context: Context) {
     // Keep the existing methods for backward compatibility
     fun generateEldGraphBitmap(reportData: GetLogsByDateResponse, timeZone: String?): Bitmap? {
         return try {
-            val logs = reportData.results?.userLogs ?: emptyList()
+            val logs = (reportData.results?.userLogs ?: emptyList())
+                .sortedBy { it.datetime.ifBlank { "${it.date} ${it.time}" } }
             Log.d("PdfReportGenerator", "Starting ELD graph bitmap generation with ${logs.size} logs")
             
             // Create ELD graph view
@@ -488,6 +496,8 @@ class PdfReportGenerator(private val context: Context) {
                 val status = modename.trim().lowercase()
                 val normalizedStatus = when (status) {
                     "dr" -> "d"
+                    "personal" -> "off"
+                    "yard" -> "on"
                     "e_on", "power_on" -> "eng_on"
                     "e_off", "power_off" -> "eng_off"
                     else -> status
@@ -539,8 +549,8 @@ class PdfReportGenerator(private val context: Context) {
             
             // Filter out events that ELDGraph doesn't render lines for
             val filteredList = logList.filter { 
-                it.status != "login" && it.status != "logout" && it.status != "personal" && 
-                it.status != "yard" && it.status != "certification" && it.status != "INT" && 
+                it.status != "login" && it.status != "logout" &&
+                it.status != "certification" && it.status != "INT" && 
                 it.status != "eng_off" && it.status != "eng_on" && it.status != "power_on" && 
                 it.status != "power_off"
             }

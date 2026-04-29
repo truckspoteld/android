@@ -12,7 +12,10 @@ data class updateLogRequest(
     val eng_hours:String,
     val time:String,
     val location:String,
-    val event_status:Int
+    val event_status:Int,
+    val remark: String? = null,
+    val exceptionType: String? = null,
+    val exceptionNotes: String? = null
 )
 
 data class updateCertified(

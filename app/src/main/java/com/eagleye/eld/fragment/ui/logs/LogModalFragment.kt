@@ -4,9 +4,13 @@ import android.view.LayoutInflater
 
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.ViewModelProvider
@@ -24,7 +28,9 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.log_modal, container, false)
+        val view = inflater.inflate(R.layout.log_modal, container, false)
+        dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -33,11 +39,17 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
         val editTextTime = view.findViewById<EditText>(R.id.editTextTime)
         editTextTime.setText(userLog.time)
 
-        val editTextModename = view.findViewById<EditText>(R.id.editTextModename)
-        editTextModename.setText(userLog.modename)
+        val editTextModename = view.findViewById<AutoCompleteTextView>(R.id.editTextModename)
+        val allModes = arrayOf("on", "off", "sb")
+        val currentMode = userLog.modename.lowercase()
+        val modes = allModes.filter { it != currentMode }.toTypedArray()
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, modes)
+        editTextModename.setAdapter(adapter)
+        editTextModename.setText(userLog.modename, false) // false prevents popup from showing on initial set
 
         val editTextLocation = view.findViewById<EditText>(R.id.editTextlocation)
         editTextLocation.setText(userLog.location)
+        editTextLocation.isEnabled = false
 
         val editTextOdometer = view.findViewById<EditText>(R.id.editTextodometer)
         editTextOdometer.setText(userLog.odometerreading)
@@ -47,6 +59,11 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
 
 
         val btnEdit = view.findViewById<Button>(R.id.btnEdit)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancel)
+
+        btnCancel.setOnClickListener {
+            dismiss()
+        }
 
         btnEdit.setOnClickListener {
             val updatedTime = editTextTime.text.toString()

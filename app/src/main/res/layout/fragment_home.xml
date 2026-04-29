@@ -73,6 +73,7 @@
                 app:tint="@color/home_text_main" />
 
             <LinearLayout
+                android:visibility="visible"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -722,13 +723,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:progress="60"
-                            app:indicatorSize="@dimen/_78sdp"
+                            app:indicatorSize="114dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:trackColor="@color/gauge_arc_bg"
-                            app:trackThickness="8dp" />
+                            app:trackThickness="13dp" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -744,9 +745,9 @@
                                 android:id="@+id/timeText1"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="11:00:00"
+                                android:text="11:00"
                                 android:textColor="@color/home_text_main"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -797,13 +798,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:progress="75"
-                            app:indicatorSize="@dimen/_78sdp"
+                            app:indicatorSize="114dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:trackColor="@color/gauge_arc_bg"
-                            app:trackThickness="8dp" />
+                            app:trackThickness="13dp" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -819,9 +820,9 @@
                                 android:id="@+id/timeText2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="10:30:08"
+                                android:text="10:30"
                                 android:textColor="@color/home_text_main"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -871,13 +872,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:progress="40"
-                            app:indicatorSize="@dimen/_78sdp"
+                            app:indicatorSize="114dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:trackColor="@color/gauge_arc_bg"
-                            app:trackThickness="8dp" />
+                            app:trackThickness="13dp" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -893,9 +894,9 @@
                                 android:id="@+id/timeText3"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="68:15:22"
+                                android:text="68:15"
                                 android:textColor="@color/home_text_main"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -945,13 +946,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:progress="90"
-                            app:indicatorSize="@dimen/_78sdp"
+                            app:indicatorSize="114dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:trackColor="@color/gauge_arc_bg"
-                            app:trackThickness="8dp" />
+                            app:trackThickness="13dp" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -967,9 +968,9 @@
                                 android:id="@+id/timeText4"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="07:45:10"
+                                android:text="07:45"
                                 android:textColor="@color/home_text_main"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -1195,7 +1196,7 @@
                 android:text="REMAINING"
                 android:textSize="14sp"
                 android:textColor="@color/home_text_sub"
-                android:letterSpacing="0.1" />
+                android:letterSpacing="0" />
         </LinearLayout>
         
         <TextView

@@ -139,6 +139,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private val API_CALL_DEBOUNCE_MS = 30000L // 30 seconds debounce for API calls
     private val LONG_PAUSE_THRESHOLD_MS = 60000L // 1 minute - considered long pause
     private val DRIVE_DETECTION_THRESHOLD_KMH = 8 // ~5 mph threshold for auto-driving
+    private val DRIVE_LIMIT_SECONDS = 11 * 3600
     private var isFetchingLogs = false // Flag to prevent concurrent API calls
 
     var hrs_MODE_OFF = 0.0
@@ -210,6 +211,9 @@ class HomeFragment : Fragment(), OnClickListener {
                 connectionState == BleProfileService.STATE_LINK_LOSS
             ) {
                 stopSpeedMonitoring()
+                (activity as? Dashboard)?.showEldReconnectDialog()
+            } else if (connectionState == BleProfileService.STATE_CONNECTED) {
+                (activity as? Dashboard)?.dismissEldReconnectDialog()
             }
 
             if (!isBluetoothConnecting) {
@@ -219,6 +223,17 @@ class HomeFragment : Fragment(), OnClickListener {
     }
     var disconnectedDrivingMilesRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (intent.getBooleanExtra(TrackerService.EXTRA_DISCONNECTED_DRIVING_AUTO_SUBMITTED, false)) {
+                prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    delay(1500)
+                    if (_binding != null) {
+                        runCatching { homeViewModel.getHome(requireContext()) }
+                    }
+                }
+                return
+            }
             maybeShowDisconnectedDrivingMilesDialog(
                 intent.getStringExtra(TrackerService.EXTRA_DISCONNECTED_DRIVING_MILES)
             )
@@ -232,6 +247,22 @@ class HomeFragment : Fragment(), OnClickListener {
     private var observersSet = false
     private var codrivers: List<CodriverItem> = emptyList()
     private var disconnectedDrivingMilesDialog: androidx.appcompat.app.AlertDialog? = null
+
+    private data class PendingDisconnectedDrivingSegment(
+        val start: PendingDisconnectedDrivingPoint? = null,
+        val end: PendingDisconnectedDrivingPoint? = null
+    )
+
+    private data class PendingDisconnectedDrivingPoint(
+        val date: String? = "",
+        val time: String? = "",
+        val datetime: String? = "",
+        val odometerKm: String? = "",
+        val engineHours: String? = "",
+        val latitude: Double = 0.0,
+        val longitude: Double = 0.0,
+        val hasLocation: Boolean = false
+    )
 
     @SuppressLint("SuspiciousIndentation")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -432,23 +463,23 @@ class HomeFragment : Fragment(), OnClickListener {
                     val logs = it.data.logs ?: emptyList()
                     val hasMalfunction = logs.any { log -> (log.malfunctioneld ?: 0) > 0 }
                     val hasDiagnostic = logs.any { log -> (log.datadiagnostic ?: 0) > 0 }
+//
+//                    if (hasMalfunction) {
+//                        binding.tvMalfunction.alpha = 1.0f
+//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
+//                    } else {
+//                        binding.tvMalfunction.alpha = 0.3f
+//                        binding.tvMalfunction.clearAnimation()
+//                    }
 
-                    if (hasMalfunction) {
-                        binding.tvMalfunction.alpha = 1.0f
-                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
-                    } else {
-                        binding.tvMalfunction.alpha = 0.3f
-                        binding.tvMalfunction.clearAnimation()
-                    }
-
-                    if (hasDiagnostic) {
-                        binding.tvDiagnostic.alpha = 1.0f
-                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
-                    } else {
-                        binding.tvDiagnostic.alpha = 0.3f
-                        binding.tvDiagnostic.clearAnimation()
-                    }
-                    
+//                    if (hasDiagnostic) {
+//                        binding.tvDiagnostic.alpha = 1.0f
+//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
+//                    } else {
+//                        binding.tvDiagnostic.alpha = 0.3f
+//                        binding.tvDiagnostic.clearAnimation()
+//                    }
+//
                     val jsonResponse = Gson().toJson(it.data)
                     Log.d("HOME_API_RESPONSE", "Response: $jsonResponse")
                     Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction, Diagnostic: $hasDiagnostic")
@@ -510,7 +541,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun updateGauges(data: HomeDataModel?) {
         if (data?.conditions == null || _binding == null) return
 
-        // Conditions from backend are in seconds; format as HH:MM:SS
+        // Conditions from backend are in seconds; match iOS gauges with compact HH:MM.
         val formatCondition: (Int) -> String = { Utils.formatTimeFromSeconds(it) }
         val driveTotalSec = 11 * 3600
         val cycleTotalSec = 70 * 3600
@@ -858,21 +889,41 @@ class HomeFragment : Fragment(), OnClickListener {
             return snapshot.copy()
         }
 
-        val isDriving = getCurrentModeForLiveConditions() == TRUCK_MODE_DRIVING
+        val currentMode = getCurrentModeForLiveConditions()
+        val isDriving = currentMode == TRUCK_MODE_DRIVING
+        val isOnDuty = currentMode == TRUCK_MODE_ON || currentMode == TRUCK_MODE_YARD
         val snapshotDrive = snapshot.drive ?: 0
         val snapshotDriveBreak = snapshot.drivebreak ?: 0
+        val snapshotShift = snapshot.shift ?: 0
+        val snapshotCycle = snapshot.cycle ?: 0
         val liveDrive = if (isDriving) (snapshotDrive - elapsedSeconds).coerceAtLeast(0) else snapshotDrive
         val liveDriveBreak = if (isDriving) {
             (snapshotDriveBreak - elapsedSeconds).coerceAtLeast(0)
         } else {
             snapshotDriveBreak
         }
+        val liveShift = if (isDriving || isOnDuty) {
+            (snapshotShift - elapsedSeconds).coerceAtLeast(0)
+        } else {
+            snapshotShift
+        }
+        val liveCycle = if (isDriving || isOnDuty) {
+            (snapshotCycle - elapsedSeconds).coerceAtLeast(0)
+        } else {
+            snapshotCycle
+        }
 
         return snapshot.copy(
             drive = liveDrive,
+            shift = liveShift,
+            cycle = liveCycle,
             drivebreak = liveDriveBreak,
             driveViolation = snapshot.driveViolation == true ||
                 (isDriving && snapshotDrive > 0 && liveDrive <= 0),
+            shiftViolation = snapshot.shiftViolation == true ||
+                ((isDriving || isOnDuty) && snapshotShift > 0 && liveShift <= 0),
+            cycleViolation = snapshot.cycleViolation == true ||
+                ((isDriving || isOnDuty) && snapshotCycle > 0 && liveCycle <= 0),
             driveBreakViolation = snapshot.driveBreakViolation == true ||
                 (isDriving && snapshotDriveBreak > 0 && liveDriveBreak <= 0)
         )
@@ -882,6 +933,7 @@ class HomeFragment : Fragment(), OnClickListener {
         val liveConditions = getLiveConditions() ?: return
         updateGauges(HomeDataModel(conditions = liveConditions))
         updateViolationTimeCard(liveConditions)
+        updateDrivingOverlayForCurrentMode()
     }
 
     private fun updateUIAfterModeChange(mode: String) {
@@ -1030,13 +1082,12 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun maybeShowDisconnectedDrivingMilesDialog(rawMiles: String?) {
         if (!isAdded || _binding == null) return
 
-        val milesCovered = rawMiles?.trim()?.toDoubleOrNull() ?: run {
-            prefRepository.clearPendingDisconnectedDrivingMilesDialog()
-            return
-        }
+        val pendingSegments = readPendingDisconnectedDrivingSegments()
+        val milesCovered = rawMiles?.trim()?.toDoubleOrNull() ?: 0.0
 
-        if (milesCovered <= 0.0) {
+        if (milesCovered <= 0.0 && pendingSegments.isEmpty()) {
             prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+            prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
             return
         }
 
@@ -1045,24 +1096,105 @@ class HomeFragment : Fragment(), OnClickListener {
         }
 
         val milesText = String.format(Locale.US, "%.2f", milesCovered)
-        val message =
-            "You covered $milesText miles while disconnected. Are these yours? Would you like to submit them?"
+        val recoverableLogCount = pendingSegments.sumOf { segment ->
+            listOfNotNull(segment.start, segment.end).size
+        }
+        val message = if (recoverableLogCount > 0) {
+            "You covered $milesText miles while the ELD was disconnected. The ELD stored $recoverableLogCount driving log(s). Do you want to add them to your record?"
+        } else {
+            "You covered $milesText miles while the ELD was disconnected. Do you want to add this to your record?"
+        }
 
         disconnectedDrivingMilesDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Disconnected Driving")
             .setMessage(message)
             .setPositiveButton("Yes") { dialog, _ ->
+                if (pendingSegments.isNotEmpty()) {
+                    submitPendingDisconnectedDrivingSegments(pendingSegments)
+                }
                 prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
                 dialog.dismiss()
             }
             .setNegativeButton("No") { dialog, _ ->
                 prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
                 dialog.dismiss()
             }
             .setOnDismissListener {
                 disconnectedDrivingMilesDialog = null
             }
             .show()
+    }
+
+    private fun readPendingDisconnectedDrivingSegments(): List<PendingDisconnectedDrivingSegment> {
+        val json = prefRepository.getPendingDisconnectedDrivingSegmentsJson()
+        if (json.isBlank()) return emptyList()
+        return runCatching {
+            Gson().fromJson(json, Array<PendingDisconnectedDrivingSegment>::class.java)
+                ?.filter { it.start != null || it.end != null }
+                .orEmpty()
+        }.getOrDefault(emptyList())
+    }
+
+    private fun submitPendingDisconnectedDrivingSegments(
+        segments: List<PendingDisconnectedDrivingSegment>
+    ) {
+        for (segment in segments) {
+            segment.start?.let { point ->
+                submitRecoveredStoredEventLog(TRUCK_MODE_DRIVING, point)
+            }
+            segment.end?.let { point ->
+                submitRecoveredStoredEventLog(TRUCK_MODE_ON, point)
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            delay(1500)
+            if (_binding != null) {
+                runCatching { homeViewModel.getHome(requireContext()) }
+            }
+        }
+    }
+
+    private fun submitRecoveredStoredEventLog(
+        mode: String,
+        point: PendingDisconnectedDrivingPoint
+    ) {
+        val vin = resolveTrackerVinForRecoveredLog()
+        val logRequest = AddLogRequest(
+            modename = mode,
+            odometerreading = TelemetryLogValueUtils.normalizeOdometerForLog(
+                point.odometerKm,
+                prefRepository.getDiffinOdo()
+            ),
+            lat = point.latitude,
+            long = point.longitude,
+            location = point.hasLocation,
+            eng_hours = TelemetryLogValueUtils.normalizeEngineHoursForLog(
+                point.engineHours,
+                prefRepository.getDiffinEng()
+            ),
+            vin = vin,
+            is_active = 1,
+            is_autoinsert = 1,
+            eventcode = 1,
+            eventtype = 1,
+            date = point.date.orEmpty(),
+            time = point.time.orEmpty(),
+            connection_status = "disconnected",
+            datetime = point.datetime.orEmpty()
+        )
+        context?.let { homeViewModel.logUser(logRequest, it) }
+    }
+
+    private fun resolveTrackerVinForRecoveredLog(): String {
+        val appModel = AppModel.getInstance()
+        val pt30Vin = appModel.mPT30Vin
+        if (!pt30Vin.isNullOrBlank() && pt30Vin != "n/a") {
+            return pt30Vin
+        }
+        val vehicleVin = appModel.mVehicleInfo?.VIN
+        return if (!vehicleVin.isNullOrBlank()) vehicleVin else "1111"
     }
 
     private fun showPendingDisconnectedDrivingMilesDialogIfNeeded() {
@@ -1260,12 +1392,8 @@ class HomeFragment : Fragment(), OnClickListener {
                 te?.mEngineHours,
                 prefRepository.getDiffinEng()
             )
-            var finalMode = mode
-            if (selectedOptionText == "yard") {
-                finalMode = TRUCK_MODE_ON
-            } else if (selectedOptionText == "personal") {
-                finalMode = TRUCK_MODE_OFF
-            }
+            val finalMode = mode
+            val eventCode = if (selectedOptionText == "yard" || mode == TRUCK_MODE_YARD) 4 else 1
 
             if (homeViewModel.getUserLogs().isNotEmpty()) {
                 val toDayDate = DateFormat.format("dd-MM-yyy", Date()).toString()
@@ -1295,7 +1423,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     vin = vin_no.toString(),
                     is_active = 1,
                     is_autoinsert = 1,
-                    eventcode = 1,
+                    eventcode = eventCode,
                     eventtype = 1,
                     connection_status = if (isNeedToconnect) "disconnected" else "connected"
                 )
@@ -1833,6 +1961,8 @@ class HomeFragment : Fragment(), OnClickListener {
         if (viewSelect == binding.btnDrive) {
             if (!isChangingStatus) {
                 showDrivingOverlay()
+            } else {
+                updateDrivingOverlayContent(animateProgress = false)
             }
         } else {
             isChangingStatus = false
@@ -1842,46 +1972,65 @@ class HomeFragment : Fragment(), OnClickListener {
 
     private var isChangingStatus = false
 
-    private fun showDrivingOverlay() {
-        val overlay = binding.root.findViewById<View>(R.id.cl_dr_overlay)
-        if (overlay?.visibility != View.VISIBLE) {
-            overlay?.visibility = View.VISIBLE
-            overlay?.alpha = 0f
-            overlay?.animate()?.alpha(1f)?.setDuration(300)?.start()
+    private fun updateDrivingOverlayForCurrentMode() {
+        if (_binding == null) return
+
+        if (getCurrentModeForLiveConditions() == TRUCK_MODE_DRIVING) {
+            if (!isChangingStatus) {
+                showDrivingOverlay()
+            } else {
+                updateDrivingOverlayContent(animateProgress = false)
+            }
+        } else {
+            isChangingStatus = false
+            hideDrivingOverlay()
         }
-        
-        // Update values
-        val progressCircle = binding.root.findViewById<com.google.android.material.progressindicator.CircularProgressIndicator>(R.id.dr_progress_circle)
-        val timeText = binding.root.findViewById<TextView>(R.id.tv_dr_time_remaining)
-        val changeStatusBtn = binding.root.findViewById<View>(R.id.btn_dr_change_status)
-        
-        changeStatusBtn?.setOnClickListener {
+    }
+
+    private fun showDrivingOverlay() {
+        val overlay = binding.clDrOverlay
+        val shouldAnimateEntry = overlay.visibility != View.VISIBLE
+        if (overlay.visibility != View.VISIBLE) {
+            overlay.visibility = View.VISIBLE
+            overlay.alpha = 0f
+            overlay.animate().alpha(1f).setDuration(300).start()
+        }
+
+        binding.btnDrChangeStatus.setOnClickListener {
             isChangingStatus = true
             hideDrivingOverlay()
         }
 
-        // Animate progress to current drive time remaining
-        // We can get remaining drive time from homeLiveData
-        val conditions = homeViewModel.homeLiveData.value?.data?.conditions
-        val remainingDrive = conditions?.drive ?: 0
-        val maxDrive = 11 * 3600 // 11 hours
-        val progress = if (remainingDrive > 0) ((remainingDrive.toFloat() / maxDrive) * 100).toInt() else 0
-        
-        timeText?.text = Utils.formatTimeFromSeconds(remainingDrive)
-        
-        progressCircle?.progress = 0
-        progressCircle?.let {
-            android.animation.ObjectAnimator.ofInt(it, "progress", progress).apply {
-                duration = 1000
-                interpolator = android.view.animation.DecelerateInterpolator()
-                start()
-            }
+        updateDrivingOverlayContent(animateProgress = shouldAnimateEntry)
+    }
+
+    private fun updateDrivingOverlayContent(animateProgress: Boolean) {
+        if (_binding == null) return
+
+        val remainingDrive = getLiveConditions()?.drive
+            ?: homeViewModel.homeLiveData.value?.data?.conditions?.drive
+            ?: 0
+        val progress = if (remainingDrive > 0) {
+            ((remainingDrive.toFloat() / DRIVE_LIMIT_SECONDS) * 100).toInt().coerceIn(0, 100)
+        } else {
+            0
         }
+
+        binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(remainingDrive)
+        binding.drProgressCircle.setProgressCompat(progress, animateProgress)
+    }
+
+    private fun formatDrivingOverlayTime(seconds: Int): String {
+        val safeSeconds = seconds.coerceAtLeast(0)
+        val totalMinutes = safeSeconds / 60
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return String.format(Locale.US, "%d:%02d", hours, minutes)
     }
 
     private fun hideDrivingOverlay() {
-        val overlay = binding.root.findViewById<View>(R.id.cl_dr_overlay)
-        if (overlay?.visibility == View.VISIBLE) {
+        val overlay = binding.clDrOverlay
+        if (overlay.visibility == View.VISIBLE) {
             overlay.animate().alpha(0f).setDuration(200).withEndAction {
                 overlay.visibility = View.GONE
             }.start()

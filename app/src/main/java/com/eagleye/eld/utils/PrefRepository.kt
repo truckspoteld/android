@@ -348,6 +348,30 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_PENDING_DISCONNECTED_DRIVING_MILES_DIALOG.put("")
     }
 
+    fun setDriverIdAtDisconnect(driverId: Int) {
+        PREF_DRIVER_ID_AT_DISCONNECT.put(driverId)
+    }
+
+    fun getDriverIdAtDisconnect(): Int {
+        return PREF_DRIVER_ID_AT_DISCONNECT.getInt()
+    }
+
+    fun clearDriverIdAtDisconnect() {
+        PREF_DRIVER_ID_AT_DISCONNECT.put(0)
+    }
+
+    fun setPendingDisconnectedDrivingSegmentsJson(segmentsJson: String) {
+        PREF_PENDING_DISCONNECTED_DRIVING_SEGMENTS_JSON.put(segmentsJson)
+    }
+
+    fun getPendingDisconnectedDrivingSegmentsJson(): String {
+        return PREF_PENDING_DISCONNECTED_DRIVING_SEGMENTS_JSON.getString()
+    }
+
+    fun clearPendingDisconnectedDrivingSegmentsJson() {
+        PREF_PENDING_DISCONNECTED_DRIVING_SEGMENTS_JSON.put("")
+    }
+
     fun clearData() {
         editor.clear()
         editor.commit()

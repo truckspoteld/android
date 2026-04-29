@@ -26,6 +26,7 @@ import com.pt.sdk.BaseRequest;
 import com.pt.sdk.BaseResponse;
 import com.pt.sdk.BleuManager;
 import com.pt.sdk.DateTimeParam;
+import com.pt.sdk.EventParam;
 import com.pt.sdk.GeolocParam;
 import com.pt.sdk.SystemVar;
 import com.pt.sdk.TSError;
@@ -51,15 +52,24 @@ import com.pt.sdk.response.RetrieveStoredEventsResponse;
 import com.pt.sdk.response.SetSystemVarResponse;
 import com.pt.sdk.response.outbound.AckEvent;
 import com.pt.sdk.response.outbound.AckSPNEvent;
+import com.pt.sdk.response.outbound.AckStoredEvent;
 import com.pt.ws.TrackerInfo;
 import com.eagleye.eld.R;
 import com.eagleye.eld.repository.DashboardRepository;
 import com.eagleye.eld.request.AddLogRequest;
 import com.eagleye.eld.utils.PrefRepository;
 import com.eagleye.eld.utils.TelemetryLogValueUtils;
+import com.google.gson.Gson;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import javax.inject.Inject;
 
@@ -72,10 +82,15 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private static final double KM_TO_MILES = 0.621371d;
     private static final double MIN_DISCONNECTED_DRIVING_MILES = 0.1d;
     private static final long STORED_EVENTS_REVIEW_SETTLE_MS = 1500L;
+    private static final long STORED_EVENTS_STREAM_IDLE_MS = 5000L;
+    private static final long CLEAN_RECONNECT_TIMEOUT_MS = 10000L;
+    private static final double MIN_UNIDENTIFIED_DRIVING_MINUTES = 60.0d;
     public static final String ACTION_DISCONNECTED_DRIVING_MILES_READY =
             "TRACKER-DISCONNECTED-DRIVING-MILES-READY";
     public static final String EXTRA_DISCONNECTED_DRIVING_MILES =
             "extra_disconnected_driving_miles";
+    public static final String EXTRA_DISCONNECTED_DRIVING_AUTO_SUBMITTED =
+            "extra_disconnected_driving_auto_submitted";
 
     /**
      * A broadcast message with this action and the message in
@@ -123,12 +138,66 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private int receivedReconnectStoredEventsCount = 0;
     private double pendingReconnectBaselineOdometerKm = 0.0d;
     private double pendingReconnectMaxOdometerKm = 0.0d;
+    private final Gson gson = new Gson();
+    private final List<StoredDrivingEvent> retrievedDrivingEvents = new ArrayList<>();
+    private final List<GapDrivePeriod> gapEnginePeriods = new ArrayList<>();
+    private final List<GapTripSegment> gapTripSegments = new ArrayList<>();
+    private boolean gapNotifiedThisSession = false;
+    private boolean gapEngineWasRunning = false;
+    private boolean gapOdometerTracked = false;
+    private double gapFirstOdometerKm = 0.0d;
+    private double gapLastOdometerKm = 0.0d;
     private final Runnable finalizeReconnectStoredEventsRunnable = new Runnable() {
         @Override
         public void run() {
-            finalizePendingDisconnectedDrivingReview();
+            finalizeStoredEventStream();
         }
     };
+    private final Runnable cleanReconnectRunnable = new Runnable() {
+        @Override
+        public void run() {
+            handleCleanReconnect();
+        }
+    };
+
+    private static class StoredEventPoint {
+        String date = "";
+        String time = "";
+        String datetime = "";
+        long epochMillis = 0L;
+        String odometerKm = "";
+        String engineHours = "";
+        double latitude = 0.0d;
+        double longitude = 0.0d;
+        boolean hasLocation = false;
+    }
+
+    private static class GapDrivePeriod {
+        StoredEventPoint start;
+        StoredEventPoint end;
+    }
+
+    private static class GapTripSegment {
+        StoredEventPoint start;
+        StoredEventPoint end;
+
+        double durationMinutes() {
+            if (start == null || end == null || start.epochMillis <= 0L || end.epochMillis <= 0L) {
+                return 0.0d;
+            }
+            return Math.max(0.0d, (end.epochMillis - start.epochMillis) / 60000.0d);
+        }
+    }
+
+    private static class StoredDrivingEvent {
+        final long epochMillis;
+        final int velocityKmh;
+
+        StoredDrivingEvent(long epochMillis, int velocityKmh) {
+            this.epochMillis = epochMillis;
+            this.velocityKmh = velocityKmh;
+        }
+    }
 
     public class TrackerBinder extends LocalBinder {
         public void sendResponse(@NonNull final BaseResponse response) {
@@ -208,6 +277,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     }
 
     void syncTracker() {
+        beginStoredEventReconnectSession();
+
         Log.i(TAG, "Get Tracker info ...");
         // Get the Tracker Info
         GetTrackerInfo gti = new GetTrackerInfo();
@@ -215,7 +286,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         // Get Stored Events count
         Log.i(TAG, "Get Stored Events count ...");
-        AppModel.getInstance().wereSERequested = false;
         GetStoredEventsCount gsec = new GetStoredEventsCount();
         mTracker.sendRequest(gsec, null, null);
 
@@ -237,6 +307,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     @Override
     public void onDeviceDisconnected(@NonNull BluetoothDevice device, int code) {
+        rememberDriverAtDisconnect();
         capturePendingDisconnectedDrivingState();
         super.onDeviceDisconnected(device, code);
         cancelNotifications();
@@ -336,20 +407,24 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         AppModel.getInstance().mLastSEvent = stmr.mTm;
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
 
-        if (!shouldCollectReconnectStoredEvents()) {
+        TelemetryEvent storedEvent = stmr.mTm;
+        if (storedEvent == null) {
             return;
         }
 
         receivedReconnectStoredEventsCount++;
-        double storedEventOdometerKm = parseNonNegative(stmr.mTm != null ? stmr.mTm.mOdometer : null);
+        trackStoredEventForReconnect(storedEvent);
+        ackStoredEvent(storedEvent);
+
+        double storedEventOdometerKm = parseNonNegative(storedEvent.mOdometer);
         if (storedEventOdometerKm > pendingReconnectMaxOdometerKm) {
             pendingReconnectMaxOdometerKm = storedEventOdometerKm;
         }
-        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_STREAM_IDLE_MS);
 
         if (pendingReconnectStoredEventsCount > 0
                 && receivedReconnectStoredEventsCount >= pendingReconnectStoredEventsCount) {
-            finalizePendingDisconnectedDrivingReview();
+            finalizeStoredEventStream();
         }
     }
 
@@ -424,7 +499,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             Log.w(TAG, "RetrieveStoredEventsResponse: S=" + rser.getStatus());
             return;
         }
-        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_STREAM_IDLE_MS);
     }
 
     @Override
@@ -651,6 +726,13 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     public static final int EXTRA_TRACKER_UPDATE_ACTION_UPDATED = 4;
     public static final int EXTRA_TRACKER_UPDATE_ACTION_FAILED = -1;
 
+    private void rememberDriverAtDisconnect() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        prefRepository.setDriverIdAtDisconnect(prefRepository.getDriverId());
+    }
+
     private void capturePendingDisconnectedDrivingState() {
         if (prefRepository == null) {
             prefRepository = new PrefRepository(this);
@@ -663,7 +745,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         if (!isDrivingMode || baselineOdometerKm <= 0.0d) {
             prefRepository.clearDisconnectedDrivingRecovery();
-            resetReconnectStoredEventCollection();
             return;
         }
 
@@ -672,6 +753,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                 String.format(Locale.US, "%.2f", baselineOdometerKm)
         );
         prefRepository.clearPendingDisconnectedDrivingMilesDialog();
+        prefRepository.clearPendingDisconnectedDrivingSegmentsJson();
         Log.d(
                 TAG,
                 "Captured disconnect driving baseline odo=" + baselineOdometerKm + " km"
@@ -683,50 +765,28 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             prefRepository = new PrefRepository(this);
         }
 
-        if (!prefRepository.isDisconnectedDrivingReviewPending()) {
-            resetReconnectStoredEventCollection();
-            return;
-        }
-
+        pendingReconnectStoredEventsCount = Math.max(0, storedEventsCount);
+        receivedReconnectStoredEventsCount = 0;
         pendingReconnectBaselineOdometerKm = parseNonNegative(
                 prefRepository.getDisconnectedDrivingBaselineOdometerKm()
         );
-
-        if (pendingReconnectBaselineOdometerKm <= 0.0d) {
-            prefRepository.clearDisconnectedDrivingRecovery();
-            resetReconnectStoredEventCollection();
-            return;
-        }
+        pendingReconnectMaxOdometerKm = Math.max(0.0d, pendingReconnectBaselineOdometerKm);
 
         if (storedEventsCount <= 0) {
-            prefRepository.clearDisconnectedDrivingRecovery();
-            resetReconnectStoredEventCollection();
+            handleCleanReconnect();
             return;
         }
-
-        pendingReconnectStoredEventsCount = storedEventsCount;
-        receivedReconnectStoredEventsCount = 0;
-        pendingReconnectMaxOdometerKm = pendingReconnectBaselineOdometerKm;
 
         if (AppModel.getInstance().wereSERequested) {
-            scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS);
+            scheduleReconnectStoredEventsFinalize(STORED_EVENTS_STREAM_IDLE_MS);
             return;
         }
 
-        Log.d(TAG, "Retrieving " + storedEventsCount + " stored events for disconnected driving review");
+        Log.d(TAG, "Retrieving " + storedEventsCount + " stored events for reconnect recovery");
         AppModel.getInstance().wereSERequested = true;
         RetrieveStoredEvents retrieveStoredEvents = new RetrieveStoredEvents();
         mTracker.sendRequest(retrieveStoredEvents, null, null);
-        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_REVIEW_SETTLE_MS * 2);
-    }
-
-    private boolean shouldCollectReconnectStoredEvents() {
-        if (prefRepository == null) {
-            prefRepository = new PrefRepository(this);
-        }
-        return prefRepository.isDisconnectedDrivingReviewPending()
-                && pendingReconnectStoredEventsCount > 0
-                && pendingReconnectBaselineOdometerKm > 0.0d;
+        scheduleReconnectStoredEventsFinalize(STORED_EVENTS_STREAM_IDLE_MS * 2);
     }
 
     private void scheduleReconnectStoredEventsFinalize(long delayMs) {
@@ -737,28 +797,165 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         getHandler().postDelayed(finalizeReconnectStoredEventsRunnable, delayMs);
     }
 
-    private void finalizePendingDisconnectedDrivingReview() {
+    private void beginStoredEventReconnectSession() {
         if (prefRepository == null) {
             prefRepository = new PrefRepository(this);
         }
         if (getHandler() != null) {
             getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+            getHandler().removeCallbacks(cleanReconnectRunnable);
         }
+        pendingReconnectStoredEventsCount = 0;
+        receivedReconnectStoredEventsCount = 0;
+        pendingReconnectBaselineOdometerKm = 0.0d;
+        pendingReconnectMaxOdometerKm = 0.0d;
+        gapNotifiedThisSession = false;
+        gapEngineWasRunning = false;
+        gapOdometerTracked = false;
+        gapFirstOdometerKm = 0.0d;
+        gapLastOdometerKm = 0.0d;
+        retrievedDrivingEvents.clear();
+        gapEnginePeriods.clear();
+        gapTripSegments.clear();
+        AppModel.getInstance().wereSERequested = false;
+        scheduleCleanReconnectFallback();
+    }
 
-        if (!prefRepository.isDisconnectedDrivingReviewPending()) {
-            resetReconnectStoredEventCollection();
+    private void scheduleCleanReconnectFallback() {
+        if (getHandler() == null) {
+            return;
+        }
+        getHandler().removeCallbacks(cleanReconnectRunnable);
+        getHandler().postDelayed(cleanReconnectRunnable, CLEAN_RECONNECT_TIMEOUT_MS);
+    }
+
+    private void handleCleanReconnect() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        prefRepository.clearDisconnectedDrivingRecovery();
+        prefRepository.clearPendingDisconnectedDrivingMilesDialog();
+        prefRepository.clearPendingDisconnectedDrivingSegmentsJson();
+        prefRepository.clearDriverIdAtDisconnect();
+        resetReconnectStoredEventCollection();
+        Log.d(TAG, "Clean reconnect: no stored ELD events to recover");
+    }
+
+    private void trackStoredEventForReconnect(TelemetryEvent event) {
+        if (getHandler() != null) {
+            getHandler().removeCallbacks(cleanReconnectRunnable);
+        }
+        StoredEventPoint point = pointFromTelemetry(event);
+        if (point == null) {
             return;
         }
 
-        double milesCovered = Math.max(
-                0.0d,
-                pendingReconnectMaxOdometerKm - pendingReconnectBaselineOdometerKm
-        ) * KM_TO_MILES;
+        EventParam eventType = event.mEvent;
+        int velocityKmh = resolvedVelocityKmh(event);
+        int rpm = event.mRpm != null ? event.mRpm : 0;
+        double odometerKm = parseNonNegative(event.mOdometer);
+
+        Log.d(
+                TAG,
+                "Stored ELD event type=" + eventType
+                        + " seq=" + event.mSeq
+                        + " date=" + point.datetime
+                        + " odoKm=" + event.mOdometer
+                        + " velocity=" + velocityKmh
+                        + " engineHours=" + event.mEngineHours
+        );
+
+        if (isEngineOnEvent(eventType)) {
+            gapEngineWasRunning = true;
+            GapDrivePeriod period = new GapDrivePeriod();
+            period.start = point;
+            gapEnginePeriods.add(period);
+        } else if (isEngineOffEvent(eventType)) {
+            GapDrivePeriod lastPeriod = gapEnginePeriods.isEmpty()
+                    ? null
+                    : gapEnginePeriods.get(gapEnginePeriods.size() - 1);
+            if (lastPeriod != null && lastPeriod.end == null) {
+                lastPeriod.end = point;
+            } else {
+                GapDrivePeriod period = new GapDrivePeriod();
+                period.end = point;
+                gapEnginePeriods.add(0, period);
+            }
+        } else if (eventType == EventParam.EV_TRIP_START) {
+            GapTripSegment segment = new GapTripSegment();
+            segment.start = point;
+            gapTripSegments.add(segment);
+        } else if (eventType == EventParam.EV_TRIP_END) {
+            GapTripSegment lastSegment = gapTripSegments.isEmpty()
+                    ? null
+                    : gapTripSegments.get(gapTripSegments.size() - 1);
+            if (lastSegment != null && lastSegment.end == null) {
+                lastSegment.end = point;
+            } else {
+                GapTripSegment segment = new GapTripSegment();
+                segment.end = point;
+                gapTripSegments.add(0, segment);
+            }
+        }
+
+        if (!gapNotifiedThisSession) {
+            gapNotifiedThisSession = true;
+            boolean engineRunning = gapEngineWasRunning || rpm > 0 || velocityKmh > 0;
+            Log.d(TAG, "Stored ELD gap detected, engineRunning=" + engineRunning);
+        }
+
+        if (odometerKm > 0.0d) {
+            if (!gapOdometerTracked) {
+                gapFirstOdometerKm = odometerKm;
+                gapOdometerTracked = true;
+            }
+            gapLastOdometerKm = odometerKm;
+        }
+
+        if (velocityKmh > 0 && point.epochMillis > 0L) {
+            retrievedDrivingEvents.add(new StoredDrivingEvent(point.epochMillis, velocityKmh));
+        }
+    }
+
+    private void finalizeStoredEventStream() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        if (getHandler() != null) {
+            getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+            getHandler().removeCallbacks(cleanReconnectRunnable);
+        }
+
+        double odometerDeltaKm = 0.0d;
+        if (gapOdometerTracked) {
+            odometerDeltaKm = Math.max(0.0d, gapLastOdometerKm - gapFirstOdometerKm);
+        }
+        if (pendingReconnectBaselineOdometerKm > 0.0d) {
+            odometerDeltaKm = Math.max(
+                    odometerDeltaKm,
+                    Math.max(0.0d, pendingReconnectMaxOdometerKm - pendingReconnectBaselineOdometerKm)
+            );
+        }
+        double milesCovered = odometerDeltaKm * KM_TO_MILES;
+
+        List<GapDrivePeriod> enginePeriods = new ArrayList<>(gapEnginePeriods);
+        List<GapTripSegment> tripSegments = new ArrayList<>(gapTripSegments);
+        double unidentifiedMinutes = calculateUnidentifiedDrivingMinutes();
 
         prefRepository.clearDisconnectedDrivingRecovery();
         resetReconnectStoredEventCollection();
 
-        if (milesCovered < MIN_DISCONNECTED_DRIVING_MILES) {
+        if (!enginePeriods.isEmpty()) {
+            submitHistoricalEnginePeriods(enginePeriods);
+        }
+
+        if (!tripSegments.isEmpty()) {
+            handleRecoveredTripSegments(tripSegments, milesCovered);
+            return;
+        }
+
+        if (milesCovered < MIN_DISCONNECTED_DRIVING_MILES
+                && unidentifiedMinutes <= MIN_UNIDENTIFIED_DRIVING_MINUTES) {
             prefRepository.clearPendingDisconnectedDrivingMilesDialog();
             Log.d(TAG, "No disconnected driving miles found in stored events");
             return;
@@ -766,22 +963,266 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         String milesText = String.format(Locale.US, "%.2f", milesCovered);
         prefRepository.setPendingDisconnectedDrivingMilesDialog(milesText);
-
-        Intent broadcast = new Intent(ACTION_DISCONNECTED_DRIVING_MILES_READY);
-        broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_MILES, milesText);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
-        Log.d(TAG, "Disconnected driving review ready for " + milesText + " miles");
+        broadcastDisconnectedDriving(milesText, false);
+        Log.d(
+                TAG,
+                "Disconnected driving review ready for " + milesText
+                        + " miles, unidentifiedMinutes=" + unidentifiedMinutes
+        );
     }
 
     private void resetReconnectStoredEventCollection() {
         if (getHandler() != null) {
             getHandler().removeCallbacks(finalizeReconnectStoredEventsRunnable);
+            getHandler().removeCallbacks(cleanReconnectRunnable);
         }
         pendingReconnectStoredEventsCount = 0;
         receivedReconnectStoredEventsCount = 0;
         pendingReconnectBaselineOdometerKm = 0.0d;
         pendingReconnectMaxOdometerKm = 0.0d;
+        gapNotifiedThisSession = false;
+        gapEngineWasRunning = false;
+        gapOdometerTracked = false;
+        gapFirstOdometerKm = 0.0d;
+        gapLastOdometerKm = 0.0d;
+        retrievedDrivingEvents.clear();
+        gapEnginePeriods.clear();
+        gapTripSegments.clear();
         AppModel.getInstance().wereSERequested = false;
+    }
+
+    private void submitHistoricalEnginePeriods(List<GapDrivePeriod> periods) {
+        new Thread(() -> {
+            for (GapDrivePeriod period : periods) {
+                if (period.start != null) {
+                    submitHistoricalStoredEventLog("eng_on", period.start);
+                }
+                if (period.end != null) {
+                    submitHistoricalStoredEventLog("eng_off", period.end);
+                }
+            }
+        }).start();
+    }
+
+    private void handleRecoveredTripSegments(List<GapTripSegment> segments, double milesCovered) {
+        prefRepository.clearDriverIdAtDisconnect();
+
+        String milesText = String.format(Locale.US, "%.2f", milesCovered);
+        prefRepository.setPendingDisconnectedDrivingMilesDialog(milesText);
+        prefRepository.setPendingDisconnectedDrivingSegmentsJson(gson.toJson(segments));
+        broadcastDisconnectedDriving(milesText, false);
+        Log.d(TAG, "Stored " + segments.size() + " recovered trip segment(s) for driver confirmation");
+    }
+
+    private void submitHistoricalStoredEventLog(String mode, StoredEventPoint point) {
+        try {
+            AddLogRequest request = new AddLogRequest(
+                    mode,
+                    TelemetryLogValueUtils.normalizeOdometerForLog(
+                            point.odometerKm,
+                            prefRepository.getDiffinOdo()
+                    ),
+                    point.latitude,
+                    point.longitude,
+                    point.hasLocation,
+                    TelemetryLogValueUtils.normalizeEngineHoursForLog(
+                            point.engineHours,
+                            prefRepository.getDiffinEng()
+                    ),
+                    resolveVin(),
+                    1,
+                    1,
+                    1,
+                    1,
+                    point.date,
+                    point.time,
+                    "disconnected",
+                    "",
+                    point.datetime
+            );
+            repository.addLogJava(request);
+            Log.i(TAG, "Submitted historical stored ELD log mode=" + mode + " at " + point.datetime);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to submit historical stored ELD log: " + e.getMessage(), e);
+        }
+    }
+
+    private void broadcastDisconnectedDriving(String milesText, boolean autoSubmitted) {
+        Intent broadcast = new Intent(ACTION_DISCONNECTED_DRIVING_MILES_READY);
+        broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_MILES, milesText);
+        broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_AUTO_SUBMITTED, autoSubmitted);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+    }
+
+    private double calculateUnidentifiedDrivingMinutes() {
+        if (retrievedDrivingEvents.size() < 2) {
+            return 0.0d;
+        }
+
+        Collections.sort(retrievedDrivingEvents, new Comparator<StoredDrivingEvent>() {
+            @Override
+            public int compare(StoredDrivingEvent lhs, StoredDrivingEvent rhs) {
+                return Long.compare(lhs.epochMillis, rhs.epochMillis);
+            }
+        });
+
+        double totalMinutes = 0.0d;
+        for (int i = 1; i < retrievedDrivingEvents.size(); i++) {
+            StoredDrivingEvent previous = retrievedDrivingEvents.get(i - 1);
+            StoredDrivingEvent current = retrievedDrivingEvents.get(i);
+            double intervalMinutes = (current.epochMillis - previous.epochMillis) / 60000.0d;
+            if (previous.velocityKmh > 0
+                    && current.velocityKmh > 0
+                    && intervalMinutes > 0.0d
+                    && intervalMinutes <= 60.0d) {
+                totalMinutes += intervalMinutes;
+            }
+        }
+        return totalMinutes;
+    }
+
+    private void ackStoredEvent(TelemetryEvent event) {
+        if (mTracker == null || event == null || event.mSeq == null || event.mDateTime == null) {
+            return;
+        }
+        try {
+            AckStoredEvent ack = new AckStoredEvent(0, event.mSeq.toString(), event.mDateTime.toDateString());
+            mTracker.sendResponse(ack, null, null);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to ACK stored ELD event: " + e.getMessage(), e);
+        }
+    }
+
+    private StoredEventPoint pointFromTelemetry(TelemetryEvent event) {
+        if (event == null || event.mDateTime == null) {
+            return null;
+        }
+
+        StoredEventPoint point = new StoredEventPoint();
+        Date parsedDate = parseTrackerDate(event.mDateTime);
+        if (parsedDate == null) {
+            String rawDate = event.mDateTime.date != null ? event.mDateTime.date : "";
+            String rawTime = event.mDateTime.time != null ? event.mDateTime.time : "";
+            point.date = formatTrackerDate(rawDate);
+            point.time = formatTrackerTime(rawTime);
+            point.datetime = point.date + "T" + point.time + "Z";
+        } else {
+            TimeZone targetTimeZone = resolveCompanyTimeZone();
+            point.date = formatDate(parsedDate, "yyyy-MM-dd", targetTimeZone);
+            point.time = formatDate(parsedDate, "HH:mm:ss", targetTimeZone);
+            point.datetime = formatDate(parsedDate, "yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"));
+            point.epochMillis = parsedDate.getTime();
+        }
+
+        point.odometerKm = event.mOdometer != null ? event.mOdometer : "";
+        point.engineHours = event.mEngineHours != null ? event.mEngineHours : "";
+        if (event.mGeoloc != null) {
+            GeolocParam geo = event.mGeoloc;
+            point.hasLocation = geo.isLocked && geo.latitude != null && geo.longitude != null;
+            point.latitude = geo.latitude != null ? geo.latitude.doubleValue() : 0.0d;
+            point.longitude = geo.longitude != null ? geo.longitude.doubleValue() : 0.0d;
+        }
+        return point;
+    }
+
+    private boolean isEngineOnEvent(EventParam eventType) {
+        return eventType == EventParam.EV_ENGINE_ON
+                || eventType == EventParam.EV_IGNITION_ON
+                || eventType == EventParam.EV_POWER_ON;
+    }
+
+    private boolean isEngineOffEvent(EventParam eventType) {
+        return eventType == EventParam.EV_ENGINE_OFF
+                || eventType == EventParam.EV_IGNITION_OFF
+                || eventType == EventParam.EV_POWER_OFF;
+    }
+
+    private int resolvedVelocityKmh(TelemetryEvent event) {
+        int velocity = (int) parseNonNegative(event != null ? event.mVelocity : null);
+        if (event != null && event.mGeoloc != null && event.mGeoloc.speed != null) {
+            velocity = Math.max(velocity, event.mGeoloc.speed);
+        }
+        return Math.max(0, velocity);
+    }
+
+    private Date parseTrackerDate(DateTimeParam dateTime) {
+        if (dateTime == null || dateTime.date == null || dateTime.time == null) {
+            return null;
+        }
+        String rawDate = dateTime.date.trim();
+        String rawTime = dateTime.time.trim();
+        if (rawDate.length() != 8 || rawTime.length() != 6) {
+            return null;
+        }
+        SimpleDateFormat parser = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+        parser.setLenient(false);
+        parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            return parser.parse(rawDate + rawTime);
+        } catch (ParseException e) {
+            Log.w(TAG, "Unable to parse stored ELD event timestamp: " + rawDate + " " + rawTime);
+            return null;
+        }
+    }
+
+    private String formatDate(Date date, String pattern, TimeZone timeZone) {
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern, Locale.US);
+        formatter.setTimeZone(timeZone);
+        return formatter.format(date);
+    }
+
+    private String formatTrackerDate(String rawDate) {
+        if (rawDate == null || rawDate.length() != 8) {
+            return "";
+        }
+        return rawDate.substring(0, 4) + "-" + rawDate.substring(4, 6) + "-" + rawDate.substring(6, 8);
+    }
+
+    private String formatTrackerTime(String rawTime) {
+        if (rawTime == null || rawTime.length() != 6) {
+            return "";
+        }
+        return rawTime.substring(0, 2) + ":" + rawTime.substring(2, 4) + ":" + rawTime.substring(4, 6);
+    }
+
+    private TimeZone resolveCompanyTimeZone() {
+        if (prefRepository == null) {
+            prefRepository = new PrefRepository(this);
+        }
+        String configuredTimeZone = prefRepository.getTimeZone();
+        String mapped = mapTimeZone(configuredTimeZone);
+        TimeZone timeZone = TimeZone.getTimeZone(mapped);
+        if ("GMT".equals(timeZone.getID()) && configuredTimeZone != null && !"GMT".equalsIgnoreCase(configuredTimeZone)) {
+            return TimeZone.getTimeZone("America/Los_Angeles");
+        }
+        return timeZone;
+    }
+
+    private String mapTimeZone(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "America/Los_Angeles";
+        }
+        String normalized = value.trim();
+        if ("PST".equalsIgnoreCase(normalized)) return "America/Los_Angeles";
+        if ("AKST".equalsIgnoreCase(normalized)) return "America/Anchorage";
+        if ("MST".equalsIgnoreCase(normalized)) return "America/Denver";
+        if ("HST".equalsIgnoreCase(normalized)) return "Pacific/Honolulu";
+        if ("CST".equalsIgnoreCase(normalized)) return "America/Chicago";
+        if ("EST".equalsIgnoreCase(normalized)) return "America/New_York";
+        return normalized;
+    }
+
+    private String resolveVin() {
+        String vin = AppModel.getInstance().mPT30Vin;
+        if (vin != null && !vin.equals("n/a") && !vin.isEmpty()) {
+            return vin;
+        }
+        if (AppModel.getInstance().mVehicleInfo != null
+                && AppModel.getInstance().mVehicleInfo.VIN != null
+                && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
+            return AppModel.getInstance().mVehicleInfo.VIN;
+        }
+        return "1111";
     }
 
     private double parseNonNegative(String value) {

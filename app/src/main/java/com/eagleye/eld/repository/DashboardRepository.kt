@@ -680,6 +680,24 @@ class DashboardRepository @Inject constructor(
         }
     }
 
+    suspend fun addLogWithException(request: com.eagleye.eld.request.AddLogWithExceptionRequest) {
+        _addLog.postValue(NetworkResult.Loading())
+        try {
+            val response = truckSpotAPI.addLogWithException(request)
+            if (response.isSuccessful && response.body() != null) {
+                _addLog.postValue(NetworkResult.Success(response.body()!!))
+            } else if (response.errorBody() != null) {
+                val errorString = response.errorBody()?.string() ?: "Unknown error"
+                _addLog.postValue(NetworkResult.Error(errorString))
+            } else {
+                _addLog.postValue(NetworkResult.Error("Network Error"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in addLogWithException: ${e.message}", e)
+            _addLog.postValue(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
     suspend fun addLogUnauth(addLogRequest: AddLogRequestunauth) {
         _logResponseLiveData.postValue(NetworkResult.Loading())
         try {

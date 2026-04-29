@@ -45,7 +45,8 @@ class LogAdaptor  (
     private val dataSet: List<GetLogsByDateResponse.Results.UserLog>, 
     private val fragmentManager: FragmentManager, 
     private val contect : Context,
-    private val timeZone: String = "PST"
+    private val timeZone: String = "PST",
+    private val onLongClick: ((GetLogsByDateResponse.Results.UserLog) -> Unit)? = null
 ) :
     RecyclerView.Adapter<LogAdaptor.ViewHolder>() {
     private var previousLog: UserLog? = null
@@ -103,12 +104,19 @@ class LogAdaptor  (
             .playOn(viewHolder.itemView)
 
         viewHolder.itemView.setOnClickListener {
+            playClickAnimation(it)
             if (modeValue == "login" || modeValue == "logout" || modeValue == "certification" || normalizedEngineMode.isNotEmpty()) {
                 // No action for system/other logs
             } else {
                 val modalFragment = LogModalFragment(userLog)
                 modalFragment.show(fragmentManager, "LogModalFragment")
             }
+        }
+
+        viewHolder.itemView.setOnLongClickListener {
+            playClickAnimation(it)
+            onLongClick?.invoke(userLog)
+            true
         }
 
         // Time
@@ -149,13 +157,17 @@ class LogAdaptor  (
         }
         
         viewHolder.tvStatusPill.text = statusLabel
-        viewHolder.tvStatusTitle.text = when(statusLabel) {
+        viewHolder.tvStatusTitle.text = when {
+            isPersonal -> "Off Duty (PC)"
+            isYard -> "On Duty (YM)"
+            else -> when(statusLabel) {
             "OFF" -> "Off Duty"
             "SB" -> "Sleeper Berth"
             "DR" -> "Driving"
             "ON" -> "On Duty"
             "INT" -> "Intermediate"
             else -> statusLabel.replace("_", " ")
+            }
         }
         
         viewHolder.statusIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(statusColor)
@@ -293,6 +305,22 @@ class LogAdaptor  (
             }
             .show()
     }
+    
+    private fun playClickAnimation(view: View) {
+        view.animate()
+            .scaleX(0.96f)
+            .scaleY(0.96f)
+            .setDuration(120)
+            .withEndAction {
+                view.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(120)
+                    .start()
+            }
+            .start()
+    }
+
     fun extractCityAndState(location: String): String {
         if (location.isBlank()) return ""
         

@@ -323,12 +323,12 @@ class LoginActivity : AppCompatActivity() {
     private fun sendLog(lat: Double, lng: Double, hasLocation: Boolean) {
         val logRequest = AddLogRequest(
             modename = "login",
-            odometerreading = "0.0",
+            odometerreading = "0",
             lat = lat,
             long = lng,
             location = hasLocation,
-            eng_hours = "10",
-            vin = "1111",
+            eng_hours = "0",
+            vin = "",
             is_active = 1,
             is_autoinsert = 1,
             eventcode = 1,

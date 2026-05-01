@@ -4,13 +4,12 @@ object Constants {
     const val TAG = "Truck Spot"
 
     // API base URL
-    const val BASE_URL = "https://api.eagleye.app/"   // local: your Mac IP (phone on same WiFi)
-     //const val BASE_URL = "https://api.eagleye.app/"
-     //const val BASE_URL = "https://api.eagleye.app/"
+    const val BASE_URL = "http://147.182.217.84:4502/"  // staging
+     //const val BASE_URL = "https://api.eagleye.app/"   // production
 
-    // WebSocket URL (backend WS port, usually 4501)
-   const val SOCKET_URL = "https://api.eagleye.app/"   // local: your Mac IP
-    //const val SOCKET_URL = "https://api.eagleye.app/"    // production
+    // WebSocket URL
+    const val SOCKET_URL = "http://147.182.217.84:4502/"  // staging
+    //const val SOCKET_URL = "https://api.eagleye.app/"   // production
 
 
 }

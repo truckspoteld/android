@@ -217,6 +217,27 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getCoDriverName() = PREF_CODRIVER_NAME.getString()
 
+    fun setCodriverToken(token: String) { PREF_CODRIVER_TOKEN.put(token) }
+    fun getCodriverToken() = PREF_CODRIVER_TOKEN.getString()
+
+    fun setCodriverUsername(username: String) { PREF_CODRIVER_USERNAME.put(username) }
+    fun getCodriverUsername() = PREF_CODRIVER_USERNAME.getString()
+
+    fun setIsCodriverLoggedIn(value: Boolean) { PREF_IS_CODRIVER_LOGGED_IN.put(value) }
+    fun isCodriverLoggedIn() = PREF_IS_CODRIVER_LOGGED_IN.getBoolean()
+
+    fun setIsViewingAsCodriver(value: Boolean) { PREF_IS_VIEWING_AS_CODRIVER.put(value) }
+    fun isViewingAsCodriver() = PREF_IS_VIEWING_AS_CODRIVER.getBoolean()
+
+    fun clearCodriver() {
+        PREF_CODRIVER_ID.put(0)
+        PREF_CODRIVER_NAME.put("")
+        PREF_CODRIVER_TOKEN.put("")
+        PREF_CODRIVER_USERNAME.put("")
+        PREF_IS_CODRIVER_LOGGED_IN.put(false)
+        PREF_IS_VIEWING_AS_CODRIVER.put(false)
+    }
+
     fun setLastLogTime() {
         PREF_LAST_LOG_TIME.put(Date().time)
     }

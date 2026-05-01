@@ -65,7 +65,13 @@ import com.eagleye.eld.pt.devicemanager.BleProfileService
 import com.eagleye.eld.pt.devicemanager.TrackerManagerActivity
 import com.eagleye.eld.pt.devicemanager.TrackerService
 import com.eagleye.eld.request.AddLogRequest
+import com.eagleye.eld.request.CodriverLoginRequest
+import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.utils.PrefRepository
+import androidx.appcompat.app.AlertDialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.eagleye.eld.utils.NetworkResult
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
@@ -234,7 +240,11 @@ class Dashboard : AppCompatActivity() {
         }
         headerView.findViewById<View>(R.id.nav_codriver_login).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "Co-Driver Login", Toast.LENGTH_SHORT).show()
+            if (prefRepository.isCodriverLoggedIn()) {
+                showCodriverOptionsDialog()
+            } else {
+                showCodriverLoginDialog()
+            }
         }
         headerView.findViewById<View>(R.id.nav_shipping).setOnClickListener {
             binding.drawerLayout.close()
@@ -898,6 +908,160 @@ class Dashboard : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("Dashboard", "Error handling manual", e)
             Toast.makeText(this, "Failed to load User Manual", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showCodriverLoginDialog() {
+        val dialog = AlertDialog.Builder(this)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_codriver_login, null)
+        dialog.setView(dialogView)
+        val alertDialog = dialog.create()
+        alertDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val etUsername = dialogView.findViewById<android.widget.EditText>(R.id.et_codriver_username)
+        val etPassword = dialogView.findViewById<android.widget.EditText>(R.id.et_codriver_password)
+        val btnLogin   = dialogView.findViewById<android.widget.Button>(R.id.btn_codriver_login)
+        val btnCancel  = dialogView.findViewById<android.widget.Button>(R.id.btn_codriver_cancel)
+        val tvError    = dialogView.findViewById<android.widget.TextView>(R.id.tv_codriver_error)
+
+        btnCancel.setOnClickListener { alertDialog.dismiss() }
+
+        btnLogin.setOnClickListener {
+            val username = etUsername.text.toString().trim()
+            val password = etPassword.text.toString().trim()
+            if (username.isEmpty() || password.isEmpty()) {
+                tvError.visibility = View.VISIBLE
+                tvError.text = "Username and password required"
+                return@setOnClickListener
+            }
+            tvError.visibility = View.GONE
+            btnLogin.isEnabled = false
+            btnLogin.text = "Logging in..."
+            lifecycleScope.launch {
+                try {
+                    val response = homeViewModel.codriverLogin(username, password)
+                    withContext(Dispatchers.Main) {
+                        if (response != null && response.status) {
+                            prefRepository.setIsCodriverLoggedIn(true)
+                            prefRepository.setCodriverToken(response.results.token)
+                            prefRepository.setCodriverUsername(username)
+                            prefRepository.setCoDriverName(username)
+                            prefRepository.setCoDriverId(response.results.id)
+                            Toast.makeText(this@Dashboard, "Co-Driver $username logged in", Toast.LENGTH_SHORT).show()
+                            alertDialog.dismiss()
+                            updateCodriverNavHeader()
+                        } else {
+                            tvError.visibility = View.VISIBLE
+                            tvError.text = "Invalid username or password"
+                            btnLogin.isEnabled = true
+                            btnLogin.text = "Login"
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        tvError.visibility = View.VISIBLE
+                        tvError.text = "Login failed: ${e.message}"
+                        btnLogin.isEnabled = true
+                        btnLogin.text = "Login"
+                    }
+                }
+            }
+        }
+        alertDialog.show()
+    }
+
+    private fun showCodriverOptionsDialog() {
+        val codriverName = prefRepository.getCodriverUsername().ifEmpty { "Co-Driver" }
+        AlertDialog.Builder(this)
+            .setTitle("Co-Driver: $codriverName")
+            .setItems(arrayOf("Switch to Co-Driver Profile", "Remove Co-Driver")) { _, which ->
+                when (which) {
+                    0 -> showProfileSwitchAuthDialog(switchToCodriver = true)
+                    1 -> showRemoveCodriverConfirmDialog()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showProfileSwitchAuthDialog(switchToCodriver: Boolean) {
+        val title = if (switchToCodriver) "Switch to Co-Driver Profile" else "Switch to Driver Profile"
+        val hint  = if (switchToCodriver) "Enter your password to switch" else "Enter co-driver password to switch back"
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_profile_switch_auth, null)
+        val etPassword = dialogView.findViewById<android.widget.EditText>(R.id.et_switch_password)
+        val tvError    = dialogView.findViewById<android.widget.TextView>(R.id.tv_switch_error)
+
+        val alertDialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(hint)
+            .setView(dialogView)
+            .setPositiveButton("Confirm", null)
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        alertDialog.setOnShowListener {
+            alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val password = etPassword.text.toString().trim()
+                if (password.isEmpty()) {
+                    tvError.visibility = View.VISIBLE
+                    tvError.text = "Password required"
+                    return@setOnClickListener
+                }
+                tvError.visibility = View.GONE
+                val username = if (switchToCodriver) prefRepository.getUserName() else prefRepository.getCodriverUsername()
+                lifecycleScope.launch {
+                    try {
+                        val response = homeViewModel.loginWithUsername(username, password)
+                        withContext(Dispatchers.Main) {
+                            if (response != null && response.status) {
+                                prefRepository.setIsViewingAsCodriver(switchToCodriver)
+                                alertDialog.dismiss()
+                                recreate()
+                            } else {
+                                tvError.visibility = View.VISIBLE
+                                tvError.text = "Incorrect password"
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            tvError.visibility = View.VISIBLE
+                            tvError.text = "Error: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+        alertDialog.show()
+    }
+
+    private fun showRemoveCodriverConfirmDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Remove Co-Driver")
+            .setMessage("Are you sure you want to remove the co-driver?")
+            .setPositiveButton("Remove") { _, _ ->
+                lifecycleScope.launch {
+                    try { homeViewModel.codriverLogout() } catch (_: Exception) {}
+                    withContext(Dispatchers.Main) {
+                        prefRepository.clearCodriver()
+                        updateCodriverNavHeader()
+                        Toast.makeText(this@Dashboard, "Co-Driver removed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateCodriverNavHeader() {
+        // Update the nav drawer to reflect co-driver state
+        val headerView = binding.navView.getHeaderView(0)
+        val codriverBtn = headerView.findViewById<android.widget.TextView>(R.id.nav_codriver_login)
+        if (prefRepository.isCodriverLoggedIn()) {
+            val name = prefRepository.getCodriverUsername()
+            codriverBtn?.text = "Co-Driver: $name"
+        } else {
+            codriverBtn?.text = "Co-Driver Login"
         }
     }
 

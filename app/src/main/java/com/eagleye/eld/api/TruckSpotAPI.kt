@@ -133,6 +133,20 @@ interface TruckSpotAPI {
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>
 
+    @POST("api/v1/driver/codriver/login")
+    suspend fun codriverLogin(
+        @Body body: CodriverLoginRequest
+    ): Response<LoginResponse>
+
+    @POST("api/v1/driver/codriver/logout")
+    suspend fun codriverLogout(): Response<BaseResponse>
+
+    @POST("api/v1/login")
+    suspend fun loginWithUsername(
+        @Query("source") source: String = "mobile",
+        @Body body: LoginRequest
+    ): Response<LoginResponse>
+
     @GET("api/v1/driver/shipment-assignment/active")
     suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse>
 

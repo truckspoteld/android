@@ -20,6 +20,9 @@ import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.DriverCodriversResponse
 import com.eagleye.eld.models.DriverShipmentResponse
+import com.eagleye.eld.models.LoginResponse
+import com.eagleye.eld.request.CodriverLoginRequest
+import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.models.FmcsaEmailTransferResponse
 import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.GetLogsResponse
@@ -82,6 +85,18 @@ class HomeViewModel @Inject constructor(
     fun getDriverId() = prefRepository.getDriverId()
 
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
+
+    suspend fun codriverLogin(username: String, password: String): LoginResponse? {
+        val response = truckSpotAPI.codriverLogin(CodriverLoginRequest(username, password))
+        return if (response.isSuccessful) response.body() else null
+    }
+
+    suspend fun codriverLogout() = truckSpotAPI.codriverLogout()
+
+    suspend fun loginWithUsername(username: String, password: String): LoginResponse? {
+        val response = truckSpotAPI.loginWithUsername(body = LoginRequest(email = username, password = password))
+        return if (response.isSuccessful) response.body() else null
+    }
 
     suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse> =
         truckSpotAPI.getActiveDriverShipment()

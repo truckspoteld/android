@@ -32,6 +32,7 @@ import com.eagleye.eld.models.UnidentifiedResponse
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.request.CodriverLoginRequest
 import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.request.DvirCreateRequest
 import com.eagleye.eld.request.LoginRequest
@@ -139,7 +140,7 @@ interface TruckSpotAPI {
     ): Response<LoginResponse>
 
     @POST("api/v1/driver/codriver/logout")
-    suspend fun codriverLogout(): Response<BaseResponse>
+    suspend fun codriverLogout(): Response<LoginResponse>
 
     @POST("api/v1/login")
     suspend fun loginWithUsername(

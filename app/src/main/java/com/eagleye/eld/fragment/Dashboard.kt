@@ -68,7 +68,6 @@ import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.CodriverLoginRequest
 import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.utils.PrefRepository
-import androidx.appcompat.app.AlertDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -104,6 +103,7 @@ class Dashboard : AppCompatActivity() {
     private lateinit var navController: NavController
     private var selectedBottomItemId: Int = R.id.home
 
+    private val homeViewModel: HomeViewModel by viewModels()
     private val job = Job()
     private val scope = CoroutineScope(job + Dispatchers.IO)
     private val REQUEST_BLUETOOTH_PERMISSIONS = 1001
@@ -139,7 +139,6 @@ class Dashboard : AppCompatActivity() {
             binding.drawerLayout.open()
         }
         
-        val homeViewModel: HomeViewModel by viewModels()
         homeViewModel.getDriverReview(this)
 
         val headerView = binding.navView.getHeaderView(0)
@@ -937,7 +936,7 @@ class Dashboard : AppCompatActivity() {
             tvError.visibility = View.GONE
             btnLogin.isEnabled = false
             btnLogin.text = "Logging in..."
-            lifecycleScope.launch {
+            scope.launch {
                 try {
                     val response = homeViewModel.codriverLogin(username, password)
                     withContext(Dispatchers.Main) {
@@ -1010,7 +1009,7 @@ class Dashboard : AppCompatActivity() {
                 }
                 tvError.visibility = View.GONE
                 val username = if (switchToCodriver) prefRepository.getUserName() else prefRepository.getCodriverUsername()
-                lifecycleScope.launch {
+                scope.launch {
                     try {
                         val response = homeViewModel.loginWithUsername(username, password)
                         withContext(Dispatchers.Main) {
@@ -1040,7 +1039,7 @@ class Dashboard : AppCompatActivity() {
             .setTitle("Remove Co-Driver")
             .setMessage("Are you sure you want to remove the co-driver?")
             .setPositiveButton("Remove") { _, _ ->
-                lifecycleScope.launch {
+                scope.launch {
                     try { homeViewModel.codriverLogout() } catch (_: Exception) {}
                     withContext(Dispatchers.Main) {
                         prefRepository.clearCodriver()

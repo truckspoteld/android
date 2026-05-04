@@ -414,6 +414,7 @@ class HomeFragment : Fragment(), OnClickListener {
         
         updateShipmentInfoUI()
         loadShipmentContext()
+        setupCodriverPanel()
         startEntranceAnimations()
         return binding.root
     }
@@ -459,30 +460,36 @@ class HomeFragment : Fragment(), OnClickListener {
                     }
                     updateUIBasedOnLogs(it.data)
 
-                    // Update M and D indicators
-                    val logs = it.data.logs ?: emptyList()
-                    val hasMalfunction = logs.any { log -> (log.malfunctioneld ?: 0) > 0 }
-                    val hasDiagnostic = logs.any { log -> (log.datadiagnostic ?: 0) > 0 }
-//
-//                    if (hasMalfunction) {
-//                        binding.tvMalfunction.alpha = 1.0f
-//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
-//                    } else {
-//                        binding.tvMalfunction.alpha = 0.3f
-//                        binding.tvMalfunction.clearAnimation()
-//                    }
+                    // Update M and D indicators using server-computed eldAttention (tracks active vs cleared)
+                    val att = it.data.eldAttention
+                    val hasMalfunction = att?.hasMalfunction == true
+                    val hasDiagnostic = att?.hasDiagnostic == true
 
-//                    if (hasDiagnostic) {
-//                        binding.tvDiagnostic.alpha = 1.0f
-//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
-//                    } else {
-//                        binding.tvDiagnostic.alpha = 0.3f
-//                        binding.tvDiagnostic.clearAnimation()
-//                    }
-//
-                    val jsonResponse = Gson().toJson(it.data)
-                    Log.d("HOME_API_RESPONSE", "Response: $jsonResponse")
-                    Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction, Diagnostic: $hasDiagnostic")
+                    val ghostBg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_ghost)
+                    val redBg   = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_red)
+                    val orangeBg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_orange)
+
+                    if (hasMalfunction) {
+                        binding.tvMalfunction.background = redBg
+                        binding.tvMalfunction.setTextColor(android.graphics.Color.WHITE)
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
+                    } else {
+                        binding.tvMalfunction.background = ghostBg
+                        binding.tvMalfunction.setTextColor(android.graphics.Color.parseColor("#55000000"))
+                        binding.tvMalfunction.clearAnimation()
+                    }
+
+                    if (hasDiagnostic) {
+                        binding.tvDiagnostic.background = orangeBg
+                        binding.tvDiagnostic.setTextColor(android.graphics.Color.WHITE)
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
+                    } else {
+                        binding.tvDiagnostic.background = ghostBg
+                        binding.tvDiagnostic.setTextColor(android.graphics.Color.parseColor("#55000000"))
+                        binding.tvDiagnostic.clearAnimation()
+                    }
+
+                    Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction codes=${att?.malfunctionCodesActive}, Diagnostic: $hasDiagnostic codes=${att?.diagnosticCodesActive}")
                 }
                 is NetworkResult.Error<*> -> {
                     binding.progressBar.visibility = View.GONE
@@ -2007,17 +2014,25 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun updateDrivingOverlayContent(animateProgress: Boolean) {
         if (_binding == null) return
 
-        val remainingDrive = getLiveConditions()?.drive
-            ?: homeViewModel.homeLiveData.value?.data?.conditions?.drive
-            ?: 0
-        val progress = if (remainingDrive > 0) {
-            ((remainingDrive.toFloat() / DRIVE_LIMIT_SECONDS) * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
-        }
+        val c = getLiveConditions() ?: homeViewModel.homeLiveData.value?.data?.conditions
+        val closest = c?.let { findClosestViolation(it) }
 
-        binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(remainingDrive)
-        binding.drProgressCircle.setProgressCompat(progress, animateProgress)
+        if (closest != null) {
+            val label = when (closest.type) {
+                "Drive Break" -> "30-MIN BREAK"
+                "Drive Time"  -> "DRIVE LIMIT"
+                "Shift Time"  -> "SHIFT LIMIT"
+                "Cycle Time"  -> "CYCLE LIMIT"
+                else          -> closest.type.uppercase()
+            }
+            binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(closest.remainingMinutes)
+            binding.tvDrViolationLabel.text = label
+            binding.drProgressCircle.setProgressCompat(closest.progress, animateProgress)
+        } else {
+            binding.tvDrTimeRemaining.text = "0:00"
+            binding.tvDrViolationLabel.text = "VIOLATION"
+            binding.drProgressCircle.setProgressCompat(0, animateProgress)
+        }
     }
 
     private fun formatDrivingOverlayTime(seconds: Int): String {
@@ -2203,6 +2218,84 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.shippingNumber.text = getString(shipping_number).plus(shippingText)
         binding.trailerNumber.text = getString(trailer_number).plus(trailerText)
         binding.coDriver.text = "Co-Driver : $coDriverName"
+    }
+
+    private fun setupCodriverPanel() {
+        val panel = binding.cvCodriverPanel
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Fetch other driver data from server (no codriverId = server does lookup)
+                val resp = homeViewModel.getCodriverHos()
+                val data = if (resp.isSuccessful && resp.body()?.status == true) resp.body()?.codriver else null
+
+                withContext(Dispatchers.Main) {
+                    if (data == null || data.id == null || data.id <= 0 || data.id == prefRepository.getDriverId()) {
+                        panel.visibility = View.GONE
+                        // Relationship removed on another device — clear local state
+                        if (prefRepository.isCodriverLoggedIn()) {
+                            prefRepository.clearCodriver()
+                            activity?.let { (it as? com.eagleye.eld.fragment.Dashboard)?.updateCodriverNavHeader() }
+                        }
+                        return@withContext
+                    }
+
+                    // Persist locally if not already set
+                    if (!prefRepository.isCodriverLoggedIn()) {
+                        val name = data.name?.ifEmpty { data.username } ?: data.username ?: ""
+                        prefRepository.setCoDriverId(data.id)
+                        prefRepository.setCoDriverName(name)
+                        prefRepository.setCodriverUsername(data.username ?: "")
+                        prefRepository.setIsCodriverLoggedIn(true)
+                    }
+
+                    panel.visibility = View.VISIBLE
+
+                    val tvLabel  = panel.findViewById<android.widget.TextView>(R.id.tv_codriver_label)
+                    val tvBadge  = panel.findViewById<android.widget.TextView>(R.id.tv_codriver_status_badge)
+                    val tvDrive  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_drive)
+                    val tvShift  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_shift)
+                    val tvBreak  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_break)
+                    val tvCycle  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_cycle)
+                    val btnRemove = panel.findViewById<android.widget.Button>(R.id.btn_remove_codriver)
+
+                    val displayName = data.name?.ifEmpty { data.username } ?: data.username ?: "Co-Driver"
+                    tvLabel?.text = "Co-Driver: $displayName"
+
+                    val status = data.currentStatus ?: ""
+                    tvBadge?.text = when (status) { "d" -> "DR"; "on" -> "ON"; "sb" -> "SB"; else -> "OFF" }
+                    val badgeColor = when (status) {
+                        "d"  -> android.graphics.Color.parseColor("#3B82F6")
+                        "on" -> android.graphics.Color.parseColor("#F97316")
+                        "sb" -> android.graphics.Color.parseColor("#8B5CF6")
+                        else -> android.graphics.Color.parseColor("#9CA3AF")
+                    }
+                    tvBadge?.backgroundTintList = android.content.res.ColorStateList.valueOf(badgeColor)
+
+                    fun fmt(secs: Int?) = String.format("%02d:%02d", (secs ?: 0) / 3600, ((secs ?: 0) % 3600) / 60)
+                    val c = data.conditions
+                    tvDrive?.text = fmt(c?.drive)
+                    tvShift?.text = fmt(c?.shift)
+                    tvBreak?.text = fmt(c?.drivebreak)
+                    tvCycle?.text = fmt(c?.cycle)
+                    if (c?.driveViolation == true) tvDrive?.setTextColor(android.graphics.Color.RED)
+                    if (c?.shiftViolation == true) tvShift?.setTextColor(android.graphics.Color.RED)
+                    if (c?.driveBreakViolation == true) tvBreak?.setTextColor(android.graphics.Color.RED)
+                    if (c?.cycleViolation == true) tvCycle?.setTextColor(android.graphics.Color.RED)
+
+                    btnRemove?.setOnClickListener {
+                        panel.visibility = View.GONE
+                        prefRepository.clearCodriver()
+                        (activity as? com.eagleye.eld.fragment.Dashboard)?.updateCodriverNavHeader()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try { homeViewModel.setMyCodriver(null); homeViewModel.codriverLogout() } catch (_: Exception) {}
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load codriver panel: ${e.message}")
+            }
+        }
     }
 
     private fun loadShipmentContext() {
@@ -2443,6 +2536,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         return "$shorthand ${Utils.formatTimeFromSeconds(minTimeSec)}"
     }
+
 
     private data class ViolationInfo(
         val type: String,

@@ -19,6 +19,7 @@ import com.eagleye.eld.models.AddLogSuccessResponse
 import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.CodriverHosResponse
 import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.LoginResponse
 import com.eagleye.eld.request.CodriverLoginRequest
@@ -85,6 +86,9 @@ class HomeViewModel @Inject constructor(
     fun getDriverId() = prefRepository.getDriverId()
 
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
+
+    suspend fun getCodriverHos(codriverId: Int? = null) = truckSpotAPI.getCodriverHos(codriverId)
+    suspend fun setMyCodriver(codriverId: Int?) = truckSpotAPI.setMyCodriver(com.eagleye.eld.models.SetCodriverRequest(codriverId))
 
     suspend fun codriverLogin(username: String, password: String): LoginResponse? {
         val response = truckSpotAPI.codriverLogin(CodriverLoginRequest(username, password))

@@ -1,6 +1,8 @@
 package com.eagleye.eld.di
 
 import android.content.Context
+import android.content.Intent
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.GsonBuilder
 import com.eagleye.eld.BooleanTypeAdapter
 import com.eagleye.eld.BuildConfig
@@ -8,6 +10,7 @@ import com.eagleye.eld.BuildConfig
 //import com.eagleye.eld.BuildConfig.API_KEY
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.utils.Constants.BASE_URL
+import com.eagleye.eld.utils.Constants.ACTION_SESSION_REPLACED
 import com.eagleye.eld.utils.PrefRepository
 import dagger.Module
 import dagger.Provides
@@ -74,11 +77,22 @@ class NetworkModule {
             chain.proceed(request)
         }
 
+        val sessionInterceptor = Interceptor { chain ->
+            val response = chain.proceed(chain.request())
+            if (response.code == 401) {
+                token.setToken("")
+                LocalBroadcastManager.getInstance(context)
+                    .sendBroadcast(Intent(ACTION_SESSION_REPLACED))
+            }
+            response
+        }
+
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(requestInterceptor)
+            .addInterceptor(sessionInterceptor)
             .build()
     }
 

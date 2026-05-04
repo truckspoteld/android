@@ -11,5 +11,5 @@ object Constants {
     const val SOCKET_URL = "http://147.182.217.84:4502/"  // staging
     //const val SOCKET_URL = "https://api.eagleye.app/"   // production
 
-
+    const val ACTION_SESSION_REPLACED = "com.eagleye.eld.SESSION_REPLACED"
 }

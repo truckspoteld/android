@@ -229,6 +229,16 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun setIsViewingAsCodriver(value: Boolean) { PREF_IS_VIEWING_AS_CODRIVER.put(value) }
     fun isViewingAsCodriver() = PREF_IS_VIEWING_AS_CODRIVER.getBoolean()
 
+    // Driver1 snapshot — for role-swap login
+    fun setDriver1Token(token: String) { PREF_DRIVER1_TOKEN.put(token) }
+    fun getDriver1Token() = PREF_DRIVER1_TOKEN.getString()
+    fun setDriver1Id(id: Int) { PREF_DRIVER1_ID.put(id) }
+    fun getDriver1Id() = PREF_DRIVER1_ID.getInt()
+    fun setDriver1Name(name: String) { PREF_DRIVER1_NAME.put(name) }
+    fun getDriver1Name() = PREF_DRIVER1_NAME.getString()
+    fun setDriver1Username(username: String) { PREF_DRIVER1_USERNAME.put(username) }
+    fun getDriver1Username() = PREF_DRIVER1_USERNAME.getString()
+
     fun clearCodriver() {
         PREF_CODRIVER_ID.put(0)
         PREF_CODRIVER_NAME.put("")

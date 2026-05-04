@@ -1,12 +1,26 @@
 package com.eagleye.eld.models
 
+data class EldAttentionSummary(
+    val show: Boolean = false,
+    val reasons: List<String>? = null,
+    val malfunctionCodesActive: List<Int>? = null,
+    val malfunctionLettersActive: List<String>? = null,
+    val diagnosticCodesActive: List<Int>? = null,
+    val engineSyncDiagnosticActive: Boolean = false,
+    val dutyStatusDataDiagnosticActive: Boolean = false,
+) {
+    val hasMalfunction: Boolean get() = !(malfunctionCodesActive.isNullOrEmpty())
+    val hasDiagnostic: Boolean get() = !(diagnosticCodesActive.isNullOrEmpty()) || dutyStatusDataDiagnosticActive
+}
+
 data class HomeDataModel(
     var conditions: Conditions? = Conditions(),
     var logs: List<Log>? = listOf(),
     var previousDayLog: Log? = Log(),
     var latestUpdatedLog: Log? = Log(),
     var meta: Meta? = Meta(),
-    var totalCount: Int? = 0
+    var totalCount: Int? = 0,
+    var eldAttention: EldAttentionSummary? = null
 ) {
     data class Conditions(
         var createdat: String? = "",

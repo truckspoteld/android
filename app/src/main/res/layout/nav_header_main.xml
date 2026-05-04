@@ -505,11 +505,12 @@
                             android:layout_height="24dp"
                             android:src="@drawable/ic_sync_blue" />
                         <TextView
+                            android:id="@+id/tv_nav_codriver_label"
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
-                            android:text="Co-Driver Login"
+                            android:text="Add a Co-Driver"
                             android:textColor="#1F2937"
                             android:textSize="16sp"
                             android:textStyle="bold" />

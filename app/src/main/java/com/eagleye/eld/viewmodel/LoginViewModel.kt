@@ -22,10 +22,16 @@ class LoginViewModel @Inject constructor(var loginRespository: LoginRespository)
         get() = loginRespository.loginResponseLiveData
 
 
-    fun loginUser (loginRequest: LoginRequest){
-         viewModelScope.launch {
+    fun loginUser(loginRequest: LoginRequest) {
+        viewModelScope.launch {
             loginRespository.loginUser(loginRequest)
-         }
+        }
+    }
+
+    fun forceLoginUser(loginRequest: LoginRequest) {
+        viewModelScope.launch {
+            loginRespository.loginUser(loginRequest, force = true)
+        }
     }
 
     fun validateCredentials(emailAddress: String, userName: String, password: String,

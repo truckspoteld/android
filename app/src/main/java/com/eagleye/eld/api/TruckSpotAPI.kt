@@ -19,6 +19,9 @@ import com.eagleye.eld.models.FmcsaWebServiceTransferRequest
 import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.CodriverHosResponse
+import com.eagleye.eld.models.SetCodriverRequest
+import com.eagleye.eld.models.SetCodriverResponse
 import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.DvirCreateResponse
 import com.eagleye.eld.models.DvirListResponse
@@ -49,6 +52,7 @@ interface TruckSpotAPI {
     @POST("api/v1/login")
     suspend fun login(
         @Query("source") source: String = "mobile",
+        @Query("force") force: String? = null,
         @Body loginRequest: LoginRequest
     ): Response<LoginResponse>
 
@@ -133,6 +137,12 @@ interface TruckSpotAPI {
 
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>
+
+    @GET("api/v1/driver/codriver/hos")
+    suspend fun getCodriverHos(@Query("codriverId") codriverId: Int? = null): Response<CodriverHosResponse>
+
+    @POST("api/v1/driver/codriver/set")
+    suspend fun setMyCodriver(@Body body: SetCodriverRequest): Response<SetCodriverResponse>
 
     @POST("api/v1/driver/codriver/login")
     suspend fun codriverLogin(

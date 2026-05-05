@@ -16,6 +16,12 @@ data class CodriverItem(
 data class SetCodriverRequest(@SerializedName("codriverId") val codriverId: Int?)
 data class SetCodriverResponse(@SerializedName("status") val status: Boolean = false)
 
+data class CodriverRespondRequest(
+    @SerializedName("fromDriverId") val fromDriverId: Int,
+    @SerializedName("accepted") val accepted: Boolean
+)
+data class CodriverRespondResponse(@SerializedName("status") val status: Boolean = false)
+
 data class CodriverHosConditions(
     @SerializedName("drive") val drive: Int? = null,
     @SerializedName("shift") val shift: Int? = null,

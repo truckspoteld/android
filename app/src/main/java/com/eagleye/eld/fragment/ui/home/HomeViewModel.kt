@@ -90,6 +90,17 @@ class HomeViewModel @Inject constructor(
     suspend fun getCodriverHos(codriverId: Int? = null) = truckSpotAPI.getCodriverHos(codriverId)
     suspend fun setMyCodriver(codriverId: Int?) = truckSpotAPI.setMyCodriver(com.eagleye.eld.models.SetCodriverRequest(codriverId))
 
+    suspend fun respondToCodriver(fromDriverId: Int, accepted: Boolean) =
+        truckSpotAPI.respondToCodriver(com.eagleye.eld.models.CodriverRespondRequest(fromDriverId, accepted))
+
+    fun listenForCodriverRequest(onRequest: (fromDriverId: Int, fromDriverName: String, fromUsername: String, companyName: String) -> Unit) {
+        dashboardRespository.listenForCodriverRequest(onRequest)
+    }
+
+    fun stopListeningForCodriverRequest() {
+        dashboardRespository.stopListeningForCodriverRequest()
+    }
+
     suspend fun codriverLogin(username: String, password: String): LoginResponse? {
         val response = truckSpotAPI.codriverLogin(CodriverLoginRequest(username, password))
         return if (response.isSuccessful) response.body() else null

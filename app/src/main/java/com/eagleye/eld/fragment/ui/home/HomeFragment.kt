@@ -210,9 +210,11 @@ class HomeFragment : Fragment(), OnClickListener {
             if (connectionState == BleProfileService.STATE_DISCONNECTED ||
                 connectionState == BleProfileService.STATE_LINK_LOSS
             ) {
+                prefRepository.setEldConnected(false)
                 stopSpeedMonitoring()
                 (activity as? Dashboard)?.showEldReconnectDialog()
             } else if (connectionState == BleProfileService.STATE_CONNECTED) {
+                prefRepository.setEldConnected(true)
                 (activity as? Dashboard)?.dismissEldReconnectDialog()
             }
 
@@ -1256,10 +1258,11 @@ class HomeFragment : Fragment(), OnClickListener {
             // Connect socket (runs on background thread internally)
             try {
                 homeViewModel.connectSocket(prefRepository.getDriverId())
+                registerCodriverRequestListener()
             } catch (e: Exception) {
                 Log.e(TAG, "onResume: Socket connection error: ${e.message}")
             }
-            
+
             // Register receivers (guarded to prevent duplicate registrations)
             registerLocalReceivers()
             showPendingDisconnectedDrivingMilesDialogIfNeeded()
@@ -1502,9 +1505,44 @@ class HomeFragment : Fragment(), OnClickListener {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Release MediaPlayer to prevent memory leak
+        homeViewModel.stopListeningForCodriverRequest()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release()
+        }
+    }
+
+    private fun registerCodriverRequestListener() {
+        homeViewModel.listenForCodriverRequest { fromDriverId, fromDriverName, fromUsername, companyName ->
+            val activity = activity ?: return@listenForCodriverRequest
+            activity.runOnUiThread {
+                val displayName = if (fromDriverName.isNotBlank()) fromDriverName else fromUsername.ifBlank { "A driver" }
+                val companyText = if (companyName.isNotBlank()) " from $companyName" else ""
+                MaterialAlertDialogBuilder(activity)
+                    .setTitle("Co-Driver Request")
+                    .setMessage("$displayName$companyText wants to add you as a co-driver. Accept?")
+                    .setPositiveButton("Accept") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                homeViewModel.respondToCodriver(fromDriverId, true)
+                                // Load requesting driver's clocks at bottom
+                                prefRepository.setCoDriverId(fromDriverId)
+                                prefRepository.setCoDriverName(fromDriverName.ifBlank { fromUsername })
+                                prefRepository.setCodriverUsername(fromUsername)
+                                prefRepository.setIsCodriverLoggedIn(true)
+                                homeViewModel.getHome(requireContext())
+                            } catch (e: Exception) {
+                                Log.e(TAG, "respondToCodriver accept error: ${e.message}")
+                            }
+                        }
+                    }
+                    .setNegativeButton("Reject") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try { homeViewModel.respondToCodriver(fromDriverId, false) } catch (_: Exception) {}
+                        }
+                    }
+                    .setCancelable(false)
+                    .show()
+            }
         }
     }
 

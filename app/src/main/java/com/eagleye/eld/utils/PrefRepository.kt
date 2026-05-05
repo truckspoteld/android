@@ -340,6 +340,9 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun getLastEldDeviceName(): String = PREF_LAST_ELD_DEVICE_NAME.getString()
     fun getLastEldDeviceAddress(): String = PREF_LAST_ELD_DEVICE_ADDRESS.getString()
 
+    fun setEldConnected(connected: Boolean) = pref.edit().putBoolean("pref_eld_connected", connected).apply()
+    fun isEldConnected(): Boolean = pref.getBoolean("pref_eld_connected", false)
+
     fun setJustLoggedIn(isJustLoggedIn: Boolean) {
         PREF_JUST_LOGGED_IN.put(isJustLoggedIn)
     }

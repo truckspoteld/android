@@ -22,6 +22,8 @@ import com.eagleye.eld.models.DriverCodriversResponse
 import com.eagleye.eld.models.CodriverHosResponse
 import com.eagleye.eld.models.SetCodriverRequest
 import com.eagleye.eld.models.SetCodriverResponse
+import com.eagleye.eld.models.CodriverRespondRequest
+import com.eagleye.eld.models.CodriverRespondResponse
 import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.DvirCreateResponse
 import com.eagleye.eld.models.DvirListResponse
@@ -143,6 +145,9 @@ interface TruckSpotAPI {
 
     @POST("api/v1/driver/codriver/set")
     suspend fun setMyCodriver(@Body body: SetCodriverRequest): Response<SetCodriverResponse>
+
+    @POST("api/v1/driver/codriver/respond")
+    suspend fun respondToCodriver(@Body body: CodriverRespondRequest): Response<CodriverRespondResponse>
 
     @POST("api/v1/driver/codriver/login")
     suspend fun codriverLogin(

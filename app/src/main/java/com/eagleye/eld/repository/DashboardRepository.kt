@@ -212,6 +212,14 @@ class DashboardRepository @Inject constructor(
         onLogUpdatedCallback = null
     }
 
+    fun listenForCodriverRequest(onRequest: (fromDriverId: Int, fromDriverName: String, fromUsername: String, companyName: String) -> Unit) {
+        SocketManager.listenForCodriverRequest(onRequest)
+    }
+
+    fun stopListeningForCodriverRequest() {
+        SocketManager.stopListeningForCodriverRequest()
+    }
+
     @SuppressLint("SuspiciousIndentation")
     private fun listenNewLogs() {
         SocketManager.listenForLogUpdates {

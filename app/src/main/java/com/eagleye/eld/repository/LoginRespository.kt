@@ -62,7 +62,7 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
                     val defaultEngineHours = "1"
                     val defaultLatitude = 0.0
                     val defaultLongitude = 0.0
-                    var vin = "1C6RREHT5NN451094"
+                    var vin = ""
 
                     if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null) {
                         vin = AppModel.getInstance().mVehicleInfo.VIN

@@ -1265,6 +1265,22 @@ class HomeFragment : Fragment(), OnClickListener {
 
             // Register receivers (guarded to prevent duplicate registrations)
             registerLocalReceivers()
+
+            // Show reconnect dialog if coming back from background and ELD is disconnected.
+            // Check AFTER receiver is registered so any live STATE_CONNECTED broadcast is caught first.
+            if (wasLongPause) {
+                val savedAddress = prefRepository.getLastEldDeviceAddress().trim()
+                if (savedAddress.isNotEmpty() && !prefRepository.isEldConnected()) {
+                    activity?.let { act ->
+                        act.findViewById<View>(android.R.id.content)?.postDelayed({
+                            if (!prefRepository.isEldConnected()) {
+                                (act as? com.eagleye.eld.fragment.Dashboard)?.showEldReconnectDialog()
+                            }
+                        }, 1500L)
+                    }
+                }
+            }
+
             showPendingDisconnectedDrivingMilesDialogIfNeeded()
             
             // Fetch data with debounce - but skip if long pause to avoid immediate loading

@@ -110,7 +110,6 @@ class Dashboard : AppCompatActivity() {
     private val REQUEST_BLUETOOTH_PERMISSIONS = 1001
     private val reconnectHandler = Handler(Looper.getMainLooper())
     private var reconnectDialog: Dialog? = null
-    private var lastBackgroundTime: Long = 0L
 
     private val sessionReplacedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -881,25 +880,10 @@ class Dashboard : AppCompatActivity() {
         super.onResume()
         startLocationUpdates()
         updateCodriverNavHeader()
-
-        // Auto-reconnect ELD when coming back from background
-        val now = System.currentTimeMillis()
-        if (lastBackgroundTime > 0 && now - lastBackgroundTime > 2000) {
-            val savedAddress = prefRepository.getLastEldDeviceAddress().trim()
-            if (savedAddress.isNotEmpty() && !prefRepository.isEldConnected() && reconnectDialog?.isShowing != true) {
-                Handler(Looper.getMainLooper()).postDelayed({
-                    if (!isFinishing && !isDestroyed && reconnectDialog?.isShowing != true && !prefRepository.isEldConnected()) {
-                        showEldReconnectDialog()
-                    }
-                }, 600L)
-            }
-        }
-        lastBackgroundTime = 0L
     }
 
     override fun onPause() {
         super.onPause()
-        lastBackgroundTime = System.currentTimeMillis()
         fusedClient?.removeLocationUpdates(mCallback!!)
     }
 

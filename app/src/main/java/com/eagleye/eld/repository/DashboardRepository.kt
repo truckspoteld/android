@@ -90,6 +90,8 @@ class DashboardRepository @Inject constructor(
     val homeResponseLiveData: LiveData<NetworkResult<HomeDataModel>>
         get() = _homeData
 
+    fun resetHomeData() { _homeData.postValue(NetworkResult.Loading()) }
+
     val addlogResponse: LiveData<NetworkResult<AddLogSuccessResponse>>
         get() = _addLog
 

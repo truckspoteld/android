@@ -166,6 +166,8 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun goToDashboard() {
+        // Clear stale home data so HomeFragment doesn't flash old conditions on login
+        homeViewModel.resetHomeData()
         val int = Intent(this, Dashboard::class.java)
         startActivity(int)
         finish()
@@ -212,8 +214,11 @@ class LoginActivity : AppCompatActivity() {
                             prefRepository.setDriver1Name(it.data.results.username)
                             prefRepository.setDriver1Username(binding.etDriver.text.toString())
                         } else {
-                            // Fresh login — clear any leftover co-driver relationship
+                            // Fresh login — clear any leftover co-driver relationship and stale HOS cache
                             prefRepository.clearCodriver()
+                            // Clear cached mode on every fresh login so HOS clocks don't count down
+                            // based on the previous session's state before server data arrives
+                            prefRepository.setMode("")
                             prefRepository.setLoggedIn(true)
                             token = it.data.results.token
                             prefRepository.setName(it.data.results.username)

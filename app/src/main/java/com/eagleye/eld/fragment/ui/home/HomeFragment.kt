@@ -118,7 +118,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastLogMode: String = ""
     private var lastRelevantLog: HomeDataModel.Log? = null
     private var latestConditionsSnapshot: HomeDataModel.Conditions? = null
-    private var latestConditionsSnapshotAtMs: Long = 0L
+    private var latestConditionsSnapshotAtMs: Long = SystemClock.elapsedRealtime()
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
@@ -423,7 +423,12 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun setupObservers() {
         homeViewModel.company.observe(viewLifecycleOwner) {
             if (it.data?.results == null) return@observe
-            timeZone = it.data.results.company_timezone ?: ""
+            val rawTz = it.data.results.company_timezone ?: ""
+            timeZone = try {
+                java.util.TimeZone.getTimeZone(rawTz)
+                    .getDisplayName(java.util.TimeZone.getTimeZone(rawTz)
+                        .inDaylightTime(java.util.Date()), java.util.TimeZone.SHORT)
+            } catch (e: Exception) { rawTz }
             prefRepository.setTimeZone(timeZone)
             binding.ManufactureName.text = it.data.results.company_name
             binding.companyName.text = "Company Name: ${it.data.results.company_name}"
@@ -1221,7 +1226,16 @@ class HomeFragment : Fragment(), OnClickListener {
             // CRITICAL: Cancel all running jobs first to prevent zombie coroutines
             clockJob?.cancel()
             bluetoothConnectionJob?.cancel()
-            
+
+            // Reset snapshot to full/default conditions so clocks show correct values
+            // immediately on login before the fresh server response arrives
+            latestConditionsSnapshotAtMs = SystemClock.elapsedRealtime()
+            latestConditionsSnapshot = HomeDataModel.Conditions(
+                drive = 39600, shift = 50400, cycle = 252000, drivebreak = 28800,
+                driveViolation = false, shiftViolation = false,
+                cycleViolation = false, driveBreakViolation = false
+            )
+
             // Reset flags on resume to prevent stuck states
             isFetchingLogs = false
             

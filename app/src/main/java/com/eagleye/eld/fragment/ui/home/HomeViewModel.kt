@@ -289,6 +289,8 @@ class HomeViewModel @Inject constructor(
     private var getHomeJob: kotlinx.coroutines.Job? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
+    fun resetHomeData() { dashboardRespository.resetHomeData() }
+
     fun getHome(context: Context) {
         // Cancel any existing job to prevent multiple loops
         getHomeJob?.cancel()

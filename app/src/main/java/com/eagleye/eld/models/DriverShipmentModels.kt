@@ -38,7 +38,10 @@ data class CodriverHosData(
 data class CodriverHosResponse(
     @SerializedName("status") val status: Boolean = false,
     @SerializedName("message") val message: String? = null,
-    @SerializedName("codriver") val codriver: CodriverHosData? = null
+    @SerializedName("codriver") val codriver: CodriverHosData? = null,
+    @SerializedName("vinMismatch") val vinMismatch: Boolean = false,
+    @SerializedName("expectedVin") val expectedVin: String? = null,
+    @SerializedName("codriverVin") val codriverVin: String? = null
 )
 
 data class DriverCodriversResponse(

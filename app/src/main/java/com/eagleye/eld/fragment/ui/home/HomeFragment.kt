@@ -1189,7 +1189,8 @@ class HomeFragment : Fragment(), OnClickListener {
             date = point.date.orEmpty(),
             time = point.time.orEmpty(),
             connection_status = "disconnected",
-            datetime = point.datetime.orEmpty()
+            datetime = point.datetime.orEmpty(),
+            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
     }
@@ -1432,7 +1433,8 @@ class HomeFragment : Fragment(), OnClickListener {
                     is_autoinsert = 1,
                     eventcode = eventCode,
                     eventtype = 1,
-                    connection_status = if (isNeedToconnect) "disconnected" else "connected"
+                    connection_status = if (isNeedToconnect) "disconnected" else "connected",
+                    codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
                 )
 
                 if (selectedOptionText == "yard") {
@@ -1726,7 +1728,8 @@ class HomeFragment : Fragment(), OnClickListener {
             is_autoinsert = 1,
             eventcode = 1,
             eventtype = 1,
-            connection_status = if (isNeedToconnect) "disconnected" else "connected"
+            connection_status = if (isNeedToconnect) "disconnected" else "connected",
+            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
         prefRepository.setLoggedIn(false)
@@ -2227,9 +2230,18 @@ class HomeFragment : Fragment(), OnClickListener {
             try {
                 // Fetch other driver data from server (no codriverId = server does lookup)
                 val resp = homeViewModel.getCodriverHos()
-                val data = if (resp.isSuccessful && resp.body()?.status == true) resp.body()?.codriver else null
+                val body = if (resp.isSuccessful) resp.body() else null
+                val data = if (body?.status == true) body.codriver else null
 
                 withContext(Dispatchers.Main) {
+                    // VIN mismatch warning
+                    if (body?.vinMismatch == true && !body.expectedVin.isNullOrBlank() && !body.codriverVin.isNullOrBlank()) {
+                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Wrong Truck Connected")
+                            .setMessage("Your co-driver is connected to a different truck (VIN: ${body.codriverVin}).\n\nPlease ask them to reconnect to your truck (VIN: ${body.expectedVin}).")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
                     if (data == null || data.id == null || data.id <= 0 || data.id == prefRepository.getDriverId()) {
                         panel.visibility = View.GONE
                         // Relationship removed on another device — clear local state

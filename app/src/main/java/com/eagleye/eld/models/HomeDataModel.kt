@@ -4,8 +4,10 @@ data class EldAttentionSummary(
     val show: Boolean = false,
     val reasons: List<String>? = null,
     val malfunctionCodesActive: List<Int>? = null,
+    val malfunctionCodesCleared: List<Int>? = null,
     val malfunctionLettersActive: List<String>? = null,
     val diagnosticCodesActive: List<Int>? = null,
+    val diagnosticCodesCleared: List<Int>? = null,
     val engineSyncDiagnosticActive: Boolean = false,
     val dutyStatusDataDiagnosticActive: Boolean = false,
 ) {

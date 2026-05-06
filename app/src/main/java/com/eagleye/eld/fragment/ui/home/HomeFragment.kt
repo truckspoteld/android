@@ -2727,27 +2727,64 @@ class HomeFragment : Fragment(), OnClickListener {
             6 to "S: Data transfer compliance malfunction",
             7 to "O: Other detected malfunction"
         )
+        val activeColor = if (showMalfunction) android.graphics.Color.parseColor("#EF4444") else android.graphics.Color.parseColor("#F97316")
+        val clearedColor = android.graphics.Color.parseColor("#9CA3AF")
 
-        val lines = mutableListOf<String>()
+        val ctx = requireContext()
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+
+        fun addRow(label: String, color: Int, cleared: Boolean) {
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setPadding(0, 10, 0, 10)
+            }
+            val dot = android.widget.TextView(ctx).apply {
+                text = "●"
+                textSize = 10f
+                setTextColor(color)
+                setPadding(0, 4, 16, 0)
+            }
+            val label = android.widget.TextView(ctx).apply {
+                text = label
+                textSize = 14f
+                setTextColor(color)
+                if (cleared) paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            }
+            row.addView(dot)
+            row.addView(label)
+            container.addView(row)
+        }
+
+        var hasAny = false
         if (showMalfunction) {
             att?.malfunctionCodesActive?.forEach { code ->
-                lines.add(malfLabels[code] ?: "Malfunction code $code")
+                addRow(malfLabels[code] ?: "Malfunction code $code", activeColor, false); hasAny = true
             }
-            if (lines.isEmpty()) lines.add("No active malfunctions")
+            att?.malfunctionCodesCleared?.forEach { code ->
+                addRow(malfLabels[code] ?: "Malfunction code $code", clearedColor, true); hasAny = true
+            }
         } else {
             att?.diagnosticCodesActive?.forEach { code ->
-                lines.add("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}")
+                addRow("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}", activeColor, false); hasAny = true
             }
-            if (att?.dutyStatusDataDiagnosticActive == true && lines.isEmpty()) {
-                lines.add("Data diagnostic on latest duty-status log")
+            att?.diagnosticCodesCleared?.forEach { code ->
+                addRow("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}", clearedColor, true); hasAny = true
             }
-            if (lines.isEmpty()) lines.add("No active diagnostics")
+            if (att?.dutyStatusDataDiagnosticActive == true && !hasAny) {
+                addRow("Data diagnostic on latest duty-status log", activeColor, false); hasAny = true
+            }
+        }
+        if (!hasAny) {
+            addRow(if (showMalfunction) "No active malfunctions" else "No active diagnostics", clearedColor, false)
         }
 
         val title = if (showMalfunction) "M — Malfunction" else "D — Data Diagnostic"
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(ctx)
             .setTitle(title)
-            .setMessage(lines.joinToString("\n"))
+            .setView(container)
             .setPositiveButton("OK", null)
             .show()
     }

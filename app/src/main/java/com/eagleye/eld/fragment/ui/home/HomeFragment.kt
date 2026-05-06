@@ -122,6 +122,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
+    private var latestEldAttention: com.eagleye.eld.models.EldAttentionSummary? = null
     private var pendingModeSelection: String? = null
     private var pendingModeSelectionAtMs: Long = 0L
     private val MODE_SELECTION_GRACE_MS = 20_000L
@@ -388,6 +389,9 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.editTrailerNo.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
         binding.cvProfile.setOnClickListener { playClickAnimation(it); showDriverProfileDialog() }
         binding.btnUpdateShipment.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
+
+        binding.tvMalfunction.setOnClickListener { showEldAttentionDialog(showMalfunction = true) }
+        binding.tvDiagnostic.setOnClickListener { showEldAttentionDialog(showMalfunction = false) }
         
         // Always set observers on view creation
         setupObservers()
@@ -469,6 +473,7 @@ class HomeFragment : Fragment(), OnClickListener {
 
                     // Update M and D indicators using server-computed eldAttention (tracks active vs cleared)
                     val att = it.data.eldAttention
+                    latestEldAttention = att
                     val hasMalfunction = att?.hasMalfunction == true
                     val hasDiagnostic = att?.hasDiagnostic == true
 
@@ -2703,6 +2708,50 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
+    private fun showEldAttentionDialog(showMalfunction: Boolean) {
+        val att = latestEldAttention
+        val diagLabels = mapOf(
+            1 to "Power data diagnostic",
+            2 to "Engine synchronization data diagnostic",
+            3 to "Missing required data elements diagnostic",
+            4 to "Data transfer data diagnostic",
+            5 to "Unidentified driving records diagnostic",
+            6 to "Other ELD detected diagnostic"
+        )
+        val malfLabels = mapOf(
+            1 to "P: Power compliance malfunction",
+            2 to "E: Engine synchronization compliance malfunction",
+            3 to "T: Timing compliance malfunction",
+            4 to "L: Positioning compliance malfunction",
+            5 to "R: Data recording compliance malfunction",
+            6 to "S: Data transfer compliance malfunction",
+            7 to "O: Other detected malfunction"
+        )
+
+        val lines = mutableListOf<String>()
+        if (showMalfunction) {
+            att?.malfunctionCodesActive?.forEach { code ->
+                lines.add(malfLabels[code] ?: "Malfunction code $code")
+            }
+            if (lines.isEmpty()) lines.add("No active malfunctions")
+        } else {
+            att?.diagnosticCodesActive?.forEach { code ->
+                lines.add("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}")
+            }
+            if (att?.dutyStatusDataDiagnosticActive == true && lines.isEmpty()) {
+                lines.add("Data diagnostic on latest duty-status log")
+            }
+            if (lines.isEmpty()) lines.add("No active diagnostics")
+        }
+
+        val title = if (showMalfunction) "M — Malfunction" else "D — Data Diagnostic"
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setMessage(lines.joinToString("\n"))
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
     private fun showDriverProfileDialog() {
         val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
         val view = layoutInflater.inflate(R.layout.dialog_driver_profile, null)

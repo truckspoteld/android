@@ -16,6 +16,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.models.AddLogSuccessResponse
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.DriverCodriversResponse
@@ -213,6 +214,16 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+        }
+    }
+
+    fun rejectUnidentifiedDriving(request: RejectUnidentifiedRequest) {
+        viewModelScope.launch {
+            try {
+                dashboardRespository.rejectUnidentifiedDriving(request)
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "rejectUnidentifiedDriving error: ${e.message}", e)
+            }
         }
     }
 

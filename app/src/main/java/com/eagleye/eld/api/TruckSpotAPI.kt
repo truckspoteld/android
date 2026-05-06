@@ -34,6 +34,7 @@ import com.eagleye.eld.models.PaperLogsEmailRequest
 import com.eagleye.eld.models.PaperLogsEmailResponse
 import com.eagleye.eld.models.ReportsDataResponse
 import com.eagleye.eld.models.UnidentifiedResponse
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
@@ -63,6 +64,9 @@ interface TruckSpotAPI {
 
     @PUT("api/v1/add_unidentified")
     suspend fun addOffset(@Body addOffsetRequest: AddOffsetRequest): Response<UnidentifiedResponse>
+
+    @POST("api/v1/eld/unidentified/reject")
+    suspend fun rejectUnidentifiedDriving(@Body request: RejectUnidentifiedRequest): Response<UnidentifiedResponse>
 
     @GET("api/v1/get_unidentified")
     suspend fun getOffset(@Query("vin_no") vin: String): Response<UnidentifiedResponse>

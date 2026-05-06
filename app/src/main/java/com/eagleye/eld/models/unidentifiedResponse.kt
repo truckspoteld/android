@@ -26,6 +26,15 @@ data class ResultsUnidentifiedResponse(
 	val unidentifiedRecords: List<UnidentifiedRecordsItem?>? = null
 )
 
+data class RejectUnidentifiedRequest(
+	@field:SerializedName("minutes") val minutes: Double,
+	@field:SerializedName("vin") val vin: String?,
+	@field:SerializedName("odometer") val odometer: Double?,
+	@field:SerializedName("eng_hours") val eng_hours: Double?,
+	@field:SerializedName("start_datetime") val start_datetime: String?,
+	@field:SerializedName("end_datetime") val end_datetime: String?,
+)
+
 data class UnidentifiedRecordsItem(
 
 	@field:SerializedName("vin_no")

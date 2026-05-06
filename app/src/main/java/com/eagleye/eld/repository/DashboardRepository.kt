@@ -21,6 +21,7 @@ import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.models.AddLogSuccessResponse
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.GetLogsByDateRequest
 import com.eagleye.eld.models.GetLogsByDateResponse
@@ -850,6 +851,14 @@ class DashboardRepository @Inject constructor(
         }
     }
 
+
+    suspend fun rejectUnidentifiedDriving(request: RejectUnidentifiedRequest) {
+        try {
+            truckSpotAPI.rejectUnidentifiedDriving(request)
+        } catch (e: Exception) {
+            Log.e("DashboardRepo", "rejectUnidentifiedDriving error: ${e.message}")
+        }
+    }
 
     suspend fun addOffSet(prefRepository: PrefRepository, offset: AddOffsetRequest) {
          var data1  = AddOffsetRequest(23333,33,"Testing Vin")

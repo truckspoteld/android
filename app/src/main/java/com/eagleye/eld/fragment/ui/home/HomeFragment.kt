@@ -78,6 +78,7 @@ import com.google.gson.Gson
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.CodriverItem
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.utils.PrefConstants.TRUCK_MODE_YARD
 import com.eagleye.eld.utils.Utils.getDouble
@@ -1083,6 +1084,18 @@ class HomeFragment : Fragment(), OnClickListener {
             if (eng.isNullOrEmpty() || eng == "null") {
                 eng = "0"
             }
+            // Record rejection on server for FMCSA unidentified driver profile records (ICD §4.5.1)
+            val minutes = actualEngHours * 60.0
+            homeViewModel.rejectUnidentifiedDriving(
+                RejectUnidentifiedRequest(
+                    minutes = minutes,
+                    vin = vin.ifEmpty { null },
+                    odometer = actualOdo,
+                    eng_hours = actualEngHours,
+                    start_datetime = null,
+                    end_datetime = null,
+                )
+            )
             homeViewModel.addOffset(
                 prefRepository,
                 AddOffsetRequest(

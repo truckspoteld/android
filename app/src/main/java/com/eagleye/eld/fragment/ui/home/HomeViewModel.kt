@@ -16,10 +16,15 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.models.AddLogSuccessResponse
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.models.DRIVE_MODE
 import com.eagleye.eld.models.GetCompanyById
 import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.CodriverHosResponse
 import com.eagleye.eld.models.DriverShipmentResponse
+import com.eagleye.eld.models.LoginResponse
+import com.eagleye.eld.request.CodriverLoginRequest
+import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.models.FmcsaEmailTransferResponse
 import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.GetLogsResponse
@@ -82,6 +87,32 @@ class HomeViewModel @Inject constructor(
     fun getDriverId() = prefRepository.getDriverId()
 
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
+
+    suspend fun getCodriverHos(codriverId: Int? = null) = truckSpotAPI.getCodriverHos(codriverId)
+    suspend fun setMyCodriver(codriverId: Int?) = truckSpotAPI.setMyCodriver(com.eagleye.eld.models.SetCodriverRequest(codriverId))
+
+    suspend fun respondToCodriver(fromDriverId: Int, accepted: Boolean) =
+        truckSpotAPI.respondToCodriver(com.eagleye.eld.models.CodriverRespondRequest(fromDriverId, accepted))
+
+    fun listenForCodriverRequest(onRequest: (fromDriverId: Int, fromDriverName: String, fromUsername: String, companyName: String) -> Unit) {
+        dashboardRespository.listenForCodriverRequest(onRequest)
+    }
+
+    fun stopListeningForCodriverRequest() {
+        dashboardRespository.stopListeningForCodriverRequest()
+    }
+
+    suspend fun codriverLogin(username: String, password: String): LoginResponse? {
+        val response = truckSpotAPI.codriverLogin(CodriverLoginRequest(username, password))
+        return if (response.isSuccessful) response.body() else null
+    }
+
+    suspend fun codriverLogout() = truckSpotAPI.codriverLogout()
+
+    suspend fun loginWithUsername(username: String, password: String): LoginResponse? {
+        val response = truckSpotAPI.loginWithUsername(body = LoginRequest(email = username, password = password))
+        return if (response.isSuccessful) response.body() else null
+    }
 
     suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse> =
         truckSpotAPI.getActiveDriverShipment()
@@ -186,6 +217,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun rejectUnidentifiedDriving(request: RejectUnidentifiedRequest) {
+        viewModelScope.launch {
+            try {
+                dashboardRespository.rejectUnidentifiedDriving(request)
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "rejectUnidentifiedDriving error: ${e.message}", e)
+            }
+        }
+    }
+
     fun addOffset(prefRepository: PrefRepository, offset: AddOffsetRequest, context: Context) {
         viewModelScope.launch {
             if (isInternetAvailable(context)) {
@@ -270,6 +311,8 @@ class HomeViewModel @Inject constructor(
     private var getHomeJob: kotlinx.coroutines.Job? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
+    fun resetHomeData() { dashboardRespository.resetHomeData() }
+
     fun getHome(context: Context) {
         // Cancel any existing job to prevent multiple loops
         getHomeJob?.cancel()

@@ -19,6 +19,11 @@ import com.eagleye.eld.models.FmcsaWebServiceTransferRequest
 import com.eagleye.eld.models.FmcsaWebServiceTransferResponse
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.DriverCodriversResponse
+import com.eagleye.eld.models.CodriverHosResponse
+import com.eagleye.eld.models.SetCodriverRequest
+import com.eagleye.eld.models.SetCodriverResponse
+import com.eagleye.eld.models.CodriverRespondRequest
+import com.eagleye.eld.models.CodriverRespondResponse
 import com.eagleye.eld.models.DriverShipmentResponse
 import com.eagleye.eld.models.DvirCreateResponse
 import com.eagleye.eld.models.DvirListResponse
@@ -29,9 +34,11 @@ import com.eagleye.eld.models.PaperLogsEmailRequest
 import com.eagleye.eld.models.PaperLogsEmailResponse
 import com.eagleye.eld.models.ReportsDataResponse
 import com.eagleye.eld.models.UnidentifiedResponse
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.AddLogRequestunauth
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.request.CodriverLoginRequest
 import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.request.DvirCreateRequest
 import com.eagleye.eld.request.LoginRequest
@@ -48,6 +55,7 @@ interface TruckSpotAPI {
     @POST("api/v1/login")
     suspend fun login(
         @Query("source") source: String = "mobile",
+        @Query("force") force: String? = null,
         @Body loginRequest: LoginRequest
     ): Response<LoginResponse>
 
@@ -56,6 +64,9 @@ interface TruckSpotAPI {
 
     @PUT("api/v1/add_unidentified")
     suspend fun addOffset(@Body addOffsetRequest: AddOffsetRequest): Response<UnidentifiedResponse>
+
+    @POST("api/v1/eld/unidentified/reject")
+    suspend fun rejectUnidentifiedDriving(@Body request: RejectUnidentifiedRequest): Response<UnidentifiedResponse>
 
     @GET("api/v1/get_unidentified")
     suspend fun getOffset(@Query("vin_no") vin: String): Response<UnidentifiedResponse>
@@ -132,6 +143,29 @@ interface TruckSpotAPI {
 
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>
+
+    @GET("api/v1/driver/codriver/hos")
+    suspend fun getCodriverHos(@Query("codriverId") codriverId: Int? = null): Response<CodriverHosResponse>
+
+    @POST("api/v1/driver/codriver/set")
+    suspend fun setMyCodriver(@Body body: SetCodriverRequest): Response<SetCodriverResponse>
+
+    @POST("api/v1/driver/codriver/respond")
+    suspend fun respondToCodriver(@Body body: CodriverRespondRequest): Response<CodriverRespondResponse>
+
+    @POST("api/v1/driver/codriver/login")
+    suspend fun codriverLogin(
+        @Body body: CodriverLoginRequest
+    ): Response<LoginResponse>
+
+    @POST("api/v1/driver/codriver/logout")
+    suspend fun codriverLogout(): Response<LoginResponse>
+
+    @POST("api/v1/login")
+    suspend fun loginWithUsername(
+        @Query("source") source: String = "mobile",
+        @Body body: LoginRequest
+    ): Response<LoginResponse>
 
     @GET("api/v1/driver/shipment-assignment/active")
     suspend fun getActiveDriverShipment(): Response<DriverShipmentResponse>

@@ -217,6 +217,37 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getCoDriverName() = PREF_CODRIVER_NAME.getString()
 
+    fun setCodriverToken(token: String) { PREF_CODRIVER_TOKEN.put(token) }
+    fun getCodriverToken() = PREF_CODRIVER_TOKEN.getString()
+
+    fun setCodriverUsername(username: String) { PREF_CODRIVER_USERNAME.put(username) }
+    fun getCodriverUsername() = PREF_CODRIVER_USERNAME.getString()
+
+    fun setIsCodriverLoggedIn(value: Boolean) { PREF_IS_CODRIVER_LOGGED_IN.put(value) }
+    fun isCodriverLoggedIn() = PREF_IS_CODRIVER_LOGGED_IN.getBoolean()
+
+    fun setIsViewingAsCodriver(value: Boolean) { PREF_IS_VIEWING_AS_CODRIVER.put(value) }
+    fun isViewingAsCodriver() = PREF_IS_VIEWING_AS_CODRIVER.getBoolean()
+
+    // Driver1 snapshot — for role-swap login
+    fun setDriver1Token(token: String) { PREF_DRIVER1_TOKEN.put(token) }
+    fun getDriver1Token() = PREF_DRIVER1_TOKEN.getString()
+    fun setDriver1Id(id: Int) { PREF_DRIVER1_ID.put(id) }
+    fun getDriver1Id() = PREF_DRIVER1_ID.getInt()
+    fun setDriver1Name(name: String) { PREF_DRIVER1_NAME.put(name) }
+    fun getDriver1Name() = PREF_DRIVER1_NAME.getString()
+    fun setDriver1Username(username: String) { PREF_DRIVER1_USERNAME.put(username) }
+    fun getDriver1Username() = PREF_DRIVER1_USERNAME.getString()
+
+    fun clearCodriver() {
+        PREF_CODRIVER_ID.put(0)
+        PREF_CODRIVER_NAME.put("")
+        PREF_CODRIVER_TOKEN.put("")
+        PREF_CODRIVER_USERNAME.put("")
+        PREF_IS_CODRIVER_LOGGED_IN.put(false)
+        PREF_IS_VIEWING_AS_CODRIVER.put(false)
+    }
+
     fun setLastLogTime() {
         PREF_LAST_LOG_TIME.put(Date().time)
     }
@@ -308,6 +339,9 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getLastEldDeviceName(): String = PREF_LAST_ELD_DEVICE_NAME.getString()
     fun getLastEldDeviceAddress(): String = PREF_LAST_ELD_DEVICE_ADDRESS.getString()
+
+    fun setEldConnected(connected: Boolean) = pref.edit().putBoolean("pref_eld_connected", connected).apply()
+    fun isEldConnected(): Boolean = pref.getBoolean("pref_eld_connected", false)
 
     fun setJustLoggedIn(isJustLoggedIn: Boolean) {
         PREF_JUST_LOGGED_IN.put(isJustLoggedIn)

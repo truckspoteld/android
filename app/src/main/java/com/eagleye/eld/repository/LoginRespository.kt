@@ -35,10 +35,17 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
         get() = _loginResponseLiveData
 
     @SuppressLint("LongLogTag")
-    suspend fun loginUser(loginRequest: LoginRequest) {
+    suspend fun loginUser(loginRequest: LoginRequest, force: Boolean = false) {
         _loginResponseLiveData.postValue(NetworkResult.Loading())
         try {
-            val response = truckSpotAPI.login(loginRequest = loginRequest)
+            val response = truckSpotAPI.login(
+                loginRequest = loginRequest,
+                force = if (force) "true" else null
+            )
+            if (response.code() == 409) {
+                _loginResponseLiveData.postValue(NetworkResult.Error("ALREADY_LOGGED_IN"))
+                return
+            }
             Log.d("Login response will come here", "LOGINRESPONSE:$response")
             handleResponse(response)
             if (response.isSuccessful && response.body() != null) {
@@ -55,7 +62,7 @@ class LoginRespository @Inject constructor(private val truckSpotAPI: TruckSpotAP
                     val defaultEngineHours = "1"
                     val defaultLatitude = 0.0
                     val defaultLongitude = 0.0
-                    var vin = "1C6RREHT5NN451094"
+                    var vin = ""
 
                     if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null) {
                         vin = AppModel.getInstance().mVehicleInfo.VIN

@@ -18,7 +18,8 @@ data class AddLogRequest @JvmOverloads constructor(
     val time: String = "",
     val connection_status: String = "",
     var discreption: String = "",
-    val datetime: String = ""
+    val datetime: String = "",
+    val codriverid: Int? = null
 )
 //{
 //    "error": "You can only log 'on' during the first 15 minutes after reset.",

@@ -65,7 +65,12 @@ import com.eagleye.eld.pt.devicemanager.BleProfileService
 import com.eagleye.eld.pt.devicemanager.TrackerManagerActivity
 import com.eagleye.eld.pt.devicemanager.TrackerService
 import com.eagleye.eld.request.AddLogRequest
+import com.eagleye.eld.request.CodriverLoginRequest
+import com.eagleye.eld.request.LoginRequest
 import com.eagleye.eld.utils.PrefRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.eagleye.eld.utils.NetworkResult
 import com.whizpool.supportsystem.SLog
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,6 +80,7 @@ import android.view.LayoutInflater
 import androidx.annotation.RequiresPermission
 import com.eagleye.eld.UploadDocumentsActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.eagleye.eld.utils.Constants.ACTION_SESSION_REPLACED
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat
 import no.nordicsemi.android.support.v18.scanner.ScanCallback
 import no.nordicsemi.android.support.v18.scanner.ScanResult
@@ -98,11 +104,24 @@ class Dashboard : AppCompatActivity() {
     private lateinit var navController: NavController
     private var selectedBottomItemId: Int = R.id.home
 
+    private val homeViewModel: HomeViewModel by viewModels()
     private val job = Job()
     private val scope = CoroutineScope(job + Dispatchers.IO)
     private val REQUEST_BLUETOOTH_PERMISSIONS = 1001
     private val reconnectHandler = Handler(Looper.getMainLooper())
     private var reconnectDialog: Dialog? = null
+
+    private val sessionReplacedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            prefRepository.setLoggedIn(false)
+            prefRepository.setToken("")
+            prefRepository.clearCodriver()
+            Toast.makeText(this@Dashboard, "You have been logged in on another device", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this@Dashboard, LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            })
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +136,9 @@ class Dashboard : AppCompatActivity() {
                 window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         }
         prefRepository = PrefRepository(this)
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            sessionReplacedReceiver, IntentFilter(ACTION_SESSION_REPLACED)
+        )
         checkAndRequestBluetoothPermission()
 
         // Show ELD reconnect dialog after login
@@ -133,7 +155,6 @@ class Dashboard : AppCompatActivity() {
             binding.drawerLayout.open()
         }
         
-        val homeViewModel: HomeViewModel by viewModels()
         homeViewModel.getDriverReview(this)
 
         val headerView = binding.navView.getHeaderView(0)
@@ -234,7 +255,15 @@ class Dashboard : AppCompatActivity() {
         }
         headerView.findViewById<View>(R.id.nav_codriver_login).setOnClickListener {
             binding.drawerLayout.close()
-            Toast.makeText(this, "Co-Driver Login", Toast.LENGTH_SHORT).show()
+            if (prefRepository.isCodriverLoggedIn()) {
+                // Log out current driver so the co-driver can log in via LoginActivity
+                prefRepository.setLoggedIn(false)
+                prefRepository.setToken("")
+                startActivity(android.content.Intent(this, com.eagleye.eld.LoginActivity::class.java))
+                finish()
+            } else {
+                showCodriverPickerDialog()
+            }
         }
         headerView.findViewById<View>(R.id.nav_shipping).setOnClickListener {
             binding.drawerLayout.close()
@@ -850,6 +879,7 @@ class Dashboard : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         startLocationUpdates()
+        updateCodriverNavHeader()
     }
 
     override fun onPause() {
@@ -901,6 +931,94 @@ class Dashboard : AppCompatActivity() {
         }
     }
 
+    private fun showCodriverPickerDialog() {
+        val loadingDialog = AlertDialog.Builder(this)
+            .setMessage("Loading drivers...")
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+
+        scope.launch {
+            try {
+                val response = homeViewModel.getMyCodrivers()
+                val drivers = if (response.isSuccessful) {
+                    response.body()?.codrivers?.filter { it.id != prefRepository.getDriverId() } ?: emptyList()
+                } else emptyList()
+
+                withContext(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    if (drivers.isEmpty()) {
+                        AlertDialog.Builder(this@Dashboard)
+                            .setTitle("No Drivers Found")
+                            .setMessage("No other drivers found in your company.")
+                            .setPositiveButton("OK", null)
+                            .show()
+                        return@withContext
+                    }
+                    val names = drivers.map { it.name?.ifEmpty { it.username } ?: it.username ?: "Driver ${it.id}" }.toTypedArray()
+                    AlertDialog.Builder(this@Dashboard)
+                        .setTitle("Add a Co-Driver")
+                        .setItems(names) { _, index ->
+                            val selected = drivers[index]
+                            val displayName = selected.name?.ifEmpty { selected.username } ?: selected.username ?: "Driver ${selected.id}"
+                            // Save snapshot of current main driver before saving co-driver
+                            prefRepository.setDriver1Token(prefRepository.getToken())
+                            prefRepository.setDriver1Id(prefRepository.getDriverId())
+                            prefRepository.setDriver1Name(prefRepository.getName())
+                            prefRepository.setDriver1Username(prefRepository.getUserName())
+                            // Save co-driver (no token needed — HOS fetched via main driver's token)
+                            prefRepository.setCoDriverId(selected.id)
+                            prefRepository.setCoDriverName(displayName)
+                            prefRepository.setCodriverUsername(selected.username ?: "")
+                            prefRepository.setCodriverToken("")
+                            prefRepository.setIsCodriverLoggedIn(true)
+                            // Save pairing on server so other devices can restore it
+                            scope.launch { try { homeViewModel.setMyCodriver(selected.id) } catch (_: Exception) {} }
+                            updateCodriverNavHeader()
+                            Toast.makeText(this@Dashboard, "Co-Driver $displayName added", Toast.LENGTH_SHORT).show()
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    loadingDialog.dismiss()
+                    Toast.makeText(this@Dashboard, "Failed to load drivers", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun showRemoveCodriverConfirmDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Remove Co-Driver")
+            .setMessage("Are you sure you want to remove the co-driver?")
+            .setPositiveButton("Remove") { _, _ ->
+                scope.launch {
+                    try { homeViewModel.setMyCodriver(null) } catch (_: Exception) {}
+                    try { homeViewModel.codriverLogout() } catch (_: Exception) {}
+                    withContext(Dispatchers.Main) {
+                        prefRepository.clearCodriver()
+                        updateCodriverNavHeader()
+                        Toast.makeText(this@Dashboard, "Co-Driver removed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    fun updateCodriverNavHeader() {
+        val headerView = binding.navView.getHeaderView(0)
+        val codriverBtn = headerView.findViewById<android.widget.TextView>(R.id.tv_nav_codriver_label)
+        if (prefRepository.isCodriverLoggedIn()) {
+            val name = prefRepository.getCoDriverName().ifEmpty { prefRepository.getCodriverUsername() }
+            codriverBtn?.text = "Switch to: $name"
+        } else {
+            codriverBtn?.text = "Add a Co-Driver"
+        }
+    }
+
     private fun showShippingDialog() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -942,6 +1060,7 @@ class Dashboard : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(sessionReplacedReceiver)
         dismissEldReconnectDialog()
         reconnectHandler.removeCallbacksAndMessages(null)
         super.onDestroy()

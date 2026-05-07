@@ -78,6 +78,7 @@ import com.google.gson.Gson
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.models.CodriverItem
 import com.eagleye.eld.request.AddOffsetRequest
+import com.eagleye.eld.models.RejectUnidentifiedRequest
 import com.eagleye.eld.request.DriverShipmentRequest
 import com.eagleye.eld.utils.PrefConstants.TRUCK_MODE_YARD
 import com.eagleye.eld.utils.Utils.getDouble
@@ -118,10 +119,11 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastLogMode: String = ""
     private var lastRelevantLog: HomeDataModel.Log? = null
     private var latestConditionsSnapshot: HomeDataModel.Conditions? = null
-    private var latestConditionsSnapshotAtMs: Long = 0L
+    private var latestConditionsSnapshotAtMs: Long = SystemClock.elapsedRealtime()
     private val relevantLogTypes = setOf("d", "off", "sb", "on", "yard", "personal")
     private var lastSpeedCheckTime: Long = 0
     private val SPEED_CHECK_THROTTLE_MS = 2000L // 2 seconds throttle
+    private var latestEldAttention: com.eagleye.eld.models.EldAttentionSummary? = null
     private var pendingModeSelection: String? = null
     private var pendingModeSelectionAtMs: Long = 0L
     private val MODE_SELECTION_GRACE_MS = 20_000L
@@ -210,9 +212,11 @@ class HomeFragment : Fragment(), OnClickListener {
             if (connectionState == BleProfileService.STATE_DISCONNECTED ||
                 connectionState == BleProfileService.STATE_LINK_LOSS
             ) {
+                prefRepository.setEldConnected(false)
                 stopSpeedMonitoring()
                 (activity as? Dashboard)?.showEldReconnectDialog()
             } else if (connectionState == BleProfileService.STATE_CONNECTED) {
+                prefRepository.setEldConnected(true)
                 (activity as? Dashboard)?.dismissEldReconnectDialog()
             }
 
@@ -386,6 +390,9 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.editTrailerNo.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
         binding.cvProfile.setOnClickListener { playClickAnimation(it); showDriverProfileDialog() }
         binding.btnUpdateShipment.setOnClickListener { playClickAnimation(it); showShipmentDialog() }
+
+        binding.tvMalfunction.setOnClickListener { showEldAttentionDialog(showMalfunction = true) }
+        binding.tvDiagnostic.setOnClickListener { showEldAttentionDialog(showMalfunction = false) }
         
         // Always set observers on view creation
         setupObservers()
@@ -414,6 +421,7 @@ class HomeFragment : Fragment(), OnClickListener {
         
         updateShipmentInfoUI()
         loadShipmentContext()
+        setupCodriverPanel()
         startEntranceAnimations()
         return binding.root
     }
@@ -422,7 +430,12 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun setupObservers() {
         homeViewModel.company.observe(viewLifecycleOwner) {
             if (it.data?.results == null) return@observe
-            timeZone = it.data.results.company_timezone ?: ""
+            val rawTz = it.data.results.company_timezone ?: ""
+            timeZone = try {
+                java.util.TimeZone.getTimeZone(rawTz)
+                    .getDisplayName(java.util.TimeZone.getTimeZone(rawTz)
+                        .inDaylightTime(java.util.Date()), java.util.TimeZone.SHORT)
+            } catch (e: Exception) { rawTz }
             prefRepository.setTimeZone(timeZone)
             binding.ManufactureName.text = it.data.results.company_name
             binding.companyName.text = "Company Name: ${it.data.results.company_name}"
@@ -459,30 +472,37 @@ class HomeFragment : Fragment(), OnClickListener {
                     }
                     updateUIBasedOnLogs(it.data)
 
-                    // Update M and D indicators
-                    val logs = it.data.logs ?: emptyList()
-                    val hasMalfunction = logs.any { log -> (log.malfunctioneld ?: 0) > 0 }
-                    val hasDiagnostic = logs.any { log -> (log.datadiagnostic ?: 0) > 0 }
-//
-//                    if (hasMalfunction) {
-//                        binding.tvMalfunction.alpha = 1.0f
-//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
-//                    } else {
-//                        binding.tvMalfunction.alpha = 0.3f
-//                        binding.tvMalfunction.clearAnimation()
-//                    }
+                    // Update M and D indicators using server-computed eldAttention (tracks active vs cleared)
+                    val att = it.data.eldAttention
+                    latestEldAttention = att
+                    val hasMalfunction = att?.hasMalfunction == true
+                    val hasDiagnostic = att?.hasDiagnostic == true
 
-//                    if (hasDiagnostic) {
-//                        binding.tvDiagnostic.alpha = 1.0f
-//                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
-//                    } else {
-//                        binding.tvDiagnostic.alpha = 0.3f
-//                        binding.tvDiagnostic.clearAnimation()
-//                    }
-//
-                    val jsonResponse = Gson().toJson(it.data)
-                    Log.d("HOME_API_RESPONSE", "Response: $jsonResponse")
-                    Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction, Diagnostic: $hasDiagnostic")
+                    val ghostBg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_ghost)
+                    val redBg   = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_red)
+                    val orangeBg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_indicator_orange)
+
+                    if (hasMalfunction) {
+                        binding.tvMalfunction.background = redBg
+                        binding.tvMalfunction.setTextColor(android.graphics.Color.WHITE)
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvMalfunction)
+                    } else {
+                        binding.tvMalfunction.background = ghostBg
+                        binding.tvMalfunction.setTextColor(android.graphics.Color.parseColor("#55000000"))
+                        binding.tvMalfunction.clearAnimation()
+                    }
+
+                    if (hasDiagnostic) {
+                        binding.tvDiagnostic.background = orangeBg
+                        binding.tvDiagnostic.setTextColor(android.graphics.Color.WHITE)
+                        YoYo.with(Techniques.Flash).duration(1500).repeat(YoYo.INFINITE).playOn(binding.tvDiagnostic)
+                    } else {
+                        binding.tvDiagnostic.background = ghostBg
+                        binding.tvDiagnostic.setTextColor(android.graphics.Color.parseColor("#55000000"))
+                        binding.tvDiagnostic.clearAnimation()
+                    }
+
+                    Log.d("M_D_DEBUG", "Malfunction: $hasMalfunction codes=${att?.malfunctionCodesActive}, Diagnostic: $hasDiagnostic codes=${att?.diagnosticCodesActive}")
                 }
                 is NetworkResult.Error<*> -> {
                     binding.progressBar.visibility = View.GONE
@@ -1064,6 +1084,18 @@ class HomeFragment : Fragment(), OnClickListener {
             if (eng.isNullOrEmpty() || eng == "null") {
                 eng = "0"
             }
+            // Record rejection on server for FMCSA unidentified driver profile records (ICD §4.5.1)
+            val minutes = actualEngHours * 60.0
+            homeViewModel.rejectUnidentifiedDriving(
+                RejectUnidentifiedRequest(
+                    minutes = minutes,
+                    vin = vin.ifEmpty { null },
+                    odometer = actualOdo,
+                    eng_hours = actualEngHours,
+                    start_datetime = null,
+                    end_datetime = null,
+                )
+            )
             homeViewModel.addOffset(
                 prefRepository,
                 AddOffsetRequest(
@@ -1182,7 +1214,8 @@ class HomeFragment : Fragment(), OnClickListener {
             date = point.date.orEmpty(),
             time = point.time.orEmpty(),
             connection_status = "disconnected",
-            datetime = point.datetime.orEmpty()
+            datetime = point.datetime.orEmpty(),
+            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
     }
@@ -1213,7 +1246,16 @@ class HomeFragment : Fragment(), OnClickListener {
             // CRITICAL: Cancel all running jobs first to prevent zombie coroutines
             clockJob?.cancel()
             bluetoothConnectionJob?.cancel()
-            
+
+            // Reset snapshot to full/default conditions so clocks show correct values
+            // immediately on login before the fresh server response arrives
+            latestConditionsSnapshotAtMs = SystemClock.elapsedRealtime()
+            latestConditionsSnapshot = HomeDataModel.Conditions(
+                drive = 39600, shift = 50400, cycle = 252000, drivebreak = 28800,
+                driveViolation = false, shiftViolation = false,
+                cycleViolation = false, driveBreakViolation = false
+            )
+
             // Reset flags on resume to prevent stuck states
             isFetchingLogs = false
             
@@ -1234,12 +1276,29 @@ class HomeFragment : Fragment(), OnClickListener {
             // Connect socket (runs on background thread internally)
             try {
                 homeViewModel.connectSocket(prefRepository.getDriverId())
+                registerCodriverRequestListener()
             } catch (e: Exception) {
                 Log.e(TAG, "onResume: Socket connection error: ${e.message}")
             }
-            
+
             // Register receivers (guarded to prevent duplicate registrations)
             registerLocalReceivers()
+
+            // Show reconnect dialog if coming back from background and ELD is disconnected.
+            // Check AFTER receiver is registered so any live STATE_CONNECTED broadcast is caught first.
+            if (wasLongPause) {
+                val savedAddress = prefRepository.getLastEldDeviceAddress().trim()
+                if (savedAddress.isNotEmpty() && !prefRepository.isEldConnected()) {
+                    activity?.let { act ->
+                        act.findViewById<View>(android.R.id.content)?.postDelayed({
+                            if (!prefRepository.isEldConnected()) {
+                                (act as? com.eagleye.eld.fragment.Dashboard)?.showEldReconnectDialog()
+                            }
+                        }, 1500L)
+                    }
+                }
+            }
+
             showPendingDisconnectedDrivingMilesDialogIfNeeded()
             
             // Fetch data with debounce - but skip if long pause to avoid immediate loading
@@ -1425,7 +1484,8 @@ class HomeFragment : Fragment(), OnClickListener {
                     is_autoinsert = 1,
                     eventcode = eventCode,
                     eventtype = 1,
-                    connection_status = if (isNeedToconnect) "disconnected" else "connected"
+                    connection_status = if (isNeedToconnect) "disconnected" else "connected",
+                    codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
                 )
 
                 if (selectedOptionText == "yard") {
@@ -1479,9 +1539,44 @@ class HomeFragment : Fragment(), OnClickListener {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Release MediaPlayer to prevent memory leak
+        homeViewModel.stopListeningForCodriverRequest()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release()
+        }
+    }
+
+    private fun registerCodriverRequestListener() {
+        homeViewModel.listenForCodriverRequest { fromDriverId, fromDriverName, fromUsername, companyName ->
+            val activity = activity ?: return@listenForCodriverRequest
+            activity.runOnUiThread {
+                val displayName = if (fromDriverName.isNotBlank()) fromDriverName else fromUsername.ifBlank { "A driver" }
+                val companyText = if (companyName.isNotBlank()) " from $companyName" else ""
+                MaterialAlertDialogBuilder(activity)
+                    .setTitle("Co-Driver Request")
+                    .setMessage("$displayName$companyText wants to add you as a co-driver. Accept?")
+                    .setPositiveButton("Accept") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                homeViewModel.respondToCodriver(fromDriverId, true)
+                                // Load requesting driver's clocks at bottom
+                                prefRepository.setCoDriverId(fromDriverId)
+                                prefRepository.setCoDriverName(fromDriverName.ifBlank { fromUsername })
+                                prefRepository.setCodriverUsername(fromUsername)
+                                prefRepository.setIsCodriverLoggedIn(true)
+                                homeViewModel.getHome(requireContext())
+                            } catch (e: Exception) {
+                                Log.e(TAG, "respondToCodriver accept error: ${e.message}")
+                            }
+                        }
+                    }
+                    .setNegativeButton("Reject") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try { homeViewModel.respondToCodriver(fromDriverId, false) } catch (_: Exception) {}
+                        }
+                    }
+                    .setCancelable(false)
+                    .show()
+            }
         }
     }
 
@@ -1719,7 +1814,8 @@ class HomeFragment : Fragment(), OnClickListener {
             is_autoinsert = 1,
             eventcode = 1,
             eventtype = 1,
-            connection_status = if (isNeedToconnect) "disconnected" else "connected"
+            connection_status = if (isNeedToconnect) "disconnected" else "connected",
+            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
         prefRepository.setLoggedIn(false)
@@ -2007,17 +2103,25 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun updateDrivingOverlayContent(animateProgress: Boolean) {
         if (_binding == null) return
 
-        val remainingDrive = getLiveConditions()?.drive
-            ?: homeViewModel.homeLiveData.value?.data?.conditions?.drive
-            ?: 0
-        val progress = if (remainingDrive > 0) {
-            ((remainingDrive.toFloat() / DRIVE_LIMIT_SECONDS) * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
-        }
+        val c = getLiveConditions() ?: homeViewModel.homeLiveData.value?.data?.conditions
+        val closest = c?.let { findClosestViolation(it) }
 
-        binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(remainingDrive)
-        binding.drProgressCircle.setProgressCompat(progress, animateProgress)
+        if (closest != null) {
+            val label = when (closest.type) {
+                "Drive Break" -> "30-MIN BREAK"
+                "Drive Time"  -> "DRIVE LIMIT"
+                "Shift Time"  -> "SHIFT LIMIT"
+                "Cycle Time"  -> "CYCLE LIMIT"
+                else          -> closest.type.uppercase()
+            }
+            binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(closest.remainingMinutes)
+            binding.tvDrViolationLabel.text = label
+            binding.drProgressCircle.setProgressCompat(closest.progress, animateProgress)
+        } else {
+            binding.tvDrTimeRemaining.text = "0:00"
+            binding.tvDrViolationLabel.text = "VIOLATION"
+            binding.drProgressCircle.setProgressCompat(0, animateProgress)
+        }
     }
 
     private fun formatDrivingOverlayTime(seconds: Int): String {
@@ -2203,6 +2307,93 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.shippingNumber.text = getString(shipping_number).plus(shippingText)
         binding.trailerNumber.text = getString(trailer_number).plus(trailerText)
         binding.coDriver.text = "Co-Driver : $coDriverName"
+    }
+
+    private fun setupCodriverPanel() {
+        val panel = binding.cvCodriverPanel
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Fetch other driver data from server (no codriverId = server does lookup)
+                val resp = homeViewModel.getCodriverHos()
+                val body = if (resp.isSuccessful) resp.body() else null
+                val data = if (body?.status == true) body.codriver else null
+
+                withContext(Dispatchers.Main) {
+                    // VIN mismatch warning
+                    if (body?.vinMismatch == true && !body.expectedVin.isNullOrBlank() && !body.codriverVin.isNullOrBlank()) {
+                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Wrong Truck Connected")
+                            .setMessage("Your co-driver is connected to a different truck (VIN: ${body.codriverVin}).\n\nPlease ask them to reconnect to your truck (VIN: ${body.expectedVin}).")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                    if (data == null || data.id == null || data.id <= 0 || data.id == prefRepository.getDriverId()) {
+                        panel.visibility = View.GONE
+                        // Relationship removed on another device — clear local state
+                        if (prefRepository.isCodriverLoggedIn()) {
+                            prefRepository.clearCodriver()
+                            activity?.let { (it as? com.eagleye.eld.fragment.Dashboard)?.updateCodriverNavHeader() }
+                        }
+                        return@withContext
+                    }
+
+                    // Persist locally if not already set
+                    if (!prefRepository.isCodriverLoggedIn()) {
+                        val name = data.name?.ifEmpty { data.username } ?: data.username ?: ""
+                        prefRepository.setCoDriverId(data.id)
+                        prefRepository.setCoDriverName(name)
+                        prefRepository.setCodriverUsername(data.username ?: "")
+                        prefRepository.setIsCodriverLoggedIn(true)
+                    }
+
+                    panel.visibility = View.VISIBLE
+
+                    val tvLabel  = panel.findViewById<android.widget.TextView>(R.id.tv_codriver_label)
+                    val tvBadge  = panel.findViewById<android.widget.TextView>(R.id.tv_codriver_status_badge)
+                    val tvDrive  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_drive)
+                    val tvShift  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_shift)
+                    val tvBreak  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_break)
+                    val tvCycle  = panel.findViewById<android.widget.TextView>(R.id.tv_cd_cycle)
+                    val btnRemove = panel.findViewById<android.widget.Button>(R.id.btn_remove_codriver)
+
+                    val displayName = data.name?.ifEmpty { data.username } ?: data.username ?: "Co-Driver"
+                    tvLabel?.text = "Co-Driver: $displayName"
+
+                    val status = data.currentStatus ?: ""
+                    tvBadge?.text = when (status) { "d" -> "DR"; "on" -> "ON"; "sb" -> "SB"; else -> "OFF" }
+                    val badgeColor = when (status) {
+                        "d"  -> android.graphics.Color.parseColor("#3B82F6")
+                        "on" -> android.graphics.Color.parseColor("#F97316")
+                        "sb" -> android.graphics.Color.parseColor("#8B5CF6")
+                        else -> android.graphics.Color.parseColor("#9CA3AF")
+                    }
+                    tvBadge?.backgroundTintList = android.content.res.ColorStateList.valueOf(badgeColor)
+
+                    fun fmt(secs: Int?) = String.format("%02d:%02d", (secs ?: 0) / 3600, ((secs ?: 0) % 3600) / 60)
+                    val c = data.conditions
+                    tvDrive?.text = fmt(c?.drive)
+                    tvShift?.text = fmt(c?.shift)
+                    tvBreak?.text = fmt(c?.drivebreak)
+                    tvCycle?.text = fmt(c?.cycle)
+                    if (c?.driveViolation == true) tvDrive?.setTextColor(android.graphics.Color.RED)
+                    if (c?.shiftViolation == true) tvShift?.setTextColor(android.graphics.Color.RED)
+                    if (c?.driveBreakViolation == true) tvBreak?.setTextColor(android.graphics.Color.RED)
+                    if (c?.cycleViolation == true) tvCycle?.setTextColor(android.graphics.Color.RED)
+
+                    btnRemove?.setOnClickListener {
+                        panel.visibility = View.GONE
+                        prefRepository.clearCodriver()
+                        (activity as? com.eagleye.eld.fragment.Dashboard)?.updateCodriverNavHeader()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try { homeViewModel.setMyCodriver(null); homeViewModel.codriverLogout() } catch (_: Exception) {}
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load codriver panel: ${e.message}")
+            }
+        }
     }
 
     private fun loadShipmentContext() {
@@ -2444,6 +2635,7 @@ class HomeFragment : Fragment(), OnClickListener {
         return "$shorthand ${Utils.formatTimeFromSeconds(minTimeSec)}"
     }
 
+
     private data class ViolationInfo(
         val type: String,
         val remainingMinutes: Int,
@@ -2529,6 +2721,87 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
+    private fun showEldAttentionDialog(showMalfunction: Boolean) {
+        val att = latestEldAttention
+        val diagLabels = mapOf(
+            1 to "Power data diagnostic",
+            2 to "Engine synchronization data diagnostic",
+            3 to "Missing required data elements diagnostic",
+            4 to "Data transfer data diagnostic",
+            5 to "Unidentified driving records diagnostic",
+            6 to "Other ELD detected diagnostic"
+        )
+        val malfLabels = mapOf(
+            1 to "P: Power compliance malfunction",
+            2 to "E: Engine synchronization compliance malfunction",
+            3 to "T: Timing compliance malfunction",
+            4 to "L: Positioning compliance malfunction",
+            5 to "R: Data recording compliance malfunction",
+            6 to "S: Data transfer compliance malfunction",
+            7 to "O: Other detected malfunction"
+        )
+        val activeColor = if (showMalfunction) android.graphics.Color.parseColor("#EF4444") else android.graphics.Color.parseColor("#F97316")
+        val clearedColor = android.graphics.Color.parseColor("#9CA3AF")
+
+        val ctx = requireContext()
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+
+        fun addRow(label: String, color: Int, cleared: Boolean) {
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setPadding(0, 10, 0, 10)
+            }
+            val dot = android.widget.TextView(ctx).apply {
+                text = "●"
+                textSize = 10f
+                setTextColor(color)
+                setPadding(0, 4, 16, 0)
+            }
+            val label = android.widget.TextView(ctx).apply {
+                text = label
+                textSize = 14f
+                setTextColor(color)
+                if (cleared) paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            }
+            row.addView(dot)
+            row.addView(label)
+            container.addView(row)
+        }
+
+        var hasAny = false
+        if (showMalfunction) {
+            att?.malfunctionCodesActive?.forEach { code ->
+                addRow(malfLabels[code] ?: "Malfunction code $code", activeColor, false); hasAny = true
+            }
+            att?.malfunctionCodesCleared?.forEach { code ->
+                addRow(malfLabels[code] ?: "Malfunction code $code", clearedColor, true); hasAny = true
+            }
+        } else {
+            att?.diagnosticCodesActive?.forEach { code ->
+                addRow("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}", activeColor, false); hasAny = true
+            }
+            att?.diagnosticCodesCleared?.forEach { code ->
+                addRow("D$code: ${diagLabels[code] ?: "Data diagnostic $code"}", clearedColor, true); hasAny = true
+            }
+            if (att?.dutyStatusDataDiagnosticActive == true && !hasAny) {
+                addRow("Data diagnostic on latest duty-status log", activeColor, false); hasAny = true
+            }
+        }
+        if (!hasAny) {
+            addRow(if (showMalfunction) "No active malfunctions" else "No active diagnostics", clearedColor, false)
+        }
+
+        val title = if (showMalfunction) "M — Malfunction" else "D — Data Diagnostic"
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(title)
+            .setView(container)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
     private fun showDriverProfileDialog() {
         val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
         val view = layoutInflater.inflate(R.layout.dialog_driver_profile, null)

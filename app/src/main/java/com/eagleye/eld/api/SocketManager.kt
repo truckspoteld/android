@@ -114,6 +114,27 @@ object SocketManager {
         Log.d("SocketIO", "Listening for logUpdated events")
     }
 
+    fun listenForCodriverRequest(onRequest: (fromDriverId: Int, fromDriverName: String, fromUsername: String, companyName: String) -> Unit) {
+        socket?.off("codriverRequest")
+        socket?.on("codriverRequest") { args ->
+            if (args.isNotEmpty() && args[0] is JSONObject) {
+                val json = args[0] as JSONObject
+                val fromDriverId = json.optInt("fromDriverId", 0)
+                val fromDriverName = json.optString("fromDriverName", "A driver")
+                val fromUsername = json.optString("fromUsername", "")
+                val companyName = json.optString("companyName", "")
+                if (fromDriverId > 0) {
+                    onRequest(fromDriverId, fromDriverName, fromUsername, companyName)
+                }
+            }
+        }
+        Log.d("SocketIO", "Listening for codriverRequest events")
+    }
+
+    fun stopListeningForCodriverRequest() {
+        socket?.off("codriverRequest")
+    }
+
     fun sendMessage(event: String, data: Int) {
         socket?.emit(event, data)
     }

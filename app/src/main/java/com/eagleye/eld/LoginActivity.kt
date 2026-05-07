@@ -166,6 +166,8 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun goToDashboard() {
+        // Clear stale home data so HomeFragment doesn't flash old conditions on login
+        homeViewModel.resetHomeData()
         val int = Intent(this, Dashboard::class.java)
         startActivity(int)
         finish()
@@ -180,12 +182,51 @@ class LoginActivity : AppCompatActivity() {
             when (it) {
                 is NetworkResult.Success<*> -> {
                     if (it.data!!.status) {
-                        prefRepository.setLoggedIn(true)
-                        token = it.data.results.token
-                        prefRepository.setName(it.data.results.username)
-                        prefRepository.setDriverId(it.data.results.id)
-                        prefRepository.setCompanyId(it.data.results.companyid)
-                        prefRepository.setToken(token!!)
+                        val newDriverId = it.data.results.id
+                        val isRoleSwap = prefRepository.isCodriverLoggedIn() &&
+                            prefRepository.getCoDriverId() == newDriverId
+
+                        if (isRoleSwap) {
+                            // Co-driver logging in as main — swap roles using driver1 snapshot
+                            val prevId       = prefRepository.getDriver1Id()
+                            val prevToken    = prefRepository.getDriver1Token()
+                            val prevName     = prefRepository.getDriver1Name()
+                            val prevUsername = prefRepository.getDriver1Username()
+
+                            // Set new main driver
+                            prefRepository.setLoggedIn(true)
+                            token = it.data.results.token
+                            prefRepository.setToken(token!!)
+                            prefRepository.setName(it.data.results.username)
+                            prefRepository.setDriverId(newDriverId)
+                            prefRepository.setCompanyId(it.data.results.companyid)
+
+                            // Old main driver becomes co-driver
+                            prefRepository.setCoDriverId(prevId)
+                            prefRepository.setCoDriverName(prevName.ifEmpty { prevUsername })
+                            prefRepository.setCodriverUsername(prevUsername)
+                            prefRepository.setCodriverToken(prevToken)
+                            prefRepository.setIsCodriverLoggedIn(true)
+
+                            // Refresh driver1 snapshot
+                            prefRepository.setDriver1Token(it.data.results.token)
+                            prefRepository.setDriver1Id(newDriverId)
+                            prefRepository.setDriver1Name(it.data.results.username)
+                            prefRepository.setDriver1Username(binding.etDriver.text.toString())
+                        } else {
+                            // Fresh login — clear any leftover co-driver relationship and stale HOS cache
+                            prefRepository.clearCodriver()
+                            // Clear cached mode on every fresh login so HOS clocks don't count down
+                            // based on the previous session's state before server data arrives
+                            prefRepository.setMode("")
+                            prefRepository.setLoggedIn(true)
+                            token = it.data.results.token
+                            prefRepository.setName(it.data.results.username)
+                            prefRepository.setDriverId(newDriverId)
+                            prefRepository.setCompanyId(it.data.results.companyid)
+                            prefRepository.setToken(token!!)
+                        }
+
                         it.data.results.company_timezone?.let { tz ->
                             if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
                         }
@@ -215,7 +256,20 @@ class LoginActivity : AppCompatActivity() {
                 }
 
                 is NetworkResult.Error<*> -> {
-                    showValidationErrors(it.message.toString())
+                    if (it.message == "ALREADY_LOGGED_IN") {
+                        androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Already Logged In")
+                            .setMessage("This account is already logged in on another device. Do you want to log out that device and continue here?")
+                            .setPositiveButton("Force Login") { _, _ ->
+                                val username = binding.etDriver.text.toString().trim()
+                                val password = binding.etPass.text.toString().trim()
+                                loginViewModel.forceLoginUser(LoginRequest(username, password))
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    } else {
+                        showValidationErrors(it.message.toString())
+                    }
                 }
 
                 is NetworkResult.Loading<*> -> {
@@ -323,12 +377,12 @@ class LoginActivity : AppCompatActivity() {
     private fun sendLog(lat: Double, lng: Double, hasLocation: Boolean) {
         val logRequest = AddLogRequest(
             modename = "login",
-            odometerreading = "0.0",
+            odometerreading = "0",
             lat = lat,
             long = lng,
             location = hasLocation,
-            eng_hours = "10",
-            vin = "1111",
+            eng_hours = "0",
+            vin = "",
             is_active = 1,
             is_autoinsert = 1,
             eventcode = 1,

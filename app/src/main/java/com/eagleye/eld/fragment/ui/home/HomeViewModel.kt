@@ -341,6 +341,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.O)
+    fun refreshConditionsSilently(context: Context) {
+        viewModelScope.launch {
+            val internetAvailable = isInternetAvailable(context)
+            if (internetAvailable) {
+                dashboardRespository.getHomeSilent()
+            }
+        }
+    }
+
     /**
      * Cancel the getHome job when ViewModel is cleared
      */

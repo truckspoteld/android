@@ -632,6 +632,18 @@ class DashboardRepository @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun getHomeSilent() {
+        try {
+            val response = truckSpotAPI.getHomeData()
+            if (response.isSuccessful && response.body() != null) {
+                _homeData.postValue(NetworkResult.Success(response.body()!!))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "getHomeSilent error (ignored): ${e.message}")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getLogsByDate(request: GetLogsByDateRequest) {
         _logByDate.postValue(NetworkResult.Loading())
         try {

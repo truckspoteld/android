@@ -1336,7 +1336,7 @@ class HomeFragment : Fragment(), OnClickListener {
 
             loadShipmentContext()
 
-            // Auto-refresh conditions/remaining every 2 min so home stays in sync without socket event
+            // Auto-refresh conditions/remaining every 2 min — silent (no spinner) to avoid UI flicker
             conditionsRefreshJob?.cancel()
             conditionsRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
                 while (isActive) {
@@ -1344,7 +1344,9 @@ class HomeFragment : Fragment(), OnClickListener {
                     if (_binding != null && !isFetchingLogs) {
                         try {
                             context?.let { ctx ->
-                                homeViewModel.getHome(ctx)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    homeViewModel.refreshConditionsSilently(ctx)
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Conditions refresh error: ${e.message}")

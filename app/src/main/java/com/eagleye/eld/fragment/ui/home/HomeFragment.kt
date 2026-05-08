@@ -141,6 +141,8 @@ class HomeFragment : Fragment(), OnClickListener {
     private val API_CALL_DEBOUNCE_MS = 30000L // 30 seconds debounce for API calls
     private val LONG_PAUSE_THRESHOLD_MS = 60000L // 1 minute - considered long pause
     private val DRIVE_DETECTION_THRESHOLD_KMH = 8 // ~5 mph threshold for auto-driving
+    private val STOPPED_DURATION_BEFORE_ON_MS = 5 * 60 * 1000L // 5 min stopped before Drive→ON
+    private var stoppedSinceMs: Long? = null
     private val DRIVE_LIMIT_SECONDS = 11 * 3600
     private var isFetchingLogs = false // Flag to prevent concurrent API calls
 
@@ -163,17 +165,27 @@ class HomeFragment : Fragment(), OnClickListener {
     val tmIf = IntentFilter()
     val connectionStateIf = IntentFilter(BleProfileService.BROADCAST_CONNECTION_STATE)
     val disconnectedMilesIf = IntentFilter(TrackerService.ACTION_DISCONNECTED_DRIVING_MILES_READY)
+    val vinRefreshIf = IntentFilter("TRACKER-VIN-REFRESH")
 
     // Simple last log tracking like EagleEye
     // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
     private var lastLog: String = ""
 
+    private var vinCheckedThisConnection = false
     var tmRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "tmRefresh broadcast")
             if (!isBluetoothConnecting) {
                 updateTelemetryInfo()
+                // Check VIN once per connection after PT-40 has synced vehicle info
+                if (!vinCheckedThisConnection) {
+                    val vin = AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { it.isNotEmpty() }
+                    if (vin != null) {
+                        vinCheckedThisConnection = true
+                        updateVehicleInfo()
+                    }
+                }
             }
         }
     }
@@ -213,6 +225,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 connectionState == BleProfileService.STATE_LINK_LOSS
             ) {
                 prefRepository.setEldConnected(false)
+                vinCheckedThisConnection = false // reset so next connect re-checks VIN
                 stopSpeedMonitoring()
                 (activity as? Dashboard)?.showEldReconnectDialog()
             } else if (connectionState == BleProfileService.STATE_CONNECTED) {
@@ -586,14 +599,13 @@ class HomeFragment : Fragment(), OnClickListener {
                 in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
                 in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
                 in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_drive_color)
             }
             if ((data.conditions?.drive ?: 0) < 0) {
-                 binding.progressBarMain.setIndicatorColor(Color.RED)
-                 binding.timeText1.setTextColor(Color.RED)
+                binding.progressBarMain.setIndicatorColor(Color.RED)
+                binding.timeText1.setTextColor(Color.RED)
             } else {
-                 binding.progressBarMain.setIndicatorColor(color)
+                binding.progressBarMain.setIndicatorColor(color)
             }
             binding.timeText1.text = formatCondition(data.conditions?.drive ?: 0)
         }
@@ -616,14 +628,13 @@ class HomeFragment : Fragment(), OnClickListener {
                 in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
                 in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
             }
             if ((data.conditions?.cycle ?: 0) < 0) {
-                 binding.progressBarCycle.setIndicatorColor(Color.RED)
-                 binding.timeText3.setTextColor(Color.RED)
+                binding.progressBarCycle.setIndicatorColor(Color.RED)
+                binding.timeText3.setTextColor(Color.RED)
             } else {
-                 binding.progressBarCycle.setIndicatorColor(color)
+                binding.progressBarCycle.setIndicatorColor(color)
             }
             binding.timeText3.text = formatCondition(data.conditions?.cycle ?: 0)
         }
@@ -646,20 +657,19 @@ class HomeFragment : Fragment(), OnClickListener {
                 in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
                 in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
             }
             if ((data.conditions?.shift ?: 0) < 0) {
-                 binding.progressBarShift.setIndicatorColor(Color.RED)
-                 binding.timeText2.setTextColor(Color.RED)
+                binding.progressBarShift.setIndicatorColor(Color.RED)
+                binding.timeText2.setTextColor(Color.RED)
             } else {
-                 binding.progressBarShift.setIndicatorColor(color)
+                binding.progressBarShift.setIndicatorColor(color)
             }
             binding.timeText2.text = formatCondition(data.conditions?.shift ?: 0)
         }
 
         if (data.conditions!!.driveBreakViolation ?: false) {
-            binding.timeText4.text = ("Voilation")
+            binding.timeText4.text = "Violation"
             binding.timeText4.setTextColor(Color.RED)
             binding.progressBarBreak.startAnimation(warningAnimation)
             binding.progressBarBreak.setIndicatorColor(Color.RED)
@@ -676,12 +686,17 @@ class HomeFragment : Fragment(), OnClickListener {
                 in 0..34 -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
                 in 35..74 -> ContextCompat.getColor(requireContext(), R.color.gauge_shift_color)
                 in 75..99 -> ContextCompat.getColor(requireContext(), R.color.red)
-                100 -> ContextCompat.getColor(requireContext(), R.color.gauge_cycle_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.gauge_break_color)
             }
             binding.progressBarBreak.setIndicatorColor(color)
             binding.timeText4.text = formatCondition(data.conditions?.drivebreak ?: 0)
         }
+    }
+
+    private fun gaugeColor(remainingPercent: Int): Int = when {
+        remainingPercent > 50 -> android.graphics.Color.parseColor("#4CAF50") // green
+        remainingPercent > 25 -> android.graphics.Color.parseColor("#FF9800") // orange
+        else                  -> android.graphics.Color.parseColor("#F44336") // red
     }
 
     private fun isSpecialManualMode(mode: String): Boolean {
@@ -1391,19 +1406,26 @@ class HomeFragment : Fragment(), OnClickListener {
 
         if (speed >= DRIVE_DETECTION_THRESHOLD_KMH && currentMode in modesThatMustSwitchToDriving) {
             Log.d(TAG, "🚗 Truck is moving ($speed km/h) in '$currentMode' mode — switching to DRIVE")
+            stoppedSinceMs = null
             lastLog = TRUCK_MODE_DRIVING
-            activity?.runOnUiThread {
-                updateUI(binding.btnDrive)
-            }
+            activity?.runOnUiThread { updateUI(binding.btnDrive) }
             updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
         } else if (speed <= 0 && currentMode == TRUCK_MODE_DRIVING) {
-            Log.d(TAG, "🛑 Driving mode found & speed is zero — switching to ON")
-            activity?.runOnUiThread {
-                updateUI(binding.btnOn)
+            val now = System.currentTimeMillis()
+            if (stoppedSinceMs == null) stoppedSinceMs = now
+            val elapsedMs = now - (stoppedSinceMs ?: now)
+            if (elapsedMs >= STOPPED_DURATION_BEFORE_ON_MS) {
+                Log.d(TAG, "🛑 Stopped for ${elapsedMs/1000}s — switching to ON")
+                stoppedSinceMs = null
+                lastLog = TRUCK_MODE_ON
+                activity?.runOnUiThread { updateUI(binding.btnOn) }
+                updateModeChange(hrs_MODE_ON, TRUCK_MODE_ON, "")
+            } else {
+                Log.d(TAG, "⏱ Stopped for ${elapsedMs/1000}s — waiting 5 min before switching to ON")
             }
-            lastLog = TRUCK_MODE_ON
-            updateModeChange(hrs_MODE_ON, TRUCK_MODE_ON, "")
         }
+        // Only reset stopped timer if speed is high enough to re-enter Drive
+        // (don't reset on minor ECM sensor noise 1-7 km/h)
     }
 
     private fun resolveModeForAutoSwitch(): String {
@@ -1763,6 +1785,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.registerReceiver(svcRefresh, svcIf)
             instance.registerReceiver(connectionStateRefresh, connectionStateIf)
             instance.registerReceiver(disconnectedDrivingMilesRefresh, disconnectedMilesIf)
+            instance.registerReceiver(viRefresh, vinRefreshIf)
             receiversRegistered = true
         } catch (e: Exception) {
             Log.e(TAG, "Receiver registration error: ${e.message}")
@@ -1777,6 +1800,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.unregisterReceiver(svcRefresh)
             instance.unregisterReceiver(connectionStateRefresh)
             instance.unregisterReceiver(disconnectedDrivingMilesRefresh)
+            instance.unregisterReceiver(viRefresh)
         } catch (e: Exception) {
             Log.e(TAG, "Receiver unregistration error: ${e.message}")
         } finally {
@@ -2119,10 +2143,12 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.tvDrTimeRemaining.text = formatDrivingOverlayTime(closest.remainingMinutes)
             binding.tvDrViolationLabel.text = label
             binding.drProgressCircle.setProgressCompat(closest.progress, animateProgress)
+            binding.drProgressCircle.setIndicatorColor(gaugeColor(closest.progress))
         } else {
             binding.tvDrTimeRemaining.text = "0:00"
             binding.tvDrViolationLabel.text = "VIOLATION"
             binding.drProgressCircle.setProgressCompat(0, animateProgress)
+            binding.drProgressCircle.setIndicatorColor(android.graphics.Color.parseColor("#F44336"))
         }
     }
 
@@ -2258,10 +2284,49 @@ class HomeFragment : Fragment(), OnClickListener {
     fun updateVehicleInfo() {
         if (AppModel.getInstance().mVehicleInfo != null) {
             val vehicleInfo = AppModel.getInstance().mVehicleInfo
-            val vin = vehicleInfo?.VIN?.takeIf { it.isNotEmpty() } ?: "NOT_AVAILABLE"
-            // binding.vinNumber.text = vin // Removed
-            Log.d("VIN_DEBUG", "Vehicle info update - VIN: $vin")
+            val newVin = vehicleInfo?.VIN?.takeIf { it.isNotEmpty() } ?: return
+            Log.d("VIN_DEBUG", "Vehicle info update - VIN: $newVin")
+
+            val storedVin = prefRepository.getLastKnownVin()
+            if (storedVin.isNotEmpty() && storedVin != newVin) {
+                Log.d("VIN_DEBUG", "Vehicle changed: $storedVin → $newVin")
+                activity?.runOnUiThread {
+                    showVehicleChangedAlert(storedVin, newVin)
+                }
+            } else {
+                prefRepository.setLastKnownVin(newVin)
+            }
         }
+    }
+
+    private fun showVehicleChangedAlert(oldVin: String, newVin: String) {
+        if (_binding == null) return
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Vehicle Changed")
+            .setMessage("A different truck has been detected.\n\nPrevious: $oldVin\nNew: $newVin\n\nYou must confirm the vehicle change to continue logging.")
+            .setPositiveButton("Confirm Switch") { _, _ ->
+                prefRepository.setLastKnownVin(newVin)
+                prefRepository.setDifferenceinOdo("0")
+                prefRepository.setDifferenceinEnghours("0")
+                Log.d("VIN_DEBUG", "Vehicle change accepted — offsets reset for $newVin")
+            }
+            .setNegativeButton("Reject") { _, _ ->
+                showVehicleChangeRejectedError(oldVin, newVin)
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun showVehicleChangeRejectedError(oldVin: String, newVin: String) {
+        if (_binding == null) return
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Action Required")
+            .setMessage("You are connected to a different vehicle (VIN: $newVin).\n\nPlease contact your administrator before continuing. You cannot log duty status until the vehicle change is acknowledged.")
+            .setPositiveButton("Try Again") { _, _ ->
+                showVehicleChangedAlert(oldVin, newVin)
+            }
+            .setCancelable(false)
+            .show()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -2668,24 +2733,18 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun calculateProgressFromRemainingSec(remainingSeconds: Int, totalSeconds: Int): Int {
-        return if (remainingSeconds <= 0) 100 else {
-            val spent = totalSeconds - remainingSeconds
-            val progress = (spent.toFloat() / totalSeconds * 100).toInt()
-            progress.coerceIn(0, 100)
-        }
+        if (remainingSeconds <= 0) return 0
+        return (remainingSeconds.toFloat() / totalSeconds * 100).toInt().coerceIn(0, 100)
     }
 
     private fun getViolationColor(progress: Int, isViolation: Boolean): Int {
-        return if (isViolation) {
+        // progress is now remaining% (100 = full, 0 = empty/violation)
+        return if (isViolation || progress <= 0) {
             ContextCompat.getColor(requireContext(), R.color.dark_progress_red)
-        } else {
-            when (progress) {
-                in 0..34 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_green)
-                in 35..74 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_orange)
-                in 75..99 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_red)
-                100 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_red)
-                else -> ContextCompat.getColor(requireContext(), R.color.dark_progress_green)
-            }
+        } else when {
+            progress > 50 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_green)
+            progress > 25 -> ContextCompat.getColor(requireContext(), R.color.dark_progress_orange)
+            else          -> ContextCompat.getColor(requireContext(), R.color.dark_progress_red)
         }
     }
 

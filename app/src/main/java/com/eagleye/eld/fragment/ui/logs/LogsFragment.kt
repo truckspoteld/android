@@ -567,9 +567,7 @@ class LogsFragment : Fragment() {
             binding.dateCard
         )
         
-        if (!isReviewMode) {
-            allViews.add(binding.statusPillsContainer)
-        }
+        // PST and Events pills removed — not needed
         allViews.add(binding.graphCard)
         if (!isReviewMode) {
             allViews.add(binding.eventLogRv)
@@ -672,6 +670,17 @@ class LogsFragment : Fragment() {
         binding.dateCard.setOnClickListener { clickedView -> playClickAnimation(clickedView) }
         binding.graphCard.setOnClickListener { clickedView -> playClickAnimation(clickedView) }
         binding.statusBadgeDr.setOnClickListener { clickedView -> playClickAnimation(clickedView) }
+        // Set current mode label dynamically
+        val modeLabel = when (prefRepository.getMode().trim().lowercase(java.util.Locale.US)) {
+            "d", "drive", "driving" -> "DR"
+            "on" -> "ON"
+            "off" -> "OFF"
+            "sb", "sleeping" -> "SB"
+            "personal", "pc" -> "PC"
+            "yard", "ym" -> "YM"
+            else -> prefRepository.getMode().uppercase(java.util.Locale.US).take(3)
+        }
+        binding.tvStatusBadgeLabel.text = modeLabel
         
         binding.rlCarrierHeader.setOnClickListener { clickedView ->
             playClickAnimation(clickedView)

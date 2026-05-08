@@ -68,6 +68,9 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_LAST_ENGINE_STATE.put(state)
     }
 
+    fun getLastKnownVin(): String = PREF_LAST_KNOWN_VIN.getString()
+    fun setLastKnownVin(vin: String) { PREF_LAST_KNOWN_VIN.put(vin) }
+
     fun setRemoveableIndex(index: Int) {
         PREF_REMOVEDINDEX.put(index)
     }

@@ -14,7 +14,7 @@ android {
         applicationId "com.eagleye.eld"
         minSdk 24
         targetSdk 36
-        versionCode 28
+        versionCode 29
         versionName "1.1.38"
         //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField('String', 'API_KEY', "\"sSUmrxH9rS2q6LOL38WXXFgXhLKAf9e34cRv5Xn5\"")

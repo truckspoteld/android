@@ -1,9 +1,9 @@
 package com.eagleye.eld.models
 
 data class LoginResponse(
-    val code: Int,
-    val message: String,
-    val results: Results,
+    val code: Int? = null,
+    val message: String? = null,
+    val results: Results? = null,
     val status: Boolean
 )
 data class Results(

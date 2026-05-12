@@ -269,14 +269,6 @@ class Dashboard : AppCompatActivity() {
             binding.drawerLayout.close()
             showShippingDialog()
         }
-        headerView.findViewById<View>(R.id.nav_request).setOnClickListener {
-            binding.drawerLayout.close()
-            val navOptions = androidx.navigation.NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setPopUpTo(R.id.nav_home, false)
-                .build()
-            navController.navigate(R.id.nav_reports, null, navOptions)
-        }
         headerView.findViewById<View>(R.id.nav_fmcsa).setOnClickListener {
             binding.drawerLayout.close()
             val navOptions = androidx.navigation.NavOptions.Builder()

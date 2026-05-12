@@ -181,8 +181,9 @@ class LoginActivity : AppCompatActivity() {
             binding.progressBar.isVisible = false
             when (it) {
                 is NetworkResult.Success<*> -> {
-                    if (it.data!!.status) {
-                        val newDriverId = it.data.results.id
+                    if (it.data!!.status && it.data.results != null) {
+                        val results = it.data.results
+                        val newDriverId = results.id
                         val isRoleSwap = prefRepository.isCodriverLoggedIn() &&
                             prefRepository.getCoDriverId() == newDriverId
 
@@ -195,11 +196,11 @@ class LoginActivity : AppCompatActivity() {
 
                             // Set new main driver
                             prefRepository.setLoggedIn(true)
-                            token = it.data.results.token
+                            token = results.token
                             prefRepository.setToken(token!!)
-                            prefRepository.setName(it.data.results.username)
+                            prefRepository.setName(results.username)
                             prefRepository.setDriverId(newDriverId)
-                            prefRepository.setCompanyId(it.data.results.companyid)
+                            prefRepository.setCompanyId(results.companyid)
 
                             // Old main driver becomes co-driver
                             prefRepository.setCoDriverId(prevId)
@@ -209,9 +210,9 @@ class LoginActivity : AppCompatActivity() {
                             prefRepository.setIsCodriverLoggedIn(true)
 
                             // Refresh driver1 snapshot
-                            prefRepository.setDriver1Token(it.data.results.token)
+                            prefRepository.setDriver1Token(results.token)
                             prefRepository.setDriver1Id(newDriverId)
-                            prefRepository.setDriver1Name(it.data.results.username)
+                            prefRepository.setDriver1Name(results.username)
                             prefRepository.setDriver1Username(binding.etDriver.text.toString())
                         } else {
                             // Fresh login — clear any leftover co-driver relationship and stale HOS cache
@@ -220,14 +221,14 @@ class LoginActivity : AppCompatActivity() {
                             // based on the previous session's state before server data arrives
                             prefRepository.setMode("")
                             prefRepository.setLoggedIn(true)
-                            token = it.data.results.token
-                            prefRepository.setName(it.data.results.username)
+                            token = results.token
+                            prefRepository.setName(results.username)
                             prefRepository.setDriverId(newDriverId)
-                            prefRepository.setCompanyId(it.data.results.companyid)
+                            prefRepository.setCompanyId(results.companyid)
                             prefRepository.setToken(token!!)
                         }
 
-                        it.data.results.company_timezone?.let { tz ->
+                        results.company_timezone?.let { tz ->
                             if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
                         }
 
@@ -251,7 +252,7 @@ class LoginActivity : AppCompatActivity() {
                             checkAllPermissionsAndProceed()
                         }
                     } else {
-                        showValidationErrors(it.data.message)
+                        showValidationErrors(it.data.message ?: "Invalid username or password. Please try again.")
                     }
                 }
 

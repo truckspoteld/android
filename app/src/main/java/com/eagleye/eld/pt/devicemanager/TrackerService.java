@@ -134,6 +134,11 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private long lastEngineApiCallTime = 0;
     private static final int ENGINE_STATE_STABLE_THRESHOLD = 3;
     private static final long ENGINE_API_DEBOUNCE_MS = 30000L; // 30 seconds
+
+    // Drive→ON auto-switch: runs in foreground service so it works in background
+    private long stoppedSinceMs = -1L;
+    private static final long STOPPED_DURATION_BEFORE_ON_MS = 5 * 60 * 1000L; // 5 min
+    private static final int DRIVE_THRESHOLD_KMH = 8;
     private int pendingReconnectStoredEventsCount = 0;
     private int receivedReconnectStoredEventsCount = 0;
     private double pendingReconnectBaselineOdometerKm = 0.0d;
@@ -366,6 +371,9 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                 }
             }
         }
+
+        // Drive→ON background timer — works even when app is minimized
+        handleStopToOnCheck(mTm);
 
         Intent broadcast = new Intent("REFRESH");
         broadcast.putExtra(EXTRA_DEVICE, getBluetoothDevice());
@@ -610,6 +618,71 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         Intent broadcast = new Intent("TRACKER-DASHBOARD-REFRESH");
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+    }
+
+    private void handleStopToOnCheck(TelemetryEvent mTm) {
+        if (prefRepository == null) prefRepository = new PrefRepository(this);
+        String currentMode = prefRepository.getMode();
+        if (!"d".equals(currentMode)) {
+            stoppedSinceMs = -1L;
+            return;
+        }
+
+        int speed = (mTm.mGeoloc != null && mTm.mGeoloc.speed != null) ? mTm.mGeoloc.speed : 0;
+
+        if (speed >= DRIVE_THRESHOLD_KMH) {
+            stoppedSinceMs = -1L;
+            return;
+        }
+
+        // Speed is 0 and mode is Drive — start or check the 5-min timer
+        long now = System.currentTimeMillis();
+        if (stoppedSinceMs < 0) stoppedSinceMs = now;
+
+        long elapsed = now - stoppedSinceMs;
+        if (elapsed < STOPPED_DURATION_BEFORE_ON_MS) {
+            Log.d(TAG, "⏱ [BG] Stopped for " + (elapsed / 1000) + "s in Drive — waiting 5 min");
+            return;
+        }
+
+        // 5 minutes reached — switch to ON
+        Log.d(TAG, "🛑 [BG] Stopped 5+ min in Drive → auto-switching to ON");
+        stoppedSinceMs = -1L;
+        prefRepository.setMode("on");
+
+        TelemetryEvent te = AppModel.getInstance().mLastEvent;
+        double lat = 0.0, lon = 0.0;
+        if (te != null && te.mGeoloc != null) {
+            if (te.mGeoloc.latitude != null) lat = te.mGeoloc.latitude.doubleValue();
+            if (te.mGeoloc.longitude != null) lon = te.mGeoloc.longitude.doubleValue();
+        }
+        boolean hasLocation = lat != 0.0 || lon != 0.0;
+        String vin = AppModel.getInstance().mPT30Vin;
+        if (vin == null || vin.isEmpty() || vin.equals("n/a")) {
+            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null)
+                vin = AppModel.getInstance().mVehicleInfo.VIN;
+        }
+
+        AddLogRequest logRequest = new AddLogRequest(
+                "on",
+                TelemetryLogValueUtils.normalizeOdometerForLog(te != null ? te.mOdometer : null, prefRepository.getDiffinOdo()),
+                lat, lon, hasLocation,
+                TelemetryLogValueUtils.normalizeEngineHoursForLog(te != null ? te.mEngineHours : null, prefRepository.getDiffinEng()),
+                vin != null ? vin : "",
+                1, 1, 1, 1, "", "",
+                isConnected() ? "connected" : "disconnected", "");
+
+        new Thread(() -> {
+            try {
+                repository.addLogJava(logRequest);
+                Log.i(TAG, "✅ [BG] Auto-switched Drive→ON after 5 min stopped");
+                // Notify HomeFragment to refresh UI
+                Intent ui = new Intent("REFRESH");
+                LocalBroadcastManager.getInstance(this).sendBroadcast(ui);
+            } catch (Exception e) {
+                Log.e(TAG, "❌ [BG] Failed to auto-switch Drive→ON: " + e.getMessage(), e);
+            }
+        }).start();
     }
 
     private void handleEngineStateUpdate(int rpm) {

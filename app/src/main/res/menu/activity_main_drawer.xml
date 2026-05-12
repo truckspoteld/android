@@ -16,14 +16,9 @@
             android:title="Shipping" />
 
         <item
-            android:id="@+id/nav_request"
-            android:icon="@drawable/ic_description_blue"
-            android:title="Request" />
-            
-        <item
             android:id="@+id/nav_fmcsa"
             android:icon="@drawable/ic_shield_blue"
-            android:title="FMCSA" />
+            android:title="DOT Inspection" />
             
         <item
             android:id="@+id/nav_upload_documents"

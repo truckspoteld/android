@@ -95,8 +95,8 @@ class LogsFragment : Fragment() {
         _binding = FragmentLogsBinding.inflate(inflater, container, false)
         
         if (isReviewMode) {
-            Log.d("LogsFragment", "Review Mode ENABLED - hiding logs, expanding carrier details")
-            binding.eventLogRv.visibility = View.GONE
+            Log.d("LogsFragment", "Review Mode ENABLED - showing logs for DOT inspection")
+            binding.eventLogRv.visibility = View.VISIBLE
             binding.fabLogReport.visibility = View.GONE
             binding.statusPillsContainer.visibility = View.GONE
             binding.logsTitle.text = getString(R.string.log_review)

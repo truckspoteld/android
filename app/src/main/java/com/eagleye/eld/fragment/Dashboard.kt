@@ -103,7 +103,6 @@ class Dashboard : AppCompatActivity() {
     private var mCallback: LocationCallback? = null
     private lateinit var navController: NavController
     private var selectedBottomItemId: Int = R.id.home
-    var isReviewMode: Boolean = false
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val job = Job()
@@ -272,7 +271,6 @@ class Dashboard : AppCompatActivity() {
         }
         headerView.findViewById<View>(R.id.nav_fmcsa).setOnClickListener {
             binding.drawerLayout.close()
-            isReviewMode = true
             val navOptions = androidx.navigation.NavOptions.Builder()
                 .setLaunchSingleTop(true)
                 .setPopUpTo(R.id.nav_home, false)
@@ -313,9 +311,7 @@ class Dashboard : AppCompatActivity() {
                 else -> R.id.home
             }
             
-            if (isReviewMode && selectedId != R.id.report && selectedId != R.id.logs) {
-                showExitInspectionDialog(pendingNavId = selectedId)
-            } else if (selectedId != selectedBottomItemId) {
+            if (selectedId != selectedBottomItemId) {
                 selectedBottomItemId = selectedId
                 
                 // Use NavOptions to prevent duplicate fragments and back stack issues
@@ -925,40 +921,6 @@ class Dashboard : AppCompatActivity() {
             Log.e("Dashboard", "Error handling manual", e)
             Toast.makeText(this, "Failed to load User Manual", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun showExitInspectionDialog(pendingNavId: Int) {
-        val input = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            hint = "Enter your password"
-            setPadding(48, 24, 48, 24)
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Exit Inspection Mode")
-            .setMessage("Enter your password to exit inspection mode.")
-            .setView(input)
-            .setPositiveButton("Exit") { _, _ ->
-                val entered = input.text.toString()
-                val stored = prefRepository.getPassword()
-                if (entered == stored) {
-                    isReviewMode = false
-                    selectedBottomItemId = pendingNavId
-                    val navOptions = androidx.navigation.NavOptions.Builder()
-                        .setLaunchSingleTop(true)
-                        .setPopUpTo(R.id.nav_home, false)
-                        .build()
-                    when (pendingNavId) {
-                        R.id.home -> navController.navigate(R.id.nav_home, null, androidx.navigation.NavOptions.Builder().setLaunchSingleTop(true).setPopUpTo(R.id.nav_home, true).build())
-                        R.id.report -> navController.navigate(R.id.nav_reports, null, navOptions)
-                        R.id.certify -> navController.navigate(R.id.fragment_certify, null, navOptions)
-                        R.id.dvir -> navController.navigate(R.id.nav_dvir, null, navOptions)
-                    }
-                } else {
-                    Toast.makeText(this, "Incorrect password. Please try again.", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
     }
 
     private fun showCodriverPickerDialog() {

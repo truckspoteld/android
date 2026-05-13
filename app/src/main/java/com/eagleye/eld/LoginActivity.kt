@@ -28,6 +28,10 @@ import com.eagleye.eld.utils.ExceptionHelper
 import com.eagleye.eld.utils.Helper
 import com.eagleye.eld.utils.NetworkResult
 import com.eagleye.eld.utils.PrefRepository
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.daimajia.androidanimations.library.Techniques
 import com.daimajia.androidanimations.library.YoYo
 import com.eagleye.eld.viewmodel.LoginViewModel
@@ -74,6 +78,7 @@ class LoginActivity : AppCompatActivity() {
 
         // ✅ Already logged in
         if (prefRepository.getRememberMe() && prefRepository.getLoggedIn() && prefRepository.getToken().isNotEmpty()) {
+            sendLoginLogDirect()
             if (connection) {
                 prefRepository.setJustLoggedIn(true)
                 goToDashboard()
@@ -232,7 +237,7 @@ class LoginActivity : AppCompatActivity() {
                             if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
                         }
 
-                        fetchLocationAndSendLoginLog()
+                        sendLoginLogDirect()
 
                         if (binding.rememberme.isChecked) {
                             prefRepository.setRememberMe(true)
@@ -332,6 +337,26 @@ class LoginActivity : AppCompatActivity() {
             .start()
     }
     @SuppressLint("MissingPermission")
+    private fun sendLoginLogDirect() {
+        val token = prefRepository.getToken()
+        if (token.isEmpty()) return
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val json = """{"modename":"login","odometerreading":"00","lat":0,"long":0,"location":false,"eng_hours":"00","vin":"","is_active":1,"is_autoinsert":1,"eventcode":1,"eventtype":1,"connection_status":"disconnected"}"""
+                val mediaType = "application/json".toMediaType()
+                val body = json.toRequestBody(mediaType)
+                val request = Request.Builder()
+                    .url("${com.eagleye.eld.utils.Constants.BASE_URL}api/v1/addLog")
+                    .post(body)
+                    .addHeader("Authorization", "Bearer $token")
+                    .build()
+                OkHttpClient().newCall(request).execute().close()
+            } catch (e: Exception) {
+                android.util.Log.e("LoginActivity", "Login log failed: ${e.message}")
+            }
+        }
+    }
+
     private fun fetchLocationAndSendLoginLog() {
         if (fusedLocationClient == null) {
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)

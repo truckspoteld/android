@@ -1314,6 +1314,12 @@ class HomeFragment : Fragment(), OnClickListener {
                 }
             }
 
+            // Send login log here so the ViewModel is alive (LoginActivity dies too fast)
+            if (prefRepository.getNeedsLoginLog()) {
+                prefRepository.setNeedsLoginLog(false)
+                fetchLocationAndSendLoginLog()
+            }
+
             showPendingDisconnectedDrivingMilesDialogIfNeeded()
             
             // Fetch data with debounce - but skip if long pause to avoid immediate loading
@@ -1516,6 +1522,8 @@ class HomeFragment : Fragment(), OnClickListener {
                     logRequest.discreption = "yard"
                 } else if (selectedOptionText == "personal") {
                     logRequest.discreption = "personal"
+                } else if (selectedOptionText.isNotEmpty()) {
+                    logRequest.discreption = selectedOptionText
                 }
 
                 context?.let { homeViewModel.logUser(logRequest, it) }
@@ -1898,7 +1906,7 @@ class HomeFragment : Fragment(), OnClickListener {
         }
         if (selectedLog != TRUCK_MODE_SLEEPING || isEmptyList) {
             mediaPlayer.start()
-            updateModeChange(hrs_MODE_SB, TRUCK_MODE_SLEEPING, "sb from click")
+            updateModeChange(hrs_MODE_SB, TRUCK_MODE_SLEEPING, "")
         }
     }
 
@@ -1933,7 +1941,7 @@ class HomeFragment : Fragment(), OnClickListener {
         Log.d(TAG, "🚗 Manual switch to DRIVING mode")
         updateUI(binding.btnDrive)
         mediaPlayer.start()
-        updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "d from click")
+        updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
     }
 
 
@@ -2945,5 +2953,44 @@ class HomeFragment : Fragment(), OnClickListener {
         YoYo.with(Techniques.BounceInUp)
             .duration(800)
             .playOn(dialogRoot)
+    }
+
+    @android.annotation.SuppressLint("MissingPermission")
+    private fun fetchLocationAndSendLoginLog() {
+        val fused = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(requireContext())
+        val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) {
+            sendLoginLog(0.0, 0.0)
+            return
+        }
+        fused.lastLocation.addOnSuccessListener { loc ->
+            if (loc != null) {
+                sendLoginLog(loc.latitude, loc.longitude)
+            } else {
+                val cts = com.google.android.gms.tasks.CancellationTokenSource()
+                fused.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+                    .addOnSuccessListener { l -> sendLoginLog(l?.latitude ?: 0.0, l?.longitude ?: 0.0) }
+                    .addOnFailureListener { sendLoginLog(0.0, 0.0) }
+            }
+        }.addOnFailureListener { sendLoginLog(0.0, 0.0) }
+    }
+
+    private fun sendLoginLog(lat: Double, lng: Double) {
+        val logRequest = AddLogRequest(
+            modename = "login",
+            odometerreading = "0",
+            lat = lat,
+            long = lng,
+            location = lat != 0.0 || lng != 0.0,
+            eng_hours = "0",
+            vin = "",
+            is_active = 1,
+            is_autoinsert = 1,
+            eventcode = 1,
+            eventtype = 1,
+            connection_status = "disconnected"
+        )
+        context?.let { homeViewModel.logUser(logRequest, it) }
     }
 }

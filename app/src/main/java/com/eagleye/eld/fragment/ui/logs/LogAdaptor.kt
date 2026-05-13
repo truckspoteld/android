@@ -74,6 +74,8 @@ class LogAdaptor  (
         val tvUnit: TextView = view.findViewById(R.id.unit_txt)
         val statusIndicator: View = view.findViewById(R.id.status_indicator)
         val tile: View = view.findViewById(R.id.logTIle)
+        val annotationRow: View = view.findViewById(R.id.annotation_row)
+        val tvAnnotation: TextView = view.findViewById(R.id.annotation_txt)
     }
 
     private fun displaySnackbar(view: View, message: String) {
@@ -198,7 +200,17 @@ class LogAdaptor  (
         }
 
         viewHolder.tvLocation.text = locText
-        
+
+        // Annotation
+        val rawAnnotation = (userLog.discreption as? String)?.trim() ?: ""
+        val skipValues = setOf("yard", "personal", "Intermediate log")
+        if (rawAnnotation.isNotEmpty() && !skipValues.contains(rawAnnotation)) {
+            viewHolder.annotationRow.visibility = View.VISIBLE
+            viewHolder.tvAnnotation.text = rawAnnotation
+        } else {
+            viewHolder.annotationRow.visibility = View.GONE
+        }
+
         // Origin
         viewHolder.tvorigon.text = if (userLog.is_autoinsert == 1) "Auto" else "Manual"
         

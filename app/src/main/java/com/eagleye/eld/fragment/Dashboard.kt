@@ -1,6 +1,8 @@
 package com.eagleye.eld.fragment
 
 import com.eagleye.eld.PdfViewerActivity
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -277,10 +279,7 @@ class Dashboard : AppCompatActivity() {
                 .build()
             navController.navigate(R.id.nav_reports, null, navOptions)
         }
-        headerView.findViewById<View>(R.id.nav_upload_documents).setOnClickListener {
-            binding.drawerLayout.close()
-            startActivity(Intent(this, UploadDocumentsActivity::class.java))
-        }
+
         headerView.findViewById<View>(R.id.nav_more_options).setOnClickListener {
             Toast.makeText(this, "More Options", Toast.LENGTH_SHORT).show()
         }
@@ -1020,15 +1019,12 @@ class Dashboard : AppCompatActivity() {
         
         val etShippingNumber = dialog.findViewById<android.widget.EditText>(R.id.etShippingNumber)
         val etTrailerNumber = dialog.findViewById<android.widget.EditText>(R.id.etTrailerNumber)
-        val tvCoDriver = dialog.findViewById<android.widget.TextView>(R.id.tvCoDriver)
         val btnUpdate = dialog.findViewById<Button>(R.id.btnUpdate)
         val btnCancel = dialog.findViewById<Button>(R.id.btnCancel)
-        
+
         // Load existing values
         etShippingNumber.setText(prefRepository.getShippingNumber())
         etTrailerNumber.setText(prefRepository.getTrailerNumber())
-        val coDriverName = prefRepository.getCoDriverName()
-        tvCoDriver.text = if (coDriverName.isEmpty()) "No Co-driver" else coDriverName
         
         btnUpdate.setOnClickListener {
             val shippingNo = etShippingNumber.text.toString()
@@ -1117,6 +1113,23 @@ class Dashboard : AppCompatActivity() {
     }
 
     private fun performLogout() {
+        val token = prefRepository.getToken()
+        if (token.isNotEmpty()) {
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val json = """{"modename":"logout","odometerreading":"00","lat":0,"long":0,"location":false,"eng_hours":"00","vin":"","is_active":1,"is_autoinsert":1,"eventcode":1,"eventtype":1,"connection_status":"disconnected"}"""
+                    val body = json.toRequestBody("application/json".toMediaType())
+                    val request = okhttp3.Request.Builder()
+                        .url("${com.eagleye.eld.utils.Constants.BASE_URL}api/v1/addLog")
+                        .post(body)
+                        .addHeader("Authorization", "Bearer $token")
+                        .build()
+                    okhttp3.OkHttpClient().newCall(request).execute().close()
+                } catch (e: Exception) {
+                    android.util.Log.e("Dashboard", "Logout log failed: ${e.message}")
+                }
+            }
+        }
         prefRepository.setLoggedIn(false)
         prefRepository.setToken("")
         val intent = Intent(this, LoginActivity::class.java)

@@ -352,6 +352,9 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
 
     fun getJustLoggedIn(): Boolean = PREF_JUST_LOGGED_IN.getBoolean()
 
+    fun setNeedsLoginLog(value: Boolean) { PREF_NEEDS_LOGIN_LOG.put(value) }
+    fun getNeedsLoginLog(): Boolean = PREF_NEEDS_LOGIN_LOG.getBoolean()
+
     fun setDisconnectedDrivingReviewPending(isPending: Boolean) {
         PREF_DISCONNECTED_DRIVING_REVIEW_PENDING.put(isPending)
     }

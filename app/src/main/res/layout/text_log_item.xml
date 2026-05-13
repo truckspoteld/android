@@ -104,6 +104,37 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
+        <!-- Annotation Row (shown only when discreption is set) -->
+        <LinearLayout
+            android:id="@+id/annotation_row"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/status_header"
+            app:layout_constraintTop_toBottomOf="@id/location_row">
+
+            <ImageView
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:src="@android:drawable/ic_menu_edit"
+                app:tint="#F59E0B" />
+
+            <TextView
+                android:id="@+id/annotation_txt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#F59E0B"
+                android:textSize="12sp"
+                android:textStyle="italic" />
+        </LinearLayout>
+
         <!-- Detailed Metrics Divider -->
         <View
             android:id="@+id/metrics_divider"
@@ -113,7 +144,7 @@
             android:background="@color/strockColor"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@id/status_header"
-            app:layout_constraintTop_toBottomOf="@id/location_row" />
+            app:layout_constraintTop_toBottomOf="@id/annotation_row" />
 
         <!-- Detailed Metrics Grid (Odo, Eng, Unit, Origin) -->
         <LinearLayout

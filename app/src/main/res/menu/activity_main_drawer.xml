@@ -20,12 +20,7 @@
             android:icon="@drawable/ic_shield_blue"
             android:title="DOT Inspection" />
             
-        <item
-            android:id="@+id/nav_upload_documents"
-            android:icon="@android:drawable/ic_menu_upload"
-            android:title="Upload Documents" />
-            
-        <item
+<item
             android:id="@+id/nav_more_options"
             android:icon="@android:drawable/ic_menu_more"
             android:title="More Options" />

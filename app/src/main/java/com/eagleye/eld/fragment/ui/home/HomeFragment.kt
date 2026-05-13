@@ -1410,12 +1410,15 @@ class HomeFragment : Fragment(), OnClickListener {
             TRUCK_MODE_YARD
         )
 
-        if (speed >= DRIVE_DETECTION_THRESHOLD_KMH && currentMode in modesThatMustSwitchToDriving) {
-            Log.d(TAG, "🚗 Truck is moving ($speed km/h) in '$currentMode' mode — switching to DRIVE")
+        if (speed >= DRIVE_DETECTION_THRESHOLD_KMH) {
+            // Vehicle moving — always cancel stop timer regardless of current mode
             stoppedSinceMs = null
-            lastLog = TRUCK_MODE_DRIVING
-            activity?.runOnUiThread { updateUI(binding.btnDrive) }
-            updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
+            if (currentMode in modesThatMustSwitchToDriving) {
+                Log.d(TAG, "🚗 Truck is moving ($speed km/h) in '$currentMode' mode — switching to DRIVE")
+                lastLog = TRUCK_MODE_DRIVING
+                activity?.runOnUiThread { updateUI(binding.btnDrive) }
+                updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
+            }
         } else if (speed <= 0 && currentMode == TRUCK_MODE_DRIVING) {
             val now = System.currentTimeMillis()
             if (stoppedSinceMs == null) stoppedSinceMs = now

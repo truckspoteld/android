@@ -820,16 +820,16 @@ class LogsFragment : Fragment() {
 
                     binding.eldPlot.graph.invalidate()
                     
-                    if (!isReviewMode) {
-                        binding.eventLogRv.adapter = LogAdaptor(logs, childFragmentManager, requireContext(), timeZone) { log ->
+                    binding.eventLogRv.adapter = LogAdaptor(logs, childFragmentManager, requireContext(), timeZone) { log ->
+                        if (!isReviewMode) {
                             selectedLog = log
                             binding.fabLogReport.isEnabled = true
                             binding.fabLogReport.backgroundTintList = android.content.res.ColorStateList.valueOf(
                                 ContextCompat.getColor(requireContext(), R.color.nav_icon_active)
                             )
                         }
-                        binding.eventLogRv.layoutManager = LinearLayoutManager(requireContext())
                     }
+                    binding.eventLogRv.layoutManager = LinearLayoutManager(requireContext())
                     
                     // Meta and duration are in seconds; graph shows HH:MM (no seconds) for compact width
                     val meta = response?.results?.meta

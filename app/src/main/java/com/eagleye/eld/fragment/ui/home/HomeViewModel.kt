@@ -86,6 +86,8 @@ class HomeViewModel @Inject constructor(
 
     fun getDriverId() = prefRepository.getDriverId()
 
+    suspend fun driverLogout() = try { truckSpotAPI.driverLogout() } catch (_: Exception) { null }
+
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
 
     suspend fun getCodriverHos(codriverId: Int? = null) = truckSpotAPI.getCodriverHos(codriverId)

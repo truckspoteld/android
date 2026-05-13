@@ -1119,14 +1119,22 @@ class Dashboard : AppCompatActivity() {
                 try {
                     val json = """{"modename":"logout","odometerreading":"00","lat":0,"long":0,"location":false,"eng_hours":"00","vin":"","is_active":1,"is_autoinsert":1,"eventcode":1,"eventtype":1,"connection_status":"disconnected"}"""
                     val body = json.toRequestBody("application/json".toMediaType())
-                    val request = okhttp3.Request.Builder()
+                    val logRequest = okhttp3.Request.Builder()
                         .url("${com.eagleye.eld.utils.Constants.BASE_URL}api/v1/addLog")
                         .post(body)
                         .addHeader("Authorization", "Bearer $token")
                         .build()
-                    okhttp3.OkHttpClient().newCall(request).execute().close()
+                    okhttp3.OkHttpClient().newCall(logRequest).execute().close()
+                    // Clear current_token so next login on this device doesn't trigger force-login
+                    val logoutBody = "{}".toRequestBody("application/json".toMediaType())
+                    val logoutRequest = okhttp3.Request.Builder()
+                        .url("${com.eagleye.eld.utils.Constants.BASE_URL}api/v1/driver/logout")
+                        .post(logoutBody)
+                        .addHeader("Authorization", "Bearer $token")
+                        .build()
+                    okhttp3.OkHttpClient().newCall(logoutRequest).execute().close()
                 } catch (e: Exception) {
-                    android.util.Log.e("Dashboard", "Logout log failed: ${e.message}")
+                    android.util.Log.e("Dashboard", "Logout failed: ${e.message}")
                 }
             }
         }

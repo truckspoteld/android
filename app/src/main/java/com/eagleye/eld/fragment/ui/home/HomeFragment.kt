@@ -1855,15 +1855,19 @@ class HomeFragment : Fragment(), OnClickListener {
             codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
-        prefRepository.setLoggedIn(false)
-        prefRepository.setDifferenceinOdo("0")
-        prefRepository.setDifferenceinEnghours("0")
-        prefRepository.setToken("")
-        context?.let { ctx ->
-            val intent = Intent(ctx, LoginActivity::class.java)
-            startActivity(intent)
+        // Clear current_token on server so next login on this device doesn't trigger force-login
+        lifecycleScope.launch {
+            homeViewModel.driverLogout()
+            prefRepository.setLoggedIn(false)
+            prefRepository.setDifferenceinOdo("0")
+            prefRepository.setDifferenceinEnghours("0")
+            prefRepository.setToken("")
+            context?.let { ctx ->
+                val intent = Intent(ctx, LoginActivity::class.java)
+                startActivity(intent)
+            }
+            activity?.finish()
         }
-        activity?.finish()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

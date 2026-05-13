@@ -158,6 +158,9 @@ interface TruckSpotAPI {
         @Body body: CodriverLoginRequest
     ): Response<LoginResponse>
 
+    @POST("api/v1/driver/logout")
+    suspend fun driverLogout(): Response<LoginResponse>
+
     @POST("api/v1/driver/codriver/logout")
     suspend fun codriverLogout(): Response<LoginResponse>
 

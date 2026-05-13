@@ -1511,7 +1511,7 @@ class HomeFragment : Fragment(), OnClickListener {
                     eng_hours = normalizedEngineHours,
                     vin = vin_no.toString(),
                     is_active = 1,
-                    is_autoinsert = 1,
+                    is_autoinsert = 0,
                     eventcode = eventCode,
                     eventtype = 1,
                     connection_status = if (isNeedToconnect) "disconnected" else "connected",

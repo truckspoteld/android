@@ -1855,6 +1855,8 @@ class HomeFragment : Fragment(), OnClickListener {
             codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
+        // Clear stale ELD device/VIN cache so next session starts fresh
+        com.eagleye.eld.pt.devicemanager.AppModel.getInstance().invalidate()
         // Clear current_token on server so next login on this device doesn't trigger force-login
         lifecycleScope.launch {
             homeViewModel.driverLogout()

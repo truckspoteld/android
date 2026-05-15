@@ -141,10 +141,22 @@ class PdfReportGenerator(private val context: Context) {
             PdfWriter.getInstance(document, FileOutputStream(outputFile))
             document.open()
 
+            // Build chronological order to compute previous-day ending log per date.
+            val availableDatesChron = availableDatesDesc.reversed()
+            val dutyModes = setOf("on", "off", "d", "sb")
+            val previousDayLogByDate = mutableMapOf<String, GetLogsByDateResponse.Results.UserLog?>()
+            var prevLastDutyLog: GetLogsByDateResponse.Results.UserLog? = null
+            for (dateKey in availableDatesChron) {
+                previousDayLogByDate[dateKey] = prevLastDutyLog
+                val dayLogs = logsByDate[dateKey].orEmpty().sortedBy { parseTimeToSortable(it.time) }
+                prevLastDutyLog = dayLogs.lastOrNull { it.modename?.lowercase() in dutyModes }
+            }
+
             availableDatesDesc.forEachIndexed { index, dateKey ->
                 val dayLogs = logsByDate[dateKey].orEmpty()
                     .sortedBy { parseTimeToSortable(it.time) }
-                val dayReportData = sliceReportDataForLogs(reportData, dayLogs)
+                val prevDayLog = previousDayLogByDate[dateKey]
+                val dayReportData = sliceReportDataForLogs(reportData, dayLogs, prevDayLog)
                 val headerDate = formatYmdToDisplay(dateKey)
 
                 if (index > 0) document.newPage()
@@ -181,15 +193,15 @@ class PdfReportGenerator(private val context: Context) {
 
     private fun sliceReportDataForLogs(
         source: GetLogsByDateResponse,
-        dayLogs: List<GetLogsByDateResponse.Results.UserLog>
+        dayLogs: List<GetLogsByDateResponse.Results.UserLog>,
+        previousDayLog: GetLogsByDateResponse.Results.UserLog? = null
     ): GetLogsByDateResponse {
-        val first = dayLogs.firstOrNull()
         val last = dayLogs.lastOrNull()
         return source.copy(
             results = source.results.copy(
                 totalCount = dayLogs.size,
                 userLogs = dayLogs,
-                previousDayLog = first,
+                previousDayLog = previousDayLog,
                 nextDayLog = last,
                 latestUpdatedLog = last
             )
@@ -246,7 +258,7 @@ class PdfReportGenerator(private val context: Context) {
         
         // Left: EaglEye brand name
         val brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f)
-        val logoCell = PdfPCell(Phrase("EaglEye", brandFont))
+        val logoCell = PdfPCell(Phrase("TruckSpot", brandFont))
         logoCell.border = Rectangle.NO_BORDER
         logoCell.horizontalAlignment = Element.ALIGN_LEFT
         logoCell.verticalAlignment = Element.ALIGN_MIDDLE
@@ -502,7 +514,7 @@ class PdfReportGenerator(private val context: Context) {
                     "e_off", "power_off" -> "eng_off"
                     else -> status
                 }
-                if (normalizedStatus in setOf("on", "off", "d", "sb", "eng_on", "eng_off")) {
+                if (normalizedStatus in setOf("on", "off", "d", "sb")) {
                     logList.add(ELDGraphData(time, normalizedStatus, time.toLong()))
                 }
             }
@@ -527,14 +539,25 @@ class PdfReportGenerator(private val context: Context) {
                 }
             }
             
-            if (reportData.results?.nextDayLog?.modename != null) {
-                addGraphPoint(24f, reportData.results?.nextDayLog?.modename)
+            val nextModename = reportData.results?.nextDayLog?.modename
+            val nextModeIsDuty = nextModename?.let { m ->
+                val normalized = when (m.trim().lowercase()) {
+                    "dr" -> "d"
+                    "personal" -> "off"
+                    "yard" -> "on"
+                    else -> m.trim().lowercase()
+                }
+                normalized in setOf("on", "off", "d", "sb")
+            } == true
+
+            if (nextModeIsDuty) {
+                addGraphPoint(24f, nextModename)
             } else {
                 val dutyStatuses = setOf("on", "off", "d", "sb")
                 val lastDutyStatus = logList.lastOrNull { it.status?.lowercase() in dutyStatuses }?.status?.lowercase()
                 if (logList.isNotEmpty() && lastDutyStatus != null) {
-                    val lastPoint = logList.last()
                     val endFloat = if (isViewingToday) nowFloat else 24f
+                    val lastPoint = logList.last()
                     if (lastPoint.time < endFloat) {
                         logList.add(ELDGraphData(endFloat, lastDutyStatus, endFloat.toLong()))
                     }

@@ -323,11 +323,14 @@ class PdfReportGenerator(private val context: Context) {
             table.addCell(vc2)
         }
         
-        val firstLog = reportData.results?.userLogs?.firstOrNull()
+        val firstLog = reportData.results?.userLogs?.firstOrNull { !it.vin.isNullOrBlank() || !it.powerunitnumber.isNullOrBlank() }
+            ?: reportData.results?.userLogs?.firstOrNull()
         val driverId = firstLog?.driverid?.toString() ?: "-"
-        val coDriverId = firstLog?.codriverid?.toString() ?: "0"
+        val coDriverId = firstLog?.codriverid?.takeIf { it > 0 }?.toString() ?: "-"
         val vin = firstLog?.vin?.takeIf { it.isNotBlank() } ?: vehicleVin
-        
+        val unitNumber = firstLog?.powerunitnumber?.trim()?.takeIf { it.isNotBlank() } ?: "-"
+        val vinAndUnit = "$vin / $unitNumber"
+
         addRow("Carrier", companyInfo?.company_name ?: "-",
                "Driver Name / ID", "$driverName / $driverId")
         addRow("DOT Number", companyInfo?.dot_no ?: "-",
@@ -335,7 +338,7 @@ class PdfReportGenerator(private val context: Context) {
         addRow("Office Address", companyInfo?.address ?: "-",
                "License State / #", driverLicense)
         addRow("Terminal Timezone", companyInfo?.company_timezone ?: "-",
-               "Vehicle VIN / #", vin)
+               "Vehicle VIN / #", vinAndUnit)
         
         document.add(table)
         document.add(Paragraph("\n", FontFactory.getFont(FontFactory.HELVETICA, 4f)))
@@ -348,16 +351,16 @@ class PdfReportGenerator(private val context: Context) {
         val logs = (reportData.results?.userLogs ?: emptyList())
             .sortedBy { it.datetime.ifBlank { "${it.date} ${it.time}" } }
         if (logs.isNotEmpty()) {
-            // 6-column table matching reference image
-            val table = PdfPTable(6)
+            val originMap = mapOf("1" to "AUTO", "2" to "DRIVER", "3" to "ASSUMED", "4" to "ADMIN")
+            // 8-column table matching portal/iOS layout
+            val table = PdfPTable(8)
             table.widthPercentage = 100f
-            // Adjust widths slightly for tighter packing
-            table.setWidths(floatArrayOf(15f, 13f, 15f, 12f, 25f, 20f))
-            
-            val headers = arrayOf("Event Status", "Time", "Engine Hours", "Odometer", "Location", "Comment")
+            table.setWidths(floatArrayOf(14f, 8f, 11f, 12f, 11f, 22f, 14f, 8f))
+
+            val headers = arrayOf("Event Status", "Origin", "Time", "Engine Hours", "Odometer", "Location", "Annotation", "M/D")
             headers.forEach { header ->
                 val cell = PdfPCell(Phrase(header, headerFont))
-                cell.backgroundColor = BaseColor(242, 242, 242) // Light gray header
+                cell.backgroundColor = BaseColor(242, 242, 242)
                 cell.horizontalAlignment = Element.ALIGN_CENTER
                 cell.verticalAlignment = Element.ALIGN_MIDDLE
                 cell.setPaddingTop(5f)
@@ -365,11 +368,11 @@ class PdfReportGenerator(private val context: Context) {
                 cell.border = Rectangle.NO_BORDER
                 table.addCell(cell)
             }
-            
+
             logs.forEachIndexed { index, log ->
                 val isAlternate = index % 2 != 0
                 val bgColor = if (isAlternate) BaseColor(250, 250, 250) else BaseColor.WHITE
-                
+
                 fun makeCell(text: String): PdfPCell {
                     val c = PdfPCell(Phrase(text, normalFont))
                     c.backgroundColor = bgColor
@@ -380,18 +383,34 @@ class PdfReportGenerator(private val context: Context) {
                     c.border = Rectangle.NO_BORDER
                     return c
                 }
+
                 val normalizedMode = log.modename.trim().lowercase()
                 val statusText = when {
                     normalizedMode == "personal" || log.discreption?.toString()?.trim()?.lowercase() == "personal" -> "Off Duty (PC)"
                     normalizedMode == "yard" || log.discreption?.toString()?.trim()?.lowercase() == "yard" -> "On Duty (YM)"
                     else -> log.modename.uppercase()
                 }
+                val originKey = log.eventrecordorigin?.toString()?.trim() ?: ""
+                val originText = originMap[originKey] ?: ""
+                val annotation = log.discreption?.toString()?.trim()
+                    ?.takeIf { it.isNotEmpty() && !it.equals("Intermediate log", ignoreCase = true) } ?: ""
+                val hasMalfunction = (log.malfunctioneld ?: 0) != 0
+                val hasDiagnostic = (log.datadiagnostic ?: 0) != 0
+                val mdText = when {
+                    hasMalfunction && hasDiagnostic -> "M/D"
+                    hasMalfunction -> "M"
+                    hasDiagnostic -> "D"
+                    else -> ""
+                }
+
                 table.addCell(makeCell(statusText))
+                table.addCell(makeCell(originText))
                 table.addCell(makeCell(log.time ?: ""))
                 table.addCell(makeCell(log.eng_hours ?: ""))
                 table.addCell(makeCell(log.odometerreading ?: ""))
                 table.addCell(makeCell(log.location ?: ""))
-                table.addCell(makeCell(log.discreption?.toString() ?: "")) // Comment column
+                table.addCell(makeCell(annotation))
+                table.addCell(makeCell(mdText))
             }
             
             document.add(table)

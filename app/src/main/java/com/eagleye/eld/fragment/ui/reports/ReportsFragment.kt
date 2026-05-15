@@ -179,8 +179,9 @@ class ReportsFragment : Fragment() {
         val driverId = prefRepository.getDriverId()
         Log.d("ReportsFragment", "Loaded driver: name=$driverName, id=$driverId")
 
-        // Fetch company data from API
+        // Fetch company and driver review data from API
         homeViewModel.getCompanyName(requireContext())
+        homeViewModel.getDriverReview(requireContext())
 
         entranceAnimations()
 
@@ -195,6 +196,19 @@ class ReportsFragment : Fragment() {
                 }
                 is NetworkResult.Error -> {}
                 is NetworkResult.Loading -> {}
+            }
+        }
+        homeViewModel.driverReviewLiveData.observe(viewLifecycleOwner) { result ->
+            if (result is NetworkResult.Success) {
+                val driver = result.data?.data?.driver
+                val state = driver?.licenseState?.trim()?.takeIf { it.isNotEmpty() }
+                val number = driver?.licenseNumber?.trim()?.takeIf { it.isNotEmpty() }
+                driverLicense = when {
+                    state != null && number != null -> "$state / $number"
+                    state != null -> state
+                    number != null -> number
+                    else -> "-"
+                }
             }
         }
     }

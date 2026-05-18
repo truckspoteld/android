@@ -616,6 +616,8 @@ class HomeFragment : Fragment(), OnClickListener {
             binding.progressBarCycle.startAnimation(warningAnimation)
             binding.progressBarCycle.setIndicatorColor(Color.RED)
             binding.progressBarCycle.progress = 100
+            binding.tvCycleStatus.text = "Violation"
+            binding.tvCycleStatus.setTextColor(Color.RED)
         } else {
             val remaining = (data.conditions?.cycle ?: 0)
             val safeSpent = (cycleTotalSec - remaining).coerceIn(0, cycleTotalSec)
@@ -637,6 +639,8 @@ class HomeFragment : Fragment(), OnClickListener {
                 binding.progressBarCycle.setIndicatorColor(color)
             }
             binding.timeText3.text = formatCondition(data.conditions?.cycle ?: 0)
+            binding.tvCycleStatus.text = "70 hrs / 8 days"
+            binding.tvCycleStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.home_text_sub))
         }
 
         if (data.conditions!!.shiftViolation ?: false) {

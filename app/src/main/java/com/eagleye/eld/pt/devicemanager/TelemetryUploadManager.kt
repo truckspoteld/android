@@ -51,6 +51,15 @@ object TelemetryUploadManager {
     fun onDashboardUpdated(context: Context, snapshot: VirtualDashboard.Snapshot) {
         val now = System.currentTimeMillis()
 
+        // Always refresh the cached odometer from the live snapshot so the app's
+        // local value never stays stale — even if the telemetry upload is throttled.
+        val prefRepo = PrefRepository(context)
+        val liveOdoKm = snapshot.engineOdometer
+        if (liveOdoKm != null && liveOdoKm > 0.0) {
+            prefRepo.setDifferenceinOdo(liveOdoKm.toString())
+            Log.d(TAG, "Live odometer cache updated: ${liveOdoKm} km")
+        }
+
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
 
         // Resolve VIN directly from the PT-40 device — always the correct truck
@@ -58,7 +67,6 @@ object TelemetryUploadManager {
             ?: AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { !it.isNullOrBlank() }
             ?: return
 
-        val prefRepo = PrefRepository(context)
         val token = prefRepo.getToken()
         if (token.isNullOrBlank()) return
 

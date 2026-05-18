@@ -337,7 +337,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             String mode = "d";
             AddLogRequest logRequest = new AddLogRequest(
                     mode,
-                    TelemetryLogValueUtils.normalizeOdometerForLog(mTm.mOdometer, prefRepository.getDiffinOdo()),
+                    resolveOdometerForLog(mTm.mOdometer, prefRepository.getDiffinOdo()),
                     mTm.mGeoloc.latitude,
                     mTm.mGeoloc.longitude,
                     true,
@@ -1125,6 +1125,18 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_MILES, milesText);
         broadcast.putExtra(EXTRA_DISCONNECTED_DRIVING_AUTO_SUBMITTED, autoSubmitted);
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+    }
+
+    /**
+     * Prefer AppModel.lastLiveOdometerMiles (updated every ~5 min from VirtualDashboard)
+     * over normalizeOdometerForLog(mTm.mOdometer) which can be stale between onRequest() calls.
+     */
+    private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
+        double liveOdoMiles = AppModel.getInstance().lastLiveOdometerMiles;
+        if (liveOdoMiles > 0.0) {
+            return String.format(java.util.Locale.US, "%.2f", liveOdoMiles);
+        }
+        return TelemetryLogValueUtils.normalizeOdometerForLog(rawOdometerKm, diffOffsetKm);
     }
 
     private double calculateUnidentifiedDrivingMinutes() {

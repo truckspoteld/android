@@ -51,13 +51,13 @@ object TelemetryUploadManager {
     fun onDashboardUpdated(context: Context, snapshot: VirtualDashboard.Snapshot) {
         val now = System.currentTimeMillis()
 
-        // Always refresh the cached odometer from the live snapshot so the app's
-        // local value never stays stale — even if the telemetry upload is throttled.
-        val prefRepo = PrefRepository(context)
-        val liveOdoKm = snapshot.engineOdometer
-        if (liveOdoKm != null && liveOdoKm > 0.0) {
-            prefRepo.setDifferenceinOdo(liveOdoKm.toString())
-            Log.d(TAG, "Live odometer cache updated: ${liveOdoKm} km")
+        // Always cache the live odometer miles in AppModel — not throttled.
+        // snapshot.engineOdometer is in miles; stored separately from PREF_DIFFINODO
+        // (which is a km-based offset) so units stay clean.
+        val liveOdoMiles = snapshot.engineOdometer
+        if (liveOdoMiles != null && liveOdoMiles > 0.0) {
+            AppModel.getInstance().lastLiveOdometerMiles = liveOdoMiles
+            Log.d(TAG, "Live odometer cache updated: $liveOdoMiles miles")
         }
 
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
@@ -67,6 +67,7 @@ object TelemetryUploadManager {
             ?: AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { !it.isNullOrBlank() }
             ?: return
 
+        val prefRepo = PrefRepository(context)
         val token = prefRepo.getToken()
         if (token.isNullOrBlank()) return
 

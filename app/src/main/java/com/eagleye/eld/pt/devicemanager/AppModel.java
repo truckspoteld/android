@@ -48,6 +48,9 @@ public class AppModel {
     public boolean wereSERequested = false;
 
     public VirtualDashboard.Snapshot dashboard = null;
+    /** Latest odometer in miles from the VirtualDashboard snapshot — updated every ~5 min.
+     *  Use this for log entries instead of mTm.mOdometer which can be stale. */
+    public double lastLiveOdometerMiles = 0.0;
     // Bound to a TrackerService instance
     public HashSet<Integer> vdbParams = new HashSet<>();
 

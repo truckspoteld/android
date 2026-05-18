@@ -61,6 +61,27 @@
     <dimen name="alert_dialog_padding_top">18dp</dimen>
     <dimen name="alert_dialog_padding_bottom">0dp</dimen>
 
+    <!-- Home screen gauge cards -->
+    <dimen name="gauge_card_height">180dp</dimen>
+    <dimen name="gauge_indicator_size">114dp</dimen>
+    <dimen name="gauge_time_text_size">16sp</dimen>
+    <dimen name="gauge_label_text_size">12sp</dimen>
+    <dimen name="gauge_status_text_size">10sp</dimen>
+
+    <!-- Home screen general text -->
+    <dimen name="home_title_text_size">28sp</dimen>
+    <dimen name="home_subtitle_text_size">15sp</dimen>
+    <dimen name="home_body_text_size">14sp</dimen>
+    <dimen name="home_label_text_size">14sp</dimen>
+    <dimen name="home_caption_text_size">12sp</dimen>
+    <dimen name="home_small_text_size">11sp</dimen>
+
+    <!-- Icons and buttons -->
+    <dimen name="home_icon_size">48dp</dimen>
+    <dimen name="home_mode_icon_size">28dp</dimen>
+    <dimen name="home_dot_size">14dp</dimen>
+    <dimen name="home_dot_icon_size">14dp</dimen>
+
     <!-- Modern circular progress indicator dimensions -->
     <dimen name="circular_progress_size">140dp</dimen>
     <dimen name="circular_indicator_size">150dp</dimen>

@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Responsive circular progress indicator dimensions for tablets -->
-    <dimen name="circular_progress_size">150dp</dimen>
-    <dimen name="circular_indicator_size">140dp</dimen>
-    <dimen name="circular_track_thickness">10dp</dimen>
-    <dimen name="circular_text_size">24sp</dimen>
-    <dimen name="circular_heading_size">18sp</dimen>
+    <!-- Tablet overrides (sw600dp+): 1.4× phone values. Same layout, bigger on larger screens. -->
+
+    <!-- Circular progress gauges -->
+    <dimen name="circular_progress_size">196dp</dimen>
+    <dimen name="circular_indicator_size">196dp</dimen>
+    <dimen name="circular_track_thickness">14dp</dimen>
+    <dimen name="circular_text_size">34sp</dimen>
+    <dimen name="circular_heading_size">25sp</dimen>
+
+    <!-- Home screen gauge cards -->
+    <dimen name="gauge_card_height">252dp</dimen>
+    <dimen name="gauge_indicator_size">160dp</dimen>
+    <dimen name="gauge_time_text_size">22sp</dimen>
+    <dimen name="gauge_label_text_size">17sp</dimen>
+    <dimen name="gauge_status_text_size">14sp</dimen>
+
+    <!-- Home screen general text -->
+    <dimen name="home_title_text_size">38sp</dimen>
+    <dimen name="home_subtitle_text_size">21sp</dimen>
+    <dimen name="home_body_text_size">20sp</dimen>
+    <dimen name="home_label_text_size">19sp</dimen>
+    <dimen name="home_caption_text_size">17sp</dimen>
+    <dimen name="home_small_text_size">15sp</dimen>
+
+    <!-- Icons and buttons -->
+    <dimen name="home_icon_size">67dp</dimen>
+    <dimen name="home_mode_icon_size">39dp</dimen>
+    <dimen name="home_dot_size">20dp</dimen>
+    <dimen name="home_dot_icon_size">19dp</dimen>
+
+    <!-- Nav header -->
+    <dimen name="nav_header_height">252dp</dimen>
 </resources>

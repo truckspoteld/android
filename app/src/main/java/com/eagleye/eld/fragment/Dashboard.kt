@@ -228,10 +228,7 @@ class Dashboard : AppCompatActivity() {
                             "--"
                         }
                         val licenseDate = driver?.licensedate?.substringBefore("T") ?: "--"
-                        val cycle = when (company?.multidaybasis) {
-                            7 -> "60 hrs / 7 days"
-                            else -> "70 hrs / 8 days"
-                        }
+                        val cycle = if (company?.multidaybasis?.toString() == "7") "60 hrs / 7 days" else "70 hrs / 8 days"
 
                         tvNavCarrierName.text = carrierName
                         tvNavCompanyAddress.text = addressStr.ifEmpty { "--" }

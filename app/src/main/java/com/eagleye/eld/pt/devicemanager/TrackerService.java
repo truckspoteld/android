@@ -665,7 +665,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         AddLogRequest logRequest = new AddLogRequest(
                 "on",
-                TelemetryLogValueUtils.normalizeOdometerForLog(te != null ? te.mOdometer : null, prefRepository.getDiffinOdo()),
+                resolveOdometerForLog(te != null ? te.mOdometer : null, prefRepository.getDiffinOdo()),
                 lat, lon, hasLocation,
                 TelemetryLogValueUtils.normalizeEngineHoursForLog(te != null ? te.mEngineHours : null, prefRepository.getDiffinEng()),
                 vin != null ? vin : "",
@@ -760,7 +760,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         AddLogRequest logRequest = new AddLogRequest(
                 currentState,
-                TelemetryLogValueUtils.normalizeOdometerForLog(
+                resolveOdometerForLog(
                         te != null ? te.mOdometer : null,
                         prefRepository.getDiffinOdo()
                 ),

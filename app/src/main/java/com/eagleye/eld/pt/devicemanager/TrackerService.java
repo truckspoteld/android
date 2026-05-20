@@ -1128,13 +1128,13 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     }
 
     /**
-     * Prefer AppModel.lastLiveOdometerMiles (updated every ~5 min from VirtualDashboard)
-     * over normalizeOdometerForLog(mTm.mOdometer) which can be stale between onRequest() calls.
+     * Use mLastEvent.mOdometer (updated on every onRequest() packet from the PT device)
+     * same as HomeFragment does for manual entries — no cross-session stale cache.
      */
     private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
-        double liveOdoMiles = AppModel.getInstance().lastLiveOdometerMiles;
-        if (liveOdoMiles > 0.0) {
-            return String.format(java.util.Locale.US, "%.2f", liveOdoMiles);
+        TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
+        if (lastEvent != null && lastEvent.mOdometer != null && !lastEvent.mOdometer.isEmpty()) {
+            return TelemetryLogValueUtils.normalizeOdometerForLog(lastEvent.mOdometer, diffOffsetKm);
         }
         return TelemetryLogValueUtils.normalizeOdometerForLog(rawOdometerKm, diffOffsetKm);
     }

@@ -51,15 +51,6 @@ object TelemetryUploadManager {
     fun onDashboardUpdated(context: Context, snapshot: VirtualDashboard.Snapshot) {
         val now = System.currentTimeMillis()
 
-        // Always cache the live odometer miles in AppModel — not throttled.
-        // snapshot.engineOdometer is in miles; stored separately from PREF_DIFFINODO
-        // (which is a km-based offset) so units stay clean.
-        val liveOdoMiles = snapshot.engineOdometer
-        if (liveOdoMiles != null && liveOdoMiles > 0.0) {
-            AppModel.getInstance().lastLiveOdometerMiles = liveOdoMiles
-            Log.d(TAG, "Live odometer cache updated: $liveOdoMiles miles")
-        }
-
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
 
         // Resolve VIN directly from the PT-40 device — always the correct truck

@@ -128,6 +128,10 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     PrefRepository prefRepository;
     
+    // ECM bus state — true only after EV_BUS_ON, false after EV_BUS_OFF or on fresh start.
+    // Odometer from live events is only trustworthy when ECM bus is confirmed live.
+    private boolean isEcmBusLive = false;
+
     // Engine state tracking
     private String lastPushedEngineState = "";
     private int engineStateStableCount = 0;
@@ -329,6 +333,15 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         // Update model
         TelemetryEvent mTm = tmr.mTm;
         AppModel.getInstance().mLastEvent = mTm;
+
+        // Track ECM bus state so resolveOdometerForLog only uses live ECM odometer
+        if (mTm.mEvent == EventParam.EV_BUS_ON) {
+            isEcmBusLive = true;
+            Log.d(TAG, "ECM bus connected — odometer readings now live");
+        } else if (mTm.mEvent == EventParam.EV_BUS_OFF) {
+            isEcmBusLive = false;
+            Log.d(TAG, "ECM bus lost — odometer readings unreliable until EV_BUS_ON");
+        }
 
         String location = mTm.mGeoloc.latitude + "," + mTm.mGeoloc.longitude;
         prefRepository = new PrefRepository(this);
@@ -1128,13 +1141,15 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     }
 
     /**
-     * Use mLastEvent.mOdometer (updated on every onRequest() packet from the PT device)
-     * same as HomeFragment does for manual entries — no cross-session stale cache.
+     * Only uses mLastEvent.mOdometer when ECM bus is confirmed live (EV_BUS_ON received).
+     * Prevents stale PT device odometer from leaking into log entries during ECM sync loss.
      */
     private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
-        TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
-        if (lastEvent != null && lastEvent.mOdometer != null && !lastEvent.mOdometer.isEmpty()) {
-            return TelemetryLogValueUtils.normalizeOdometerForLog(lastEvent.mOdometer, diffOffsetKm);
+        if (isEcmBusLive) {
+            TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
+            if (lastEvent != null && lastEvent.mOdometer != null && !lastEvent.mOdometer.isEmpty()) {
+                return TelemetryLogValueUtils.normalizeOdometerForLog(lastEvent.mOdometer, diffOffsetKm);
+            }
         }
         return TelemetryLogValueUtils.normalizeOdometerForLog(rawOdometerKm, diffOffsetKm);
     }

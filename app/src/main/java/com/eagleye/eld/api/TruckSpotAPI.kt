@@ -5,6 +5,8 @@ import com.eagleye.eld.models.TelemetryRequest
 import com.eagleye.eld.models.TelemetryResponse
 import com.eagleye.eld.models.VehicleHealthResponse
 import com.eagleye.eld.models.FleetDashboardResponse
+import com.eagleye.eld.models.DriverBehaviorResponse
+import com.eagleye.eld.request.DriverBehaviorEventRequest
 import com.eagleye.eld.models.AllLogsResponse
 import com.eagleye.eld.models.CertifyModelItem
 import com.eagleye.eld.models.GetAllLogsResponse
@@ -208,6 +210,10 @@ interface TruckSpotAPI {
 
     @GET("api/v1/telemetry/fleet/dashboard")
     suspend fun getFleetDashboard(): Response<FleetDashboardResponse>
+
+    // Driver Behavior Scoring
+    @POST("api/v1/driver-behavior/event")
+    suspend fun recordDriverBehaviorEvent(@Body request: DriverBehaviorEventRequest): Response<DriverBehaviorResponse>
 
     @POST("api/v1/addLogWithException")
     suspend fun addLogWithException(@Body request: com.eagleye.eld.request.AddLogWithExceptionRequest): Response<AddLogSuccessResponse>

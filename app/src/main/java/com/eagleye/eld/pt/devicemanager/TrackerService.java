@@ -156,6 +156,15 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private boolean gapOdometerTracked = false;
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
+
+    // ECM bus state — true only after EV_BUS_ON, false after EV_BUS_OFF or fresh start
+    private boolean isEcmBusLive = false;
+
+    // Driver behavior — idle and speeding tracking
+    private long idleStartMs = -1L;
+    private static final int SPEEDING_THRESHOLD_KMH = 105;
+    private static final long IDLE_REPORT_INTERVAL_MS = 5 * 60 * 1000L;
+    private long lastIdleReportMs = 0L;
     private final Runnable finalizeReconnectStoredEventsRunnable = new Runnable() {
         @Override
         public void run() {
@@ -413,6 +422,18 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
         // Do something
         Log.i(TAG, "EVENT:" + mTm.mEvent.toString() + ":" + mTm.mSeq);
+
+        // ECM bus state tracking
+        if (mTm.mEvent == EventParam.EV_BUS_ON) {
+            isEcmBusLive = true;
+            Log.d(TAG, "ECM bus connected — odometer now live");
+        } else if (mTm.mEvent == EventParam.EV_BUS_OFF) {
+            isEcmBusLive = false;
+            Log.d(TAG, "ECM bus lost — odometer unreliable");
+        }
+
+        // Driver behavior — detect harsh events and speeding
+        handleDriverBehaviorEvent(mTm);
 
         // ACK the event
         AckEvent ack = new AckEvent(0, mTm.mSeq.toString(), dt.toDateString());
@@ -1141,8 +1162,88 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     }
 
     /**
-     * Only uses mLastEvent.mOdometer when ECM bus is confirmed live (EV_BUS_ON received).
-     * Prevents stale PT device odometer from leaking into log entries during ECM sync loss.
+     * Detect MEMS harsh events and speeding from live telemetry.
+     * Sends behavior events to /api/v1/driver-behavior/event.
+     */
+    private void handleDriverBehaviorEvent(TelemetryEvent mTm) {
+        if (prefRepository == null) prefRepository = new PrefRepository(this);
+        int driverId = prefRepository.getDriverId();
+        if (driverId <= 0) return;
+
+        int vehicleId = prefRepository.getVehicleId();
+        String eventType = null;
+        Double engineSpeed = null;
+
+        // Detect MEMS harsh events from PT-40 accelerometer
+        if (mTm.mEvent == EventParam.EV_MEMS_BRK) {
+            eventType = "harsh_brake";
+            Log.d(TAG, "Driver behavior: harsh braking detected");
+        } else if (mTm.mEvent == EventParam.EV_MEMS_ACC) {
+            eventType = "harsh_accel";
+            Log.d(TAG, "Driver behavior: harsh acceleration detected");
+        } else if (mTm.mEvent == EventParam.EV_MEMS_COR) {
+            eventType = "harsh_corner";
+            Log.d(TAG, "Driver behavior: harsh cornering detected");
+        }
+
+        // Detect speeding from engine speed
+        if (mTm.mGeoloc != null && mTm.mGeoloc.speed != null) {
+            engineSpeed = mTm.mGeoloc.speed.doubleValue();
+            if (engineSpeed > SPEEDING_THRESHOLD_KMH) {
+                eventType = "speeding";
+                Log.d(TAG, "Driver behavior: speeding detected at " + engineSpeed + " km/h");
+            }
+        }
+
+        // Idle tracking — report every 5 min when speed is 0 and engine is on
+        long now = System.currentTimeMillis();
+        boolean isIdle = (mTm.mGeoloc != null && mTm.mGeoloc.speed != null
+                && mTm.mGeoloc.speed <= 3
+                && mTm.mRpm != null && mTm.mRpm > 0);
+
+        double idleMinutesToReport = 0;
+        if (isIdle) {
+            if (idleStartMs < 0) idleStartMs = now;
+            if (now - lastIdleReportMs >= IDLE_REPORT_INTERVAL_MS) {
+                idleMinutesToReport = (now - idleStartMs) / 60000.0;
+                lastIdleReportMs = now;
+            }
+        } else {
+            idleStartMs = -1L;
+        }
+
+        // Only call API if there's a behavior event or idle to report
+        if (eventType == null && idleMinutesToReport <= 0) return;
+
+        final String finalEventType = eventType;
+        final Double finalEngineSpeed = engineSpeed;
+        final double finalIdleMinutes = idleMinutesToReport;
+        final int finalDriverId = driverId;
+        final int finalVehicleId = vehicleId;
+
+        new Thread(() -> {
+            try {
+                com.eagleye.eld.request.DriverBehaviorEventRequest req =
+                    new com.eagleye.eld.request.DriverBehaviorEventRequest(
+                        finalDriverId,
+                        finalVehicleId > 0 ? finalVehicleId : null,
+                        finalEventType,
+                        finalEngineSpeed,
+                        finalIdleMinutes,
+                        0.0,
+                        0.0,
+                        finalEngineSpeed
+                    );
+                repository.recordDriverBehaviorEventSync(req);
+            } catch (Exception e) {
+                Log.e(TAG, "Driver behavior event failed: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Use mLastEvent.mOdometer (updated on every onRequest() packet).
+     * Only trusted when ECM bus is confirmed live via EV_BUS_ON.
      */
     private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
         if (isEcmBusLive) {

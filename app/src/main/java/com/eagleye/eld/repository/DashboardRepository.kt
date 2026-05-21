@@ -1142,6 +1142,16 @@ class DashboardRepository @Inject constructor(
 //        return arrayList
 //    }
 
+    fun recordDriverBehaviorEventSync(request: com.eagleye.eld.request.DriverBehaviorEventRequest) {
+        try {
+            kotlinx.coroutines.runBlocking {
+                truckSpotAPI.recordDriverBehaviorEvent(request)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DashboardRepository", "recordDriverBehaviorEvent error: ${e.message}")
+        }
+    }
+
 }
 
 

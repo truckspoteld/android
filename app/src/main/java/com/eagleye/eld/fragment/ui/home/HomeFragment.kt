@@ -270,6 +270,11 @@ class HomeFragment : Fragment(), OnClickListener {
         val end: PendingDisconnectedDrivingPoint? = null
     )
 
+    private data class PendingEnginePeriod(
+        val start: PendingDisconnectedDrivingPoint? = null,
+        val end: PendingDisconnectedDrivingPoint? = null
+    )
+
     private data class PendingDisconnectedDrivingPoint(
         val date: String? = "",
         val time: String? = "",
@@ -1163,13 +1168,16 @@ class HomeFragment : Fragment(), OnClickListener {
                 if (pendingSegments.isNotEmpty()) {
                     submitPendingDisconnectedDrivingSegments(pendingSegments)
                 }
+                submitPendingEnginePeriods(readPendingEnginePeriods())
                 prefRepository.clearPendingDisconnectedDrivingMilesDialog()
                 prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
+                prefRepository.clearPendingEnginePeriods()
                 dialog.dismiss()
             }
             .setNegativeButton("No") { dialog, _ ->
                 prefRepository.clearPendingDisconnectedDrivingMilesDialog()
                 prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
+                prefRepository.clearPendingEnginePeriods()
                 dialog.dismiss()
             }
             .setOnDismissListener {
@@ -1186,6 +1194,27 @@ class HomeFragment : Fragment(), OnClickListener {
                 ?.filter { it.start != null || it.end != null }
                 .orEmpty()
         }.getOrDefault(emptyList())
+    }
+
+    private fun readPendingEnginePeriods(): List<PendingEnginePeriod> {
+        val json = prefRepository.getPendingEnginePeriods()
+        if (json.isBlank()) return emptyList()
+        return runCatching {
+            Gson().fromJson(json, Array<PendingEnginePeriod>::class.java)
+                ?.filter { it.start != null || it.end != null }
+                .orEmpty()
+        }.getOrDefault(emptyList())
+    }
+
+    private fun submitPendingEnginePeriods(periods: List<PendingEnginePeriod>) {
+        for (period in periods) {
+            period.start?.let { point ->
+                submitRecoveredStoredEventLog("eng_on", point)
+            }
+            period.end?.let { point ->
+                submitRecoveredStoredEventLog("eng_off", point)
+            }
+        }
     }
 
     private fun submitPendingDisconnectedDrivingSegments(

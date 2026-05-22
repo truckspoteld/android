@@ -1053,7 +1053,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         resetReconnectStoredEventCollection();
 
         if (!enginePeriods.isEmpty()) {
-            submitHistoricalEnginePeriods(enginePeriods);
+            prefRepository.setPendingEnginePeriods(gson.toJson(enginePeriods));
         }
 
         if (!tripSegments.isEmpty()) {

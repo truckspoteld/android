@@ -412,6 +412,18 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_PENDING_DISCONNECTED_DRIVING_SEGMENTS_JSON.put("")
     }
 
+    fun setPendingEnginePeriods(json: String) {
+        PREF_PENDING_ENGINE_PERIODS_JSON.put(json)
+    }
+
+    fun getPendingEnginePeriods(): String {
+        return PREF_PENDING_ENGINE_PERIODS_JSON.getString()
+    }
+
+    fun clearPendingEnginePeriods() {
+        PREF_PENDING_ENGINE_PERIODS_JSON.put("")
+    }
+
     fun clearData() {
         editor.clear()
         editor.commit()

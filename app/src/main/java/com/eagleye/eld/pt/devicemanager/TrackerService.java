@@ -157,9 +157,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
 
-    // ECM bus state — true only after EV_BUS_ON, false after EV_BUS_OFF or fresh start
-    private boolean isEcmBusLive = false;
-
     // Driver behavior — idle and speeding tracking
     private long idleStartMs = -1L;
     private static final int SPEEDING_THRESHOLD_KMH = 105;

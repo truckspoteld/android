@@ -80,11 +80,11 @@ import no.nordicsemi.android.log.Logger;
 public class TrackerService extends BleProfileService implements TrackerManagerCallbacks {
     private static final String TAG = "TrackerService";
     private static final double KM_TO_MILES = 0.621371d;
-    private static final double MIN_DISCONNECTED_DRIVING_MILES = 0.1d;
+    private static final double MIN_DISCONNECTED_DRIVING_MILES = 2.0d;
     private static final long STORED_EVENTS_REVIEW_SETTLE_MS = 1500L;
     private static final long STORED_EVENTS_STREAM_IDLE_MS = 5000L;
     private static final long CLEAN_RECONNECT_TIMEOUT_MS = 10000L;
-    private static final double MIN_UNIDENTIFIED_DRIVING_MINUTES = 60.0d;
+    private static final double MIN_UNIDENTIFIED_DRIVING_MINUTES = 10.0d;
     public static final String ACTION_DISCONNECTED_DRIVING_MILES_READY =
             "TRACKER-DISCONNECTED-DRIVING-MILES-READY";
     public static final String EXTRA_DISCONNECTED_DRIVING_MILES =
@@ -1062,7 +1062,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         }
 
         if (milesCovered < MIN_DISCONNECTED_DRIVING_MILES
-                && unidentifiedMinutes <= MIN_UNIDENTIFIED_DRIVING_MINUTES) {
+                || unidentifiedMinutes <= MIN_UNIDENTIFIED_DRIVING_MINUTES) {
             prefRepository.clearPendingDisconnectedDrivingMilesDialog();
             Log.d(TAG, "No disconnected driving miles found in stored events");
             return;

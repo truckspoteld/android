@@ -54,6 +54,7 @@ import com.pt.sdk.response.outbound.AckEvent;
 import com.pt.sdk.response.outbound.AckSPNEvent;
 import com.pt.sdk.response.outbound.AckStoredEvent;
 import com.pt.ws.TrackerInfo;
+import com.pt.ws.VehicleInfo;
 import com.eagleye.eld.R;
 import com.eagleye.eld.repository.DashboardRepository;
 import com.eagleye.eld.request.AddLogRequest;
@@ -496,6 +497,10 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             String vin = tir.getValue(BaseResponse.Key.VIN);
             if (!TextUtils.isEmpty(vin)) {
                 AppModel.getInstance().mPT30Vin = vin;
+                // Mirror into mVehicleInfo so HomeFragment's vehicle-change detection works
+                AppModel.getInstance().mVehicleInfo = new VehicleInfo(vin, null);
+                Intent vinBroadcast = new Intent("TRACKER-VIN-REFRESH");
+                LocalBroadcastManager.getInstance(this).sendBroadcast(vinBroadcast);
             } else {
                 AppModel.getInstance().mPT30Vin = "";
             }

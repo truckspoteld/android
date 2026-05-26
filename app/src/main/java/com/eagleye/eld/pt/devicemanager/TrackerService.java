@@ -361,7 +361,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                     mTm.mGeoloc.longitude,
                     true,
                     TelemetryLogValueUtils.normalizeEngineHoursForLog(mTm.mEngineHours, prefRepository.getDiffinEng()),
-                    "1C6RREHT5NN451094",
+                    resolveVin(),
                     1,
                     1,
                     1,

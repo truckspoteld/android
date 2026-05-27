@@ -158,6 +158,10 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
 
+    // ECM bus state — true only after EV_BUS_ON, false after EV_BUS_OFF or fresh start
+    private boolean isEcmBusLive = false;
+    // Last known good ECM odometer (in miles) — used to suppress GPS-based micro values on reconnect
+    private String lastGoodOdometerMiles = null;
     // Driver behavior — idle and speeding tracking
     private long idleStartMs = -1L;
     private static final int SPEEDING_THRESHOLD_KMH = 105;
@@ -1246,15 +1250,38 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     /**
      * Use mLastEvent.mOdometer (updated on every onRequest() packet).
      * Only trusted when ECM bus is confirmed live via EV_BUS_ON.
+     * Suppresses GPS-based micro odometer values on reconnect — if the
+     * converted miles value is < 100 but engine hours are normal (> 1),
+     * the ECM hasn't synced the real odometer PID yet. Use lastGoodOdometerMiles.
      */
     private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
+        String odoKm = rawOdometerKm;
         if (isEcmBusLive) {
             TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
             if (lastEvent != null && lastEvent.mOdometer != null && !lastEvent.mOdometer.isEmpty()) {
-                return TelemetryLogValueUtils.normalizeOdometerForLog(lastEvent.mOdometer, diffOffsetKm);
+                odoKm = lastEvent.mOdometer;
             }
         }
-        return TelemetryLogValueUtils.normalizeOdometerForLog(rawOdometerKm, diffOffsetKm);
+        String result = TelemetryLogValueUtils.normalizeOdometerForLog(odoKm, diffOffsetKm);
+        double miles = 0;
+        try { miles = Double.parseDouble(result); } catch (Exception ignored) {}
+
+        // Check if odometer is suspiciously low (ECM not yet synced)
+        TelemetryEvent te = AppModel.getInstance().mLastEvent;
+        double engHours = 0;
+        if (te != null && te.mEngineHours != null) {
+            try { engHours = Double.parseDouble(te.mEngineHours); } catch (Exception ignored) {}
+        }
+
+        if (miles < 100 && engHours > 1 && lastGoodOdometerMiles != null) {
+            Log.d(TAG, "Odometer suppressed: " + result + " mi (ECM not synced), using last good: " + lastGoodOdometerMiles);
+            return lastGoodOdometerMiles;
+        }
+
+        if (miles >= 100) {
+            lastGoodOdometerMiles = result;
+        }
+        return result;
     }
 
     private double calculateUnidentifiedDrivingMinutes() {

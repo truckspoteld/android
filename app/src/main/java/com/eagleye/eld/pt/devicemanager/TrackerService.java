@@ -158,8 +158,6 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
 
-    // ECM bus state — true only after EV_BUS_ON, false after EV_BUS_OFF or fresh start
-    private boolean isEcmBusLive = false;
     // Last known good ECM odometer (in miles) — used to suppress GPS-based micro values on reconnect
     private String lastGoodOdometerMiles = null;
     // Driver behavior — idle and speeding tracking

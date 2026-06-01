@@ -304,18 +304,15 @@ class LoginActivity : AppCompatActivity() {
 
         val views = listOf(
             binding.logoRow,
-            binding.welcometext,
-            binding.logintext,
-            binding.chipsScroll,
             binding.cardView
         )
-        
+
         views.forEachIndexed { index, view ->
             view.visibility = View.INVISIBLE
             lifecycleScope.launch {
                 delay(index * stagger)
                 view.visibility = View.VISIBLE
-                val technique = if (index <= 2) Techniques.FadeInDown else if (index == 3) Techniques.FadeInRight else Techniques.FadeInUp
+                val technique = if (index == 0) Techniques.FadeInDown else Techniques.FadeInUp
                 YoYo.with(technique).duration(duration).playOn(view)
             }
         }

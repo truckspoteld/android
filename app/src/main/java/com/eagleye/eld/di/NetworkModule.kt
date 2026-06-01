@@ -73,6 +73,10 @@ class NetworkModule {
             val request = chain.request()
                 .newBuilder()
                 .addHeader("Authorization", "Bearer ${token.getToken()}")
+                // App-version headers so the backend version gate can force/recommend updates.
+                .addHeader("x-app-platform", "android")
+                .addHeader("x-app-build", BuildConfig.VERSION_CODE.toString())
+                .addHeader("x-app-version", BuildConfig.VERSION_NAME)
                 .build()
             chain.proceed(request)
         }

@@ -24,6 +24,7 @@ import com.eagleye.eld.fragment.ui.home.HomeViewModel
 import com.eagleye.eld.pt.devicemanager.TrackerManagerActivity
 import com.eagleye.eld.request.AddLogRequest
 import com.eagleye.eld.request.LoginRequest
+import com.eagleye.eld.utils.AppUpdateChecker
 import com.eagleye.eld.utils.ExceptionHelper
 import com.eagleye.eld.utils.Helper
 import com.eagleye.eld.utils.NetworkResult
@@ -76,17 +77,33 @@ class LoginActivity : AppCompatActivity() {
             // optional
         }
 
-        // ✅ Already logged in
-        if (prefRepository.getRememberMe() && prefRepository.getLoggedIn() && prefRepository.getToken().isNotEmpty()) {
-            sendLoginLogDirect()
-            if (connection) {
-                prefRepository.setJustLoggedIn(true)
-                goToDashboard()
-            } else {
-                saveData("saveConnection", true)
-                checkAllPermissionsAndProceed()
+        // App version gate — check on launch. If the backend says this build is no longer
+        // supported, show the blocking Update Required screen. Fails open (null → continue),
+        // and the remember-me auto-route runs only AFTER the check so blocked builds can't slip
+        // straight into the dashboard.
+        lifecycleScope.launch {
+            val info = AppUpdateChecker.check()
+            if (info?.required == true) {
+                startActivity(Intent(this@LoginActivity, UpdateRequiredActivity::class.java).apply {
+                    putExtra(UpdateRequiredActivity.EXTRA_MESSAGE, info.message)
+                    putExtra(UpdateRequiredActivity.EXTRA_STORE_URL, info.storeUrl)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                })
+                finish()
+                return@launch
             }
-            return
+
+            // ✅ Already logged in
+            if (prefRepository.getRememberMe() && prefRepository.getLoggedIn() && prefRepository.getToken().isNotEmpty()) {
+                sendLoginLogDirect()
+                if (connection) {
+                    prefRepository.setJustLoggedIn(true)
+                    goToDashboard()
+                } else {
+                    saveData("saveConnection", true)
+                    checkAllPermissionsAndProceed()
+                }
+            }
         }
 
         binding.rememberme.isChecked = prefRepository.getLoggedIn()

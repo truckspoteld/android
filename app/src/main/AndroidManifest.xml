@@ -93,6 +93,10 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="false" />
         <activity
+            android:name=".UpdateRequiredActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false" />
+        <activity
             android:name=".LoginActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"

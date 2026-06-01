@@ -158,8 +158,11 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
 
-    // Last known good ECM odometer (in miles) — used to suppress GPS-based micro values on reconnect
+    // Last known good ECM odometer (in miles) — used to suppress GPS-based micro values on reconnect.
+    // Scoped to the VIN it belongs to: the "never decrease / never drop to ~0" guard only applies
+    // for the SAME truck. A different VIN is a different odometer, so we reset and accept its value.
     private String lastGoodOdometerMiles = null;
+    private String lastGoodOdometerVin = null;
     // Driver behavior — idle and speeding tracking
     private long idleStartMs = -1L;
     private static final int SPEEDING_THRESHOLD_KMH = 105;
@@ -1264,20 +1267,37 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         double miles = 0;
         try { miles = Double.parseDouble(result); } catch (Exception ignored) {}
 
-        // Check if odometer is suspiciously low (ECM not yet synced)
-        TelemetryEvent te = AppModel.getInstance().mLastEvent;
-        double engHours = 0;
-        if (te != null && te.mEngineHours != null) {
-            try { engHours = Double.parseDouble(te.mEngineHours); } catch (Exception ignored) {}
+        // The "never decrease / never drop to ~0" guard is per-VIN: a real odometer
+        // only moves UP for the SAME truck. A different VIN is a different truck with
+        // its own (possibly lower) odometer, so on a VIN change we reset and accept it.
+        String currentVin = resolveVin();
+        boolean sameVin = lastGoodOdometerVin != null && currentVin != null && currentVin.equals(lastGoodOdometerVin);
+
+        double lastGood = 0;
+        if (lastGoodOdometerMiles != null) {
+            try { lastGood = Double.parseDouble(lastGoodOdometerMiles); } catch (Exception ignored) {}
         }
 
-        if (miles < 100 && engHours > 1 && lastGoodOdometerMiles != null) {
-            Log.d(TAG, "Odometer suppressed: " + result + " mi (ECM not synced), using last good: " + lastGoodOdometerMiles);
-            return lastGoodOdometerMiles;
-        }
-
-        if (miles >= 100) {
+        if (sameVin && lastGood > 0) {
+            // Same truck: the ECM (on reconnect / flaky bus) intermittently reports 0
+            // or a tiny GPS value before syncing the real odometer PID — which caused
+            // the 0<->true toggle. Suppress any near-zero or backwards reading and
+            // hold last-good (0.5 mi jitter tolerance for rounding).
+            if (miles < 1.0 || miles < lastGood - 0.5) {
+                Log.d(TAG, "Odometer suppressed: " + result + " mi (stale/decreasing, same VIN " + currentVin + "), holding last good: " + lastGoodOdometerMiles);
+                return lastGoodOdometerMiles;
+            }
+            // Plausible forward reading — advance last-good.
             lastGoodOdometerMiles = result;
+            lastGoodOdometerVin = currentVin;
+            return result;
+        }
+
+        // New VIN or no trusted value yet: accept a real reading (>= 1 mi) as the new
+        // truck's first good value; otherwise emit 0 (genuinely no odometer yet).
+        if (miles >= 1.0) {
+            lastGoodOdometerMiles = result;
+            lastGoodOdometerVin = currentVin;
         }
         return result;
     }

@@ -1236,6 +1236,24 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
+    // Odometer for a LIVE log event: applies the shared per-VIN monotonic guard (never
+    // decrease / never drop to ~0 for the same VIN) using the persisted last-good baseline,
+    // then advances it. Shared with TrackerService via PrefRepository so a good reading
+    // captured by either component holds across all events. Historical/recovered events
+    // intentionally do NOT use this — they carry real captured gap odometers.
+    private fun guardedOdometerForLog(rawOdometerKm: String?, vin: String?): String {
+        val guarded = TelemetryLogValueUtils.resolveGuardedOdometerForLog(
+            rawOdometerKm,
+            prefRepository.getDiffinOdo(),
+            vin,
+            prefRepository.getLastGoodOdometerMiles(),
+            prefRepository.getLastGoodOdometerVin()
+        )
+        prefRepository.setLastGoodOdometerMiles(guarded.lastGoodMiles)
+        prefRepository.setLastGoodOdometerVin(guarded.lastGoodVin)
+        return guarded.value
+    }
+
     private fun submitRecoveredStoredEventLog(
         mode: String,
         point: PendingDisconnectedDrivingPoint
@@ -1509,10 +1527,7 @@ class HomeFragment : Fragment(), OnClickListener {
             val vin_no = AppModel.getInstance().mVehicleInfo?.VIN
             val te = AppModel.getInstance().mLastEvent
 
-            val normalizedOdometer = TelemetryLogValueUtils.normalizeOdometerForLog(
-                te?.mOdometer,
-                prefRepository.getDiffinOdo()
-            )
+            val normalizedOdometer = guardedOdometerForLog(te?.mOdometer, vin_no?.toString())
             val normalizedEngineHours = TelemetryLogValueUtils.normalizeEngineHoursForLog(
                 te?.mEngineHours,
                 prefRepository.getDiffinEng()

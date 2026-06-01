@@ -158,11 +158,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private double gapFirstOdometerKm = 0.0d;
     private double gapLastOdometerKm = 0.0d;
 
-    // Last known good ECM odometer (in miles) — used to suppress GPS-based micro values on reconnect.
-    // Scoped to the VIN it belongs to: the "never decrease / never drop to ~0" guard only applies
-    // for the SAME truck. A different VIN is a different odometer, so we reset and accept its value.
-    private String lastGoodOdometerMiles = null;
-    private String lastGoodOdometerVin = null;
+    // Last-good ECM odometer (miles), VIN-scoped, now persisted in PrefRepository and shared
+    // across components — see guardOdometerForLog() / TelemetryLogValueUtils.resolveGuardedOdometerForLog().
     // Driver behavior — idle and speeding tracking
     private long idleStartMs = -1L;
     private static final int SPEEDING_THRESHOLD_KMH = 105;
@@ -1253,9 +1250,13 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
      * Only trusted when ECM bus is confirmed live via EV_BUS_ON.
      * Suppresses GPS-based micro odometer values on reconnect — if the
      * converted miles value is < 100 but engine hours are normal (> 1),
-     * the ECM hasn't synced the real odometer PID yet. Use lastGoodOdometerMiles.
+     * the ECM hasn't synced the real odometer PID yet — the shared guard holds last-good.
      */
     private String resolveOdometerForLog(String rawOdometerKm, String diffOffsetKm) {
+        // Prefer the live ECM snapshot when the bus is confirmed live — it's the freshest
+        // odometer PID value. The "never decrease / never drop to ~0 for the same VIN"
+        // guard itself lives in the shared util, keyed by VIN and persisted in prefs so
+        // EVERY log-write site (this service AND HomeFragment) shares one baseline.
         String odoKm = rawOdometerKm;
         if (isEcmBusLive) {
             TelemetryEvent lastEvent = AppModel.getInstance().mLastEvent;
@@ -1263,63 +1264,25 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                 odoKm = lastEvent.mOdometer;
             }
         }
-        String result = TelemetryLogValueUtils.normalizeOdometerForLog(odoKm, diffOffsetKm);
-        double miles = 0;
-        try { miles = Double.parseDouble(result); } catch (Exception ignored) {}
+        return guardOdometerForLog(odoKm, diffOffsetKm, resolveVin());
+    }
 
-        // The "never decrease / never drop to ~0" guard is per-VIN: a real odometer
-        // only moves UP for the SAME truck. A different VIN is a different truck with
-        // its own (possibly lower) odometer, so on a VIN change we reset and accept it.
-        String currentVin = resolveVin();
-
-        // Seed the per-VIN baseline from the LIVE ECM snapshot if we don't have one
-        // yet for this VIN. Without this, the first auto-logged event after connect
-        // could slip a momentary 0 through (the seeding 'sb'/status reading may have
-        // taken a different code path that never set lastGoodOdometer*). The live
-        // snapshot's odometer is the same ECM value, so use it to establish the floor.
-        if ((lastGoodOdometerVin == null || !lastGoodOdometerVin.equals(currentVin)) && isEcmBusLive && currentVin != null && !currentVin.isEmpty()) {
-            TelemetryEvent live = AppModel.getInstance().mLastEvent;
-            if (live != null && live.mOdometer != null && !live.mOdometer.isEmpty()) {
-                String liveMilesStr = TelemetryLogValueUtils.normalizeOdometerForLog(live.mOdometer, diffOffsetKm);
-                double liveMiles = 0;
-                try { liveMiles = Double.parseDouble(liveMilesStr); } catch (Exception ignored) {}
-                if (liveMiles >= 1.0) {
-                    lastGoodOdometerMiles = liveMilesStr;
-                    lastGoodOdometerVin = currentVin;
-                    Log.d(TAG, "Odometer baseline seeded from live ECM: " + liveMilesStr + " mi (VIN " + currentVin + ")");
-                }
-            }
-        }
-
-        boolean sameVin = lastGoodOdometerVin != null && currentVin != null && currentVin.equals(lastGoodOdometerVin);
-
-        double lastGood = 0;
-        if (lastGoodOdometerMiles != null) {
-            try { lastGood = Double.parseDouble(lastGoodOdometerMiles); } catch (Exception ignored) {}
-        }
-
-        if (sameVin && lastGood > 0) {
-            // Same truck: the ECM (on reconnect / flaky bus) intermittently reports 0
-            // or a tiny GPS value before syncing the real odometer PID — which caused
-            // the 0<->true toggle. Suppress any near-zero or backwards reading and
-            // hold last-good (0.5 mi jitter tolerance for rounding).
-            if (miles < 1.0 || miles < lastGood - 0.5) {
-                Log.d(TAG, "Odometer suppressed: " + result + " mi (stale/decreasing, same VIN " + currentVin + "), holding last good: " + lastGoodOdometerMiles);
-                return lastGoodOdometerMiles;
-            }
-            // Plausible forward reading — advance last-good.
-            lastGoodOdometerMiles = result;
-            lastGoodOdometerVin = currentVin;
-            return result;
-        }
-
-        // New VIN or no trusted value yet: accept a real reading (>= 1 mi) as the new
-        // truck's first good value; otherwise emit 0 (genuinely no odometer yet).
-        if (miles >= 1.0) {
-            lastGoodOdometerMiles = result;
-            lastGoodOdometerVin = currentVin;
-        }
-        return result;
+    /**
+     * Apply the per-VIN monotonic odometer guard using the persisted (shared) last-good
+     * baseline, then persist the advanced baseline. Used by every log-write site so a good
+     * reading captured anywhere holds across all events for the same VIN.
+     */
+    private String guardOdometerForLog(String rawOdometerKm, String diffOffsetKm, String vin) {
+        TelemetryLogValueUtils.GuardedOdometer guarded =
+                TelemetryLogValueUtils.resolveGuardedOdometerForLog(
+                        rawOdometerKm,
+                        diffOffsetKm,
+                        vin,
+                        prefRepository.getLastGoodOdometerMiles(),
+                        prefRepository.getLastGoodOdometerVin());
+        prefRepository.setLastGoodOdometerMiles(guarded.lastGoodMiles);
+        prefRepository.setLastGoodOdometerVin(guarded.lastGoodVin);
+        return guarded.value;
     }
 
     private double calculateUnidentifiedDrivingMinutes() {

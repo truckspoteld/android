@@ -71,6 +71,20 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun getLastKnownVin(): String = PREF_LAST_KNOWN_VIN.getString()
     fun setLastKnownVin(vin: String) { PREF_LAST_KNOWN_VIN.put(vin) }
 
+    // Last-good odometer (miles) and the VIN it belongs to. Shared across TrackerService
+    // and HomeFragment so the odometer-on-log guard has a single source of truth: once a
+    // real reading is captured for a VIN, every later log holds at or above it for that VIN.
+    fun getLastGoodOdometerMiles(): String? =
+        PREF_LAST_GOOD_ODOMETER_MILES.getString().takeIf { it.isNotEmpty() }
+    fun setLastGoodOdometerMiles(miles: String?) {
+        PREF_LAST_GOOD_ODOMETER_MILES.put(miles ?: "")
+    }
+    fun getLastGoodOdometerVin(): String? =
+        PREF_LAST_GOOD_ODOMETER_VIN.getString().takeIf { it.isNotEmpty() }
+    fun setLastGoodOdometerVin(vin: String?) {
+        PREF_LAST_GOOD_ODOMETER_VIN.put(vin ?: "")
+    }
+
     fun setRemoveableIndex(index: Int) {
         PREF_REMOVEDINDEX.put(index)
     }

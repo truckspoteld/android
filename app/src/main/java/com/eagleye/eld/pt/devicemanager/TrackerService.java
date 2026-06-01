@@ -1271,6 +1271,26 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         // only moves UP for the SAME truck. A different VIN is a different truck with
         // its own (possibly lower) odometer, so on a VIN change we reset and accept it.
         String currentVin = resolveVin();
+
+        // Seed the per-VIN baseline from the LIVE ECM snapshot if we don't have one
+        // yet for this VIN. Without this, the first auto-logged event after connect
+        // could slip a momentary 0 through (the seeding 'sb'/status reading may have
+        // taken a different code path that never set lastGoodOdometer*). The live
+        // snapshot's odometer is the same ECM value, so use it to establish the floor.
+        if ((lastGoodOdometerVin == null || !lastGoodOdometerVin.equals(currentVin)) && isEcmBusLive && currentVin != null && !currentVin.isEmpty()) {
+            TelemetryEvent live = AppModel.getInstance().mLastEvent;
+            if (live != null && live.mOdometer != null && !live.mOdometer.isEmpty()) {
+                String liveMilesStr = TelemetryLogValueUtils.normalizeOdometerForLog(live.mOdometer, diffOffsetKm);
+                double liveMiles = 0;
+                try { liveMiles = Double.parseDouble(liveMilesStr); } catch (Exception ignored) {}
+                if (liveMiles >= 1.0) {
+                    lastGoodOdometerMiles = liveMilesStr;
+                    lastGoodOdometerVin = currentVin;
+                    Log.d(TAG, "Odometer baseline seeded from live ECM: " + liveMilesStr + " mi (VIN " + currentVin + ")");
+                }
+            }
+        }
+
         boolean sameVin = lastGoodOdometerVin != null && currentVin != null && currentVin.equals(lastGoodOdometerVin);
 
         double lastGood = 0;

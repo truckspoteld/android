@@ -1,0 +1,21 @@
+# Gradle / build output (generated)
+.gradle/
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Machine-specific config
+local.properties
+
+# Signing keys & secrets — KEEP LOCAL, never commit (see memory: keys catalog)
+keyStore/
+*.keystore
+*.jks
+google-services.json
+
+# IDE / misc
+*.iml
+.idea/
+*.log

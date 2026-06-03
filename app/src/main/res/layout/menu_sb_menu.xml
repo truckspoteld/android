@@ -91,5 +91,15 @@
             style="@style/IosMenuItemStyle"
             android:text="Post-Trip" />
 
+        <TextView
+            android:id="@+id/sb16"
+            style="@style/IosMenuItemStyle"
+            android:text="Pre-Trip - Trailer Change" />
+
+        <TextView
+            android:id="@+id/sb17"
+            style="@style/IosMenuItemStyle"
+            android:text="Post-Trip - Trailer Change" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

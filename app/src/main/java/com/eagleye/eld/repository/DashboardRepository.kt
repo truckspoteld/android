@@ -883,6 +883,16 @@ class DashboardRepository @Inject constructor(
         prefRepository.setDifferenceinEnghours(data.body()?.results?.unidentifiedRecords?.get(0)?.engHour.toString())
     }
 
+    // Driver odometer calibration — sends the dashboard reading; backend computes/stores the offset.
+    suspend fun calibrateOdometer(request: com.eagleye.eld.request.CalibrateOdometerRequest): Boolean {
+        return try {
+            truckSpotAPI.calibrateOdometer(request).isSuccessful
+        } catch (e: Exception) {
+            android.util.Log.e("DashboardRepository", "calibrateOdometer failed: ${e.message}")
+            false
+        }
+    }
+
     fun calculatePreviousTimeForLogs(mode: String): Double {
         if (AlertCalculationUtils.isShiftReset(context))
             return 0.0

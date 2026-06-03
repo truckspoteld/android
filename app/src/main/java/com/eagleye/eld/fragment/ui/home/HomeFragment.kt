@@ -261,6 +261,9 @@ class HomeFragment : Fragment(), OnClickListener {
             } else if (connectionState == BleProfileService.STATE_CONNECTED) {
                 prefRepository.setEldConnected(true)
                 (activity as? Dashboard)?.dismissEldReconnectDialog()
+                // Auto-prompt for the dashboard odometer the first time this truck connects (driver
+                // sets it without needing an admin/portal). Delay so the VIN has time to anchor.
+                view?.postDelayed({ maybePromptSetOdometer() }, 6000)
             }
 
             if (!isBluetoothConnecting) {
@@ -365,6 +368,8 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.btnSleep.setOnClickListener(this)
         binding.btnDrive.setOnClickListener(this)
         binding.btnOn.setOnClickListener(this)
+        // Re-set odometer anytime: long-press the connection pill → "Set Odometer" dialog.
+        binding.llBluetoothStatusPill.setOnLongClickListener { showSetOdometerDialog(); true }
         binding.btnPersonal.setOnClickListener(this)
         binding.btnYard.setOnClickListener(this)
 
@@ -2044,7 +2049,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun onMode() {
         val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
         dialog.setContentView(R.layout.menu_sb_menu)
-        val optionViews = (1..15).map { i ->
+        val optionViews = (1..17).map { i ->
             dialog.findViewById<TextView>(resources.getIdentifier("sb$i", "id", requireContext().packageName))
         }
         optionViews.forEach { optionView ->
@@ -2081,6 +2086,54 @@ class HomeFragment : Fragment(), OnClickListener {
                 YoYo.with(Techniques.FadeInRight).duration(300).playOn(view)
             }, index * 40L)
         }
+    }
+
+    /** Auto-prompt for the dashboard odometer the first time a truck is connected and not yet set. */
+    private fun maybePromptSetOdometer() {
+        if (!isAdded || _binding == null) return
+        val vin = prefRepository.getAnchoredVin().takeIf { it.isNotBlank() }
+            ?: AppModel.getInstance().mPT30Vin?.takeIf { !it.isNullOrBlank() && it != "n/a" }
+            ?: return
+        if (prefRepository.isOdometerCalibrated(vin)) return
+        showSetOdometerDialog(vin, autoPrompt = true)
+    }
+
+    /** Driver enters ONLY the dashboard odometer reading; the backend computes/stores the offset. */
+    private fun showSetOdometerDialog(vinIn: String? = null, autoPrompt: Boolean = false) {
+        val ctx = context ?: return
+        val vin = vinIn ?: prefRepository.getAnchoredVin().takeIf { it.isNotBlank() }
+            ?: AppModel.getInstance().mPT30Vin
+        if (vin.isNullOrBlank()) {
+            android.widget.Toast.makeText(ctx, "Connect the tracker first, then set the odometer.", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val input = android.widget.EditText(ctx).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            hint = "Odometer from dashboard (e.g. 200630)"
+        }
+        val container = android.widget.FrameLayout(ctx).apply { setPadding(50, 16, 50, 0); addView(input) }
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Set Odometer")
+            .setMessage("Enter the current odometer reading shown on your dashboard.")
+            .setView(container)
+            .setCancelable(!autoPrompt)
+            .setPositiveButton("Save") { _, _ ->
+                val odo = input.text.toString().trim().toDoubleOrNull()
+                if (odo == null || odo <= 0) {
+                    android.widget.Toast.makeText(ctx, "Enter a valid odometer reading.", android.widget.Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                homeViewModel.calibrateOdometer(com.eagleye.eld.request.CalibrateOdometerRequest(vin, odo)) { ok ->
+                    if (isAdded) android.widget.Toast.makeText(
+                        requireContext(),
+                        if (ok) "Odometer set to ${odo.toInt()}" else "Could not set odometer — try again.",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    if (ok) prefRepository.setOdometerCalibrated(vin, true)
+                }
+            }
+            .setNegativeButton(if (autoPrompt) "Later" else "Cancel", null)
+            .show()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

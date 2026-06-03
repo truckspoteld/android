@@ -125,6 +125,14 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
         PREF_DIFFINENG.put(diff)
     }
 
+    // Tracks whether the driver has set the dashboard odometer for a given VIN (per truck), so the
+    // auto-prompt at connect only fires until it's done once.
+    fun setOdometerCalibrated(vin: String, value: Boolean) {
+        pref.edit().putBoolean("odo_calibrated_$vin", value).apply()
+    }
+
+    fun isOdometerCalibrated(vin: String): Boolean = pref.getBoolean("odo_calibrated_$vin", false)
+
     fun getDiffinOdo(): String {
         if (PREF_DIFFINODO.getString().equals("null") || PREF_DIFFINENG.getString().isEmpty()) {
             return "0"

@@ -23,12 +23,24 @@ class TelemetryRepository(private val api: TruckSpotAPI) {
     private val _fleetDashboard = MutableLiveData<FleetDashboardResponse?>()
     val fleetDashboard: LiveData<FleetDashboardResponse?> = _fleetDashboard
 
-    suspend fun sendTelemetry(vin: String, snapshot: VirtualDashboard.Snapshot): TelemetryResponse? {
+    suspend fun sendTelemetry(
+        vin: String,
+        snapshot: VirtualDashboard.Snapshot,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ): TelemetryResponse? {
         return try {
-            val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
+            // Format in UTC so the trailing 'Z' is truthful. Without setting the timezone,
+            // SimpleDateFormat uses the device's LOCAL time but labels it 'Z' (UTC) — making
+            // every telemetry reading land hours off (e.g. PDT stored as UTC = 7h in the past).
+            val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                .format(Date())
             val request = TelemetryRequest(
                 vinNo = vin,
                 recordedAt = isoDate,
+                latitude = latitude,
+                longitude = longitude,
                 engineRpm = snapshot.engineRPM?.toDouble(),
                 engineSpeed = snapshot.engineSpeed?.toDouble(),
                 engineLoad = snapshot.engineLoad?.toDouble(),

@@ -1,7 +1,10 @@
 package com.eagleye.eld.pt.devicemanager
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Tasks
 import com.google.gson.GsonBuilder
 import com.pt.sdk.VirtualDashboard
 import com.eagleye.eld.api.TruckSpotAPI
@@ -48,6 +51,7 @@ object TelemetryUploadManager {
             .create(TruckSpotAPI::class.java)
     }
 
+    @SuppressLint("MissingPermission")
     fun onDashboardUpdated(context: Context, snapshot: VirtualDashboard.Snapshot) {
         val now = System.currentTimeMillis()
 
@@ -79,7 +83,21 @@ object TelemetryUploadManager {
 
         scope.launch {
             try {
-                val result = TelemetryRepository(cachedApi!!).sendTelemetry(vin, snapshot)
+                // GPS priority: (1) the TRACKER's own fix (mGeoloc) — the SAME source the duty logs
+                // use, so telemetry GPS stays consistent with the log GPS; (2) the phone's
+                // FusedLocation as a fallback when the tracker has no fix yet. Without either, the
+                // telemetry rows land with null lat/long.
+                val trackerGeo = AppModel.getInstance().mLastEvent?.mGeoloc
+                var gpsLat: Double? = (trackerGeo?.latitude as? Number)?.toDouble()
+                var gpsLng: Double? = (trackerGeo?.longitude as? Number)?.toDouble()
+                if (gpsLat == null || gpsLng == null || (gpsLat == 0.0 && gpsLng == 0.0)) {
+                    val loc = try {
+                        Tasks.await(LocationServices.getFusedLocationProviderClient(context).lastLocation)
+                    } catch (e: Exception) { null }
+                    if (loc != null) { gpsLat = loc.latitude; gpsLng = loc.longitude }
+                }
+                val result = TelemetryRepository(cachedApi!!)
+                    .sendTelemetry(vin, snapshot, gpsLat, gpsLng)
                 if (result != null) {
                     Log.d(TAG, "Telemetry saved [VIN=$vin] — health: ${result.healthScore} (${result.healthStatus})")
                     if (!result.warnings.isNullOrEmpty()) {

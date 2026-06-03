@@ -67,6 +67,10 @@ interface TruckSpotAPI {
     @PUT("api/v1/add_unidentified")
     suspend fun addOffset(@Body addOffsetRequest: AddOffsetRequest): Response<UnidentifiedResponse>
 
+    // Driver odometer calibration: send the dashboard reading; backend computes/stores the offset.
+    @PUT("api/v1/calibrate_odometer")
+    suspend fun calibrateOdometer(@Body request: com.eagleye.eld.request.CalibrateOdometerRequest): Response<okhttp3.ResponseBody>
+
     @POST("api/v1/eld/unidentified/reject")
     suspend fun rejectUnidentifiedDriving(@Body request: RejectUnidentifiedRequest): Response<UnidentifiedResponse>
 

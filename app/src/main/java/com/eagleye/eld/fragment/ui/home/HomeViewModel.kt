@@ -229,6 +229,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // Driver odometer calibration — backend computes the offset from the dashboard reading.
+    fun calibrateOdometer(request: com.eagleye.eld.request.CalibrateOdometerRequest, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = try { dashboardRespository.calibrateOdometer(request) } catch (e: Exception) {
+                Log.e("HomeViewModel", "calibrateOdometer: ${e.message}"); false
+            }
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onResult(ok) }
+        }
+    }
+
     fun addOffset(prefRepository: PrefRepository, offset: AddOffsetRequest, context: Context) {
         viewModelScope.launch {
             if (isInternetAvailable(context)) {

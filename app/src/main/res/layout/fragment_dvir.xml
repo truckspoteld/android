@@ -570,7 +570,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="8dp"
-                                        android:text="Brakes"
+                                        android:text="Service Brakes"
                                         android:textColor="@color/home_text_main"
                                         android:textSize="14sp"
                                         android:fontFamily="@font/sf_pro_display_medium" />
@@ -628,7 +628,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="8dp"
-                                        android:text="Lights"
+                                        android:text="Lights &amp; Reflectors"
                                         android:textColor="@color/home_text_main"
                                         android:textSize="14sp"
                                         android:fontFamily="@font/sf_pro_display_medium" />
@@ -822,6 +822,60 @@
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="8dp"
                                         android:text="Exhaust"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                            </LinearLayout>
+                            <!-- Row: Parking Brake & Wheels/Rims (FMCSA §396.11) -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+                                <LinearLayout
+                                    android:id="@+id/llCbParkingBrake"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckParkingBrake"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Parking Brake"
+                                        android:textColor="@color/home_text_main"
+                                        android:textSize="14sp"
+                                        android:fontFamily="@font/sf_pro_display_medium" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/llCbWheels"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_margin="4dp"
+                                    android:background="@drawable/bg_dvir_checklist_item"
+                                    android:padding="12dp"
+                                    android:orientation="vertical">
+                                    <ImageView
+                                        android:id="@+id/ivCheckWheels"
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:src="@drawable/baseline_check_circle_24"
+                                        app:tint="@color/home_text_sub" />
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="Wheels &amp; Rims"
                                         android:textColor="@color/home_text_main"
                                         android:textSize="14sp"
                                         android:fontFamily="@font/sf_pro_display_medium" />

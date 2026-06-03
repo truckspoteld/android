@@ -166,6 +166,8 @@ class HomeFragment : Fragment(), OnClickListener {
     val connectionStateIf = IntentFilter(BleProfileService.BROADCAST_CONNECTION_STATE)
     val disconnectedMilesIf = IntentFilter(TrackerService.ACTION_DISCONNECTED_DRIVING_MILES_READY)
     val vinRefreshIf = IntentFilter("TRACKER-VIN-REFRESH")
+    val vinChangeIf = IntentFilter("com.eagleye.eld.VIN_CHANGE")
+    private var vinChangeDialogShowing = false
 
     // Simple last log tracking like EagleEye
     // NOTE: Initialized from persisted mode so screen refresh doesn't reset it to empty
@@ -201,6 +203,34 @@ class HomeFragment : Fragment(), OnClickListener {
     var viRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             updateVehicleInfo()
+        }
+    }
+
+    // ELD reported a different real VIN than the anchored one → ask the driver to confirm.
+    // Confirm → re-anchor to the new VIN (Drive unlocks). Reject → stays blocked while the ECM
+    // keeps reporting the different VIN (isDrivingModeAllowed sees the mismatch).
+    var vinChangeRefresh: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val newVin = intent.getStringExtra("new_vin") ?: return
+            val anchored = prefRepository.getAnchoredVin()
+            if (newVin == anchored || vinChangeDialogShowing || !isAdded) return
+            vinChangeDialogShowing = true
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Vehicle changed")
+                .setMessage("The ELD reports a different vehicle:\nVIN $newVin\n(current: $anchored)\n\nConfirm only if you switched trucks. Driving stays locked until you confirm.")
+                .setCancelable(false)
+                .setPositiveButton("Confirm switch") { d, _ ->
+                    prefRepository.setAnchoredVin(newVin)
+                    vinChangeDialogShowing = false
+                    updateDrivingButtonAvailability()
+                    d.dismiss()
+                }
+                .setNegativeButton("Reject") { d, _ ->
+                    vinChangeDialogShowing = false
+                    updateDrivingButtonAvailability()
+                    d.dismiss()
+                }
+                .show()
         }
     }
 
@@ -819,7 +849,14 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun isDrivingModeAllowed(): Boolean {
-        return !isNeedToconnect && AppModel.getInstance().mLastEvent != null
+        // Block Drive on an UNCONFIRMED VIN change: if the ELD reports a different real VIN than
+        // the anchored one and the driver hasn't confirmed the truck change, he can't go Driving.
+        val ecm = AppModel.getInstance().mPT30Vin
+        val anchored = prefRepository.getAnchoredVin()
+        val vinMismatch = !ecm.isNullOrBlank() &&
+            ecm.matches(Regex("^[A-Za-z0-9]{17}$")) &&
+            anchored.isNotEmpty() && ecm.trim() != anchored.trim()
+        return !isNeedToconnect && AppModel.getInstance().mLastEvent != null && !vinMismatch
     }
 
     private fun sanitizeModeForCurrentConnection(mode: String): String {
@@ -1096,10 +1133,8 @@ class HomeFragment : Fragment(), OnClickListener {
 
         alertDialogBuilder.setNegativeButton("No") { dialog, _ ->
             prefRepository.setShowUnidentifiedDialog(false)
-            var vin = ""
-            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null) {
-                vin = AppModel.getInstance().mVehicleInfo.VIN
-            }
+            // Anchored VIN (stable) for the unidentified-driving log, not the raw ECM VIN.
+            var vin = prefRepository.anchoredVinForLog(AppModel.getInstance().mPT30Vin)
             var odo = prefRepository.getDiffinOdo()
             if (odo.isNullOrEmpty() || odo == "null") {
                 odo = "0"
@@ -1287,13 +1322,13 @@ class HomeFragment : Fragment(), OnClickListener {
     }
 
     private fun resolveTrackerVinForRecoveredLog(): String {
+        // Anchored VIN first (stable); fall back to live ECM/registered only to establish it.
+        val anchored = prefRepository.getAnchoredVin()
+        if (anchored.isNotEmpty()) return anchored
         val appModel = AppModel.getInstance()
-        val pt30Vin = appModel.mPT30Vin
-        if (!pt30Vin.isNullOrBlank() && pt30Vin != "n/a") {
-            return pt30Vin
-        }
-        val vehicleVin = appModel.mVehicleInfo?.VIN
-        return if (!vehicleVin.isNullOrBlank()) vehicleVin else "1111"
+        val candidate = appModel.mPT30Vin?.takeIf { !it.isNullOrBlank() && it != "n/a" }
+            ?: appModel.mVehicleInfo?.VIN
+        return prefRepository.anchoredVinForLog(candidate) // "" if nothing valid yet (no fake 1111)
     }
 
     private fun showPendingDisconnectedDrivingMilesDialogIfNeeded() {
@@ -1461,16 +1496,18 @@ class HomeFragment : Fragment(), OnClickListener {
             TRUCK_MODE_YARD
         )
 
-        if (speed >= DRIVE_DETECTION_THRESHOLD_KMH) {
-            // Vehicle moving — always cancel stop timer regardless of current mode
+        if (speed >= DRIVE_DETECTION_THRESHOLD_KMH && rpm > 0) {
+            // Vehicle moving WITH the engine running — cancel stop timer.
+            // rpm>0 gate prevents GPS-jitter phantom Drive while parked/engine off.
             stoppedSinceMs = null
             if (currentMode in modesThatMustSwitchToDriving) {
-                Log.d(TAG, "🚗 Truck is moving ($speed km/h) in '$currentMode' mode — switching to DRIVE")
+                Log.d(TAG, "🚗 Truck is moving ($speed km/h, rpm $rpm) in '$currentMode' mode — switching to DRIVE")
                 lastLog = TRUCK_MODE_DRIVING
                 activity?.runOnUiThread { updateUI(binding.btnDrive) }
                 updateModeChange(hrs_MODE_D, TRUCK_MODE_DRIVING, "")
             }
         } else if (speed <= 0 && currentMode == TRUCK_MODE_DRIVING) {
+            // Stopped while in Drive → after 5 continuous minutes, auto-switch to On-Duty.
             val now = System.currentTimeMillis()
             if (stoppedSinceMs == null) stoppedSinceMs = now
             val elapsedMs = now - (stoppedSinceMs ?: now)
@@ -1484,8 +1521,6 @@ class HomeFragment : Fragment(), OnClickListener {
                 Log.d(TAG, "⏱ Stopped for ${elapsedMs/1000}s — waiting 5 min before switching to ON")
             }
         }
-        // Only reset stopped timer if speed is high enough to re-enter Drive
-        // (don't reset on minor ECM sensor noise 1-7 km/h)
     }
 
     private fun resolveModeForAutoSwitch(): String {
@@ -1524,7 +1559,8 @@ class HomeFragment : Fragment(), OnClickListener {
             if (_binding != null) {
                 updateClockDisplay()
             }
-            val vin_no = AppModel.getInstance().mVehicleInfo?.VIN
+            // Use the ANCHORED VIN (not the raw/flapping ECM VIN) — backend trusts a valid VIN as-is.
+            val vin_no = prefRepository.anchoredVinForLog(AppModel.getInstance().mPT30Vin)
             val te = AppModel.getInstance().mLastEvent
 
             val normalizedOdometer = guardedOdometerForLog(te?.mOdometer, vin_no?.toString())
@@ -1845,6 +1881,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.registerReceiver(connectionStateRefresh, connectionStateIf)
             instance.registerReceiver(disconnectedDrivingMilesRefresh, disconnectedMilesIf)
             instance.registerReceiver(viRefresh, vinRefreshIf)
+            instance.registerReceiver(vinChangeRefresh, vinChangeIf)
             receiversRegistered = true
         } catch (e: Exception) {
             Log.e(TAG, "Receiver registration error: ${e.message}")
@@ -1860,6 +1897,7 @@ class HomeFragment : Fragment(), OnClickListener {
             instance.unregisterReceiver(connectionStateRefresh)
             instance.unregisterReceiver(disconnectedDrivingMilesRefresh)
             instance.unregisterReceiver(viRefresh)
+            instance.unregisterReceiver(vinChangeRefresh)
         } catch (e: Exception) {
             Log.e(TAG, "Receiver unregistration error: ${e.message}")
         } finally {
@@ -2006,7 +2044,7 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun onMode() {
         val dialog = Dialog(requireContext(), R.style.ModernDialogStyle)
         dialog.setContentView(R.layout.menu_sb_menu)
-        val optionViews = (1..12).map { i ->
+        val optionViews = (1..15).map { i ->
             dialog.findViewById<TextView>(resources.getIdentifier("sb$i", "id", requireContext().packageName))
         }
         optionViews.forEach { optionView ->

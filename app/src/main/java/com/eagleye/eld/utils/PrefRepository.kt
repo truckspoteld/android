@@ -71,6 +71,28 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun getLastKnownVin(): String = PREF_LAST_KNOWN_VIN.getString()
     fun setLastKnownVin(vin: String) { PREF_LAST_KNOWN_VIN.put(vin) }
 
+    // ── Anchored VIN: single source of truth for the VIN written on every log/telemetry ──
+    // Picked once (first connect/log) and HELD until the DRIVER changes it. The app never
+    // auto-changes it, so a flapping ECM VIN can't reset the per-VIN odometer baseline.
+    fun getAnchoredVin(): String = PREF_ANCHORED_VIN.getString()
+    fun setAnchoredVin(vin: String) { PREF_ANCHORED_VIN.put(vin) }
+    fun clearAnchoredVin() { PREF_ANCHORED_VIN.put("") }
+    /**
+     * Returns the VIN to stamp on a log/telemetry. If an anchor is already set, it is returned
+     * unchanged (never auto-switched). Otherwise the first valid candidate is anchored and returned.
+     * Returns "" when nothing valid is available yet (no fake/placeholder VIN).
+     */
+    fun anchoredVinForLog(candidate: String?): String {
+        val existing = getAnchoredVin()
+        if (existing.isNotEmpty()) return existing
+        val c = candidate?.trim().orEmpty()
+        if (c.isNotEmpty() && !c.equals("n/a", ignoreCase = true) && c != "1111") {
+            setAnchoredVin(c)
+            return c
+        }
+        return ""
+    }
+
     // Last-good odometer (miles) and the VIN it belongs to. Shared across TrackerService
     // and HomeFragment so the odometer-on-log guard has a single source of truth: once a
     // real reading is captured for a VIN, every later log holds at or above it for that VIN.

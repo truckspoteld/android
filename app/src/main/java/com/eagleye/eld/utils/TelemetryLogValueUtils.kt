@@ -52,6 +52,15 @@ object TelemetryLogValueUtils {
 
         // Same VIN with an established baseline: never decrease, never drop to ~0.
         if (sameVin && lastGood > 0.0) {
+            // Self-heal a contaminated baseline: if the stored "miles" baseline is really the
+            // KILOMETRE-magnitude version of this reading (lastGood ≈ miles × 1.609344), it was
+            // seeded with a raw-km value. Re-baseline to the correct miles reading instead of
+            // holding the inflated km value forever (the never-decrease rule would otherwise
+            // reject every correct lower reading and keep emitting km).
+            if (miles >= 1.0 && lastGood > miles &&
+                Math.abs(lastGood - miles * 1.609344) <= miles * 0.03) {
+                return GuardedOdometer(normalized, normalized, cleanVin) // re-baseline km→miles
+            }
             if (miles < 1.0 || miles < lastGood - 0.5) {
                 return GuardedOdometer(lastGoodMiles!!, lastGoodMiles, lastGoodVin) // hold last good
             }

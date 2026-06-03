@@ -382,6 +382,40 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             }).start();
         }
 
+        // Real-time background auto-DRIVE — fires even when the app is minimized, so the
+        // driver no longer has to open the app and press Drive when the truck starts moving.
+        // (The pre-existing block above only triggers after a >1h log gap; the foreground
+        // HomeFragment auto-drive doesn't run while backgrounded.) Gated on isEcmBusLive
+        // (engine/ECM on) so GPS jitter while parked with the engine OFF can't log phantom Drive.
+        if (!"d".equals(prefRepository.getMode())
+                && mTm.mGeoloc != null && mTm.mGeoloc.speed != null
+                && mTm.mGeoloc.speed >= DRIVE_THRESHOLD_KMH
+                && isEcmBusLive) {
+            prefRepository.setMode("d");
+            AddLogRequest driveLog = new AddLogRequest(
+                    "d",
+                    resolveOdometerForLog(mTm.mOdometer, prefRepository.getDiffinOdo()),
+                    mTm.mGeoloc.latitude,
+                    mTm.mGeoloc.longitude,
+                    true,
+                    TelemetryLogValueUtils.normalizeEngineHoursForLog(mTm.mEngineHours, prefRepository.getDiffinEng()),
+                    resolveVin(),
+                    1, 1, 1, 1, "", "",
+                    isConnected() ? "connected" : "disconnected",
+                    "");
+            new Thread(() -> {
+                try {
+                    repository.addLogJava(driveLog);
+                    prefRepository.setLastLogTime();
+                    Intent ui = new Intent("REFRESH");
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(ui);
+                    Log.i(TAG, "🚗 [BG] Auto-switched →DRIVE (moving " + mTm.mGeoloc.speed + " km/h + engine live)");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error auto-switching to Drive: " + e.getMessage(), e);
+                }
+            }).start();
+        }
+
         class TEventFlag {
             Boolean flag = false;
             Boolean isAvailable = false;
@@ -501,6 +535,19 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
                 AppModel.getInstance().mPT30Vin = vin;
                 // Mirror into mVehicleInfo so HomeFragment's vehicle-change detection works
                 AppModel.getInstance().mVehicleInfo = new VehicleInfo(vin, null);
+                // VIN anchor: set on first connect; if the ELD later reports a DIFFERENT real VIN,
+                // don't auto-switch — alert the driver to confirm (HomeFragment). Driving stays
+                // locked until confirmed (isDrivingModeAllowed checks ECM-vs-anchor).
+                if (prefRepository == null) prefRepository = new PrefRepository(this);
+                boolean realVin = vin.matches("^[A-Za-z0-9]{17}$");
+                String anchored = prefRepository.getAnchoredVin();
+                if (anchored == null || anchored.isEmpty()) {
+                    if (realVin) prefRepository.setAnchoredVin(vin); // first connect anchors it
+                } else if (realVin && !anchored.equals(vin)) {
+                    Intent vinChange = new Intent("com.eagleye.eld.VIN_CHANGE");
+                    vinChange.putExtra("new_vin", vin);
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(vinChange);
+                }
                 Intent vinBroadcast = new Intent("TRACKER-VIN-REFRESH");
                 LocalBroadcastManager.getInstance(this).sendBroadcast(vinBroadcast);
             } else {
@@ -1444,16 +1491,18 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     }
 
     private String resolveVin() {
-        String vin = AppModel.getInstance().mPT30Vin;
-        if (vin != null && !vin.equals("n/a") && !vin.isEmpty()) {
-            return vin;
+        if (prefRepository == null) prefRepository = new PrefRepository(this);
+        // Anchored VIN is authoritative once set — never auto-switch (no ECM-VIN flapping).
+        // Falls back to the live ECM/registered VIN only to ESTABLISH the anchor the first time.
+        String candidate = AppModel.getInstance().mPT30Vin;
+        if (candidate == null || candidate.equals("n/a") || candidate.isEmpty()) {
+            if (AppModel.getInstance().mVehicleInfo != null
+                    && AppModel.getInstance().mVehicleInfo.VIN != null
+                    && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
+                candidate = AppModel.getInstance().mVehicleInfo.VIN;
+            }
         }
-        if (AppModel.getInstance().mVehicleInfo != null
-                && AppModel.getInstance().mVehicleInfo.VIN != null
-                && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
-            return AppModel.getInstance().mVehicleInfo.VIN;
-        }
-        return "1111";
+        return prefRepository.anchoredVinForLog(candidate); // "" if nothing valid yet (no fake VIN)
     }
 
     private double parseNonNegative(String value) {

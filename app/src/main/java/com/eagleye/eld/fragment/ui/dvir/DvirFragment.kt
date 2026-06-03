@@ -113,16 +113,19 @@ class DvirFragment : Fragment() {
         }
 
         // Checklist Selection
+        // FMCSA §396.11(a)(2) inspection items
         val checklistItems = listOf(
             binding.llCbBrakes to binding.cbBrakes,
-            binding.llCbTires to binding.cbTires,
+            binding.llCbParkingBrake to null,
+            binding.llCbSteering to null,
             binding.llCbLights to binding.cbLights,
-            binding.llCbMirrors to null,
+            binding.llCbTires to binding.cbTires,
             binding.llCbHorn to null,
             binding.llCbWipers to null,
-            binding.llCbSteering to null,
-            binding.llCbEmergency to null,
+            binding.llCbMirrors to null,
             binding.llCbCoupling to null,
+            binding.llCbWheels to null,
+            binding.llCbEmergency to null,
             binding.llCbExhaust to null
         )
 
@@ -139,6 +142,14 @@ class DvirFragment : Fragment() {
                 updateProgress()
             }
         }
+        // Default every item to OK (selected) — driver UNchecks any defective component.
+        checklistItems.forEach { (layout, checkbox) ->
+            layout.isSelected = true
+            checkbox?.isChecked = true
+            (layout.getChildAt(0) as? android.widget.ImageView)?.imageTintList =
+                ContextCompat.getColorStateList(requireContext(), R.color.nav_icon_active)
+        }
+        updateProgress()
 
         binding.btnSubmitDvir.setOnClickListener {
             playClickAnimation(it)
@@ -226,9 +237,10 @@ class DvirFragment : Fragment() {
     private fun updateProgress() {
         var checkedCount = 0
         val items = listOf(
-            binding.llCbBrakes, binding.llCbTires, binding.llCbLights,
-            binding.llCbMirrors, binding.llCbHorn, binding.llCbWipers,
-            binding.llCbSteering, binding.llCbEmergency, binding.llCbCoupling, binding.llCbExhaust
+            binding.llCbBrakes, binding.llCbParkingBrake, binding.llCbSteering,
+            binding.llCbLights, binding.llCbTires, binding.llCbHorn,
+            binding.llCbWipers, binding.llCbMirrors, binding.llCbCoupling,
+            binding.llCbWheels, binding.llCbEmergency, binding.llCbExhaust
         )
         items.forEach { if (it.isSelected) checkedCount++ }
         
@@ -416,9 +428,18 @@ class DvirFragment : Fragment() {
             hasDefects = hasDefects,
             defectsDescription = if (hasDefects) defects else null,
             checklist = mapOf(
-                "brakes" to binding.cbBrakes.isChecked,
-                "lights" to binding.cbLights.isChecked,
-                "tires" to binding.cbTires.isChecked
+                "service_brakes" to binding.llCbBrakes.isSelected,
+                "parking_brake" to binding.llCbParkingBrake.isSelected,
+                "steering" to binding.llCbSteering.isSelected,
+                "lights_reflectors" to binding.llCbLights.isSelected,
+                "tires" to binding.llCbTires.isSelected,
+                "horn" to binding.llCbHorn.isSelected,
+                "wipers" to binding.llCbWipers.isSelected,
+                "mirrors" to binding.llCbMirrors.isSelected,
+                "coupling" to binding.llCbCoupling.isSelected,
+                "wheels_rims" to binding.llCbWheels.isSelected,
+                "emergency_equipment" to binding.llCbEmergency.isSelected,
+                "exhaust" to binding.llCbExhaust.isSelected
             ),
             safeToOperate = binding.cbSafeToOperate.isChecked,
             driverSignature = signature
@@ -473,17 +494,18 @@ class DvirFragment : Fragment() {
         updateTripUI(true)
         binding.etSignature.setText("")
         listOf(
-            binding.llCbBrakes, binding.llCbTires, binding.llCbLights,
-            binding.llCbMirrors, binding.llCbHorn, binding.llCbWipers,
-            binding.llCbSteering, binding.llCbEmergency, binding.llCbCoupling, binding.llCbExhaust
+            binding.llCbBrakes, binding.llCbParkingBrake, binding.llCbSteering,
+            binding.llCbLights, binding.llCbTires, binding.llCbHorn,
+            binding.llCbWipers, binding.llCbMirrors, binding.llCbCoupling,
+            binding.llCbWheels, binding.llCbEmergency, binding.llCbExhaust
         ).forEach {
-            it.isSelected = false
+            it.isSelected = true   // reset to default OK; driver unchecks defects
             val icon = it.getChildAt(0) as? android.widget.ImageView
-            icon?.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.home_text_sub)
+            icon?.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.nav_icon_active)
         }
-        binding.cbBrakes.isChecked = false
-        binding.cbLights.isChecked = false
-        binding.cbTires.isChecked = false
+        binding.cbBrakes.isChecked = true
+        binding.cbLights.isChecked = true
+        binding.cbTires.isChecked = true
         updateProgress()
         updateConditionUI(true)
     }

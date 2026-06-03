@@ -76,5 +76,20 @@
             style="@style/IosMenuItemStyle"
             android:text="Border-Crossing" />
 
+        <TextView
+            android:id="@+id/sb13"
+            style="@style/IosMenuItemStyle"
+            android:text="Trailer Change" />
+
+        <TextView
+            android:id="@+id/sb14"
+            style="@style/IosMenuItemStyle"
+            android:text="Hook and Drop" />
+
+        <TextView
+            android:id="@+id/sb15"
+            style="@style/IosMenuItemStyle"
+            android:text="Post-Trip" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

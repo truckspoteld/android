@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 object TelemetryUploadManager {
 
     private const val TAG = "TelemetryUploadManager"
-    private const val UPLOAD_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
+    private const val UPLOAD_INTERVAL_MS = 60 * 1000L // 60s (was 5 min) — for finer odometer/eng-hours updates
 
     private var lastUploadTime = 0L
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -62,8 +62,9 @@ object TelemetryUploadManager {
 
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
 
-        // Resolve VIN directly from the PT-40 device — always the correct truck
-        val vin = AppModel.getInstance().mPT30Vin?.takeIf { it.isNotBlank() && it != "n/a" }
+        // Use the ANCHORED VIN so telemetry binds to the same (driver-confirmed) truck as the logs.
+        val vin = prefRepo.getAnchoredVin().takeIf { it.isNotBlank() }
+            ?: AppModel.getInstance().mPT30Vin?.takeIf { it.isNotBlank() && it != "n/a" }
             ?: AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { !it.isNullOrBlank() }
             ?: return
 

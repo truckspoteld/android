@@ -206,32 +206,52 @@ class HomeFragment : Fragment(), OnClickListener {
         }
     }
 
-    // ELD reported a different real VIN than the anchored one → ask the driver to confirm.
-    // Confirm → re-anchor to the new VIN (Drive unlocks). Reject → stays blocked while the ECM
-    // keeps reporting the different VIN (isDrivingModeAllowed sees the mismatch).
+    // ELD (PT-30) reported a different real VIN → route through the unified handler below.
     var vinChangeRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val newVin = intent.getStringExtra("new_vin") ?: return
-            val anchored = prefRepository.getAnchoredVin()
-            if (newVin == anchored || vinChangeDialogShowing || !isAdded) return
-            vinChangeDialogShowing = true
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Vehicle changed")
-                .setMessage("The ELD reports a different vehicle:\nVIN $newVin\n(current: $anchored)\n\nConfirm only if you switched trucks. Driving stays locked until you confirm.")
-                .setCancelable(false)
-                .setPositiveButton("Confirm switch") { d, _ ->
-                    prefRepository.setAnchoredVin(newVin)
-                    vinChangeDialogShowing = false
-                    updateDrivingButtonAvailability()
-                    d.dismiss()
-                }
-                .setNegativeButton("Reject") { d, _ ->
-                    vinChangeDialogShowing = false
-                    updateDrivingButtonAvailability()
-                    d.dismiss()
-                }
-                .show()
+            promptVinChange(newVin)
         }
+    }
+
+    // SINGLE source of truth for vehicle identity. BOTH PT-30 (VIN_CHANGE broadcast) and
+    // PT-40 (updateVehicleInfo) funnel here, so there is ONE VIN-change dialog and ONE
+    // confirmed VIN (anchoredVin) — read by duty logs, telemetry, Set Odometer and the
+    // dashboard. Confirming a switch re-points ALL of them atomically; nothing stays cached
+    // on the old truck. Reject → stays blocked while the ECM keeps reporting the new VIN.
+    private fun promptVinChange(newVin: String) {
+        if (!isAdded) return
+        if (!newVin.matches(Regex("^[A-Za-z0-9]{17}$"))) return   // ignore junk/partial VINs
+        val anchored = prefRepository.getAnchoredVin()
+        if (anchored.isEmpty()) {                                 // first connect → anchor silently
+            prefRepository.setAnchoredVin(newVin)
+            prefRepository.setLastKnownVin(newVin)
+            return
+        }
+        if (newVin == anchored || vinChangeDialogShowing) return
+        vinChangeDialogShowing = true
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Vehicle changed")
+            .setMessage("The ELD reports a different vehicle:\nVIN $newVin\n(current: $anchored)\n\nConfirm only if you switched trucks. Driving stays locked until you confirm.")
+            .setCancelable(false)
+            .setPositiveButton("Confirm switch") { d, _ ->
+                // Re-point the ONE source of truth → logs, telemetry, Set Odometer, unit no all follow.
+                prefRepository.setAnchoredVin(newVin)
+                prefRepository.setLastKnownVin(newVin)            // keep legacy field in sync (defensive)
+                prefRepository.setDifferenceinOdo("0")            // clear stale per-app offsets
+                prefRepository.setDifferenceinEnghours("0")
+                vinChangeDialogShowing = false
+                updateDrivingButtonAvailability()
+                d.dismiss()
+                // New truck needs its own odometer calibration (per-VIN flag is false).
+                if (!prefRepository.isOdometerCalibrated(newVin)) showSetOdometerDialog(newVin, autoPrompt = true)
+            }
+            .setNegativeButton("Reject") { d, _ ->
+                vinChangeDialogShowing = false
+                updateDrivingButtonAvailability()
+                d.dismiss()
+            }
+            .show()
     }
 
     // Speed monitoring broadcast receiver
@@ -594,14 +614,19 @@ class HomeFragment : Fragment(), OnClickListener {
                 is NetworkResult.Error<*> -> {
                     Log.e(TAG, "❌ addLogReponse ERROR: ${it.message}")
                     binding.progressBar.visibility = View.GONE
-                    
-                    // Still update UI to selected mode even if API fails
-                    // This handles the case when data is empty or API has issues
-                    updateUIAfterModeChange(selectedLog.ifEmpty { TRUCK_MODE_OFF })
-                    
-                    // Don't show error dialog - just silently handle it
-                    // User can see the mode is activated in UI
-                    Log.d(TAG, "Mode UI updated despite API error - user can still use the app")
+
+                    val errMsg = it.message ?: ""
+                    if (errMsg.contains("rejected by your carrier", ignoreCase = true)) {
+                        // Carrier rejected this vehicle (backend 403 VEHICLE_REJECTED) → the duty change
+                        // did NOT save. Do NOT show the mode as active; refresh from the server so the UI
+                        // reverts to the real (unchanged) state, then show a blocking "contact admin" alert.
+                        context?.let { ctx -> homeViewModel.getHome(ctx) }
+                        showVehicleRejectedAlert()
+                    } else {
+                        // Other errors (network/empty) — keep prior behavior: reflect selected mode in UI.
+                        updateUIAfterModeChange(selectedLog.ifEmpty { TRUCK_MODE_OFF })
+                        Log.d(TAG, "Mode UI updated despite API error - user can still use the app")
+                    }
                 }
                 is NetworkResult.Loading<*> -> {
                     Log.d(TAG, "⏳ addLogRepose LOADING")
@@ -1954,6 +1979,10 @@ class HomeFragment : Fragment(), OnClickListener {
             prefRepository.setLoggedIn(false)
             prefRepository.setDifferenceinOdo("0")
             prefRepository.setDifferenceinEnghours("0")
+            // Clear the anchored VIN so the next login re-anchors from the connected device
+            // (and disconnected logs fall back to the assigned profile VIN) — no stale VIN across sessions.
+            prefRepository.clearAnchoredVin()
+            prefRepository.setLastKnownVin("")
             prefRepository.setToken("")
             context?.let { ctx ->
                 val intent = Intent(ctx, LoginActivity::class.java)
@@ -2437,51 +2466,25 @@ class HomeFragment : Fragment(), OnClickListener {
         Log.d(TAG, "🚗 Speed monitoring stopped")
     }
 
+    // PT-40 path: live vehicle info synced → route through the unified VIN-change handler
+    // (which keys off anchoredVin). No separate lastKnownVin dialog anymore — one flow only.
     fun updateVehicleInfo() {
-        if (AppModel.getInstance().mVehicleInfo != null) {
-            val vehicleInfo = AppModel.getInstance().mVehicleInfo
-            val newVin = vehicleInfo?.VIN?.takeIf { it.isNotEmpty() } ?: return
-            Log.d("VIN_DEBUG", "Vehicle info update - VIN: $newVin")
-
-            val storedVin = prefRepository.getLastKnownVin()
-            if (storedVin.isNotEmpty() && storedVin != newVin) {
-                Log.d("VIN_DEBUG", "Vehicle changed: $storedVin → $newVin")
-                activity?.runOnUiThread {
-                    showVehicleChangedAlert(storedVin, newVin)
-                }
-            } else {
-                prefRepository.setLastKnownVin(newVin)
-            }
-        }
+        val newVin = AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { it.isNotEmpty() } ?: return
+        activity?.runOnUiThread { promptVinChange(newVin) }
     }
 
-    private fun showVehicleChangedAlert(oldVin: String, newVin: String) {
-        if (_binding == null) return
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Vehicle Changed")
-            .setMessage("A different truck has been detected.\n\nPrevious: $oldVin\nNew: $newVin\n\nYou must confirm the vehicle change to continue logging.")
-            .setPositiveButton("Confirm Switch") { _, _ ->
-                prefRepository.setLastKnownVin(newVin)
-                prefRepository.setDifferenceinOdo("0")
-                prefRepository.setDifferenceinEnghours("0")
-                Log.d("VIN_DEBUG", "Vehicle change accepted — offsets reset for $newVin")
-            }
-            .setNegativeButton("Reject") { _, _ ->
-                showVehicleChangeRejectedError(oldVin, newVin)
-            }
+    // Carrier rejected this vehicle on the portal (backend 403 VEHICLE_REJECTED). Surface a clear,
+    // blocking alert — the driver must contact the admin (to reactivate) or switch to an approved
+    // truck — instead of the duty change failing silently.
+    private var vehicleRejectedDialogShowing = false
+    private fun showVehicleRejectedAlert() {
+        if (!isAdded || vehicleRejectedDialogShowing) return
+        vehicleRejectedDialogShowing = true
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Vehicle Rejected")
+            .setMessage("This vehicle was rejected by your carrier.\n\nPlease contact your administrator before continuing. You cannot log duty status on this vehicle until it is reactivated — or switch to an approved vehicle.")
             .setCancelable(false)
-            .show()
-    }
-
-    private fun showVehicleChangeRejectedError(oldVin: String, newVin: String) {
-        if (_binding == null) return
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Action Required")
-            .setMessage("You are connected to a different vehicle (VIN: $newVin).\n\nPlease contact your administrator before continuing. You cannot log duty status until the vehicle change is acknowledged.")
-            .setPositiveButton("Try Again") { _, _ ->
-                showVehicleChangedAlert(oldVin, newVin)
-            }
-            .setCancelable(false)
+            .setPositiveButton("OK") { d, _ -> vehicleRejectedDialogShowing = false; d.dismiss() }
             .show()
     }
 

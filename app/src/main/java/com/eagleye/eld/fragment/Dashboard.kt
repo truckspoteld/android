@@ -103,6 +103,7 @@ class Dashboard : AppCompatActivity() {
     private var fusedClient: FusedLocationProviderClient? = null
     private var mRequest: com.google.android.gms.location.LocationRequest? = null
     private var mCallback: LocationCallback? = null
+    private var lastLocationEmitMs: Long = 0L // throttle phone-GPS socket stream to ~60s
     private lateinit var navController: NavController
     private var selectedBottomItemId: Int = R.id.home
 
@@ -394,6 +395,21 @@ class Dashboard : AppCompatActivity() {
                     lastPhoneLocationAtMs = System.currentTimeMillis()
                     gSpeed = loc.speed
                     insertInDrive(loc)
+                }
+                // Stream the phone GPS fix to the server, throttled to ~60s, so a
+                // server-generated INT log can use a fresh phone position when ECM
+                // telemetry is unavailable (server caches it; ≤15 min old is used).
+                val la = glat
+                val lo = glong
+                val nowEmitMs = System.currentTimeMillis()
+                if (la != null && lo != null && la != 0.0 && lo != 0.0 &&
+                    nowEmitMs - lastLocationEmitMs >= 60000L) {
+                    lastLocationEmitMs = nowEmitMs
+                    try {
+                        val did = prefRepository.getDriverId()
+                        if (did > 0) SocketManager.sendLocation(did, la, lo)
+                    } catch (_: Exception) {
+                    }
                 }
             }
 

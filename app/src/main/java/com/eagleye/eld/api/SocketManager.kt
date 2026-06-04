@@ -138,5 +138,24 @@ object SocketManager {
     fun sendMessage(event: String, data: Int) {
         socket?.emit(event, data)
     }
+
+    /**
+     * Stream the phone's current GPS fix to the server (throttled by the caller, ~60s).
+     * The server caches it so a server-generated INT log can use a fresh phone position
+     * when ECM/device telemetry isn't available. No-op if the socket isn't connected.
+     */
+    fun sendLocation(driverId: Int, lat: Double, long: Double) {
+        try {
+            if (driverId <= 0 || socket?.connected() != true) return
+            val payload = JSONObject().apply {
+                put("driverId", driverId)
+                put("lat", lat)
+                put("long", long)
+            }
+            socket?.emit("driverLocation", payload)
+        } catch (e: Exception) {
+            Log.w("SocketIO", "sendLocation failed: ${e.message}")
+        }
+    }
 }
 

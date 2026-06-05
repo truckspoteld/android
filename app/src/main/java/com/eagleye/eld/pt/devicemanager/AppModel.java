@@ -58,6 +58,25 @@ public class AppModel {
 
     }
 
+    /** True only for a real 17-char alphanumeric VIN (rejects "n/a", "1111" and other junk). */
+    public static boolean isRealVin(String v) {
+        return v != null && v.trim().matches("[A-Za-z0-9]{17}");
+    }
+
+    /**
+     * The VIN the connected ECM is currently reporting, across BOTH PT-30 ({@link #mPT30Vin})
+     * and PT-40 ({@link #mVehicleInfo}). Returns "" when neither reports a valid VIN yet.
+     *
+     * This is the RAW live VIN — compare it against the driver-confirmed anchored VIN to detect
+     * an (unconfirmed) truck change. Everything that lands on a log (VIN, odometer, engine hours,
+     * power-unit number) must stay on the anchored VIN until the driver confirms the switch.
+     */
+    public String getLiveEcmVin() {
+        if (isRealVin(mPT30Vin)) return mPT30Vin.trim();
+        if (mVehicleInfo != null && isRealVin(mVehicleInfo.VIN)) return mVehicleInfo.VIN.trim();
+        return "";
+    }
+
     public void invalidate()
     {
         mLastEvent= null;

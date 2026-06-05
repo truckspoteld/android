@@ -883,11 +883,10 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun isDrivingModeAllowed(): Boolean {
         // Block Drive on an UNCONFIRMED VIN change: if the ELD reports a different real VIN than
         // the anchored one and the driver hasn't confirmed the truck change, he can't go Driving.
-        val ecm = AppModel.getInstance().mPT30Vin
+        // Covers BOTH PT-30 and PT-40 via the shared live-ECM-VIN resolver.
+        val ecm = AppModel.getInstance().liveEcmVin
         val anchored = prefRepository.getAnchoredVin()
-        val vinMismatch = !ecm.isNullOrBlank() &&
-            ecm.matches(Regex("^[A-Za-z0-9]{17}$")) &&
-            anchored.isNotEmpty() && ecm.trim() != anchored.trim()
+        val vinMismatch = ecm.isNotBlank() && anchored.isNotEmpty() && ecm != anchored.trim()
         return !isNeedToconnect && AppModel.getInstance().mLastEvent != null && !vinMismatch
     }
 

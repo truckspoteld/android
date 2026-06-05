@@ -58,6 +58,21 @@ object TelemetryUploadManager {
         // Always refresh the cached odometer from the live snapshot so the app's
         // local value never stays stale — even if the telemetry upload is throttled.
         val prefRepo = PrefRepository(context)
+
+        // VIN-mismatch guard: if the connected ECM is reporting a DIFFERENT real VIN than the
+        // driver-confirmed anchored VIN (a truck change not yet confirmed), the live snapshot
+        // belongs to the OTHER truck. Don't let its odometer/engine-hours leak onto the anchored
+        // VIN — neither cached locally (feeds the duty-log odometer) nor uploaded to telemetry
+        // (the backend reads vehicle_telemetry for connected-log odometer/eng-hours). Hold until
+        // the driver confirms the switch (HomeFragment re-anchors then). Everything stays on the
+        // anchored VIN until then.
+        val anchored = prefRepo.getAnchoredVin()
+        val liveVin = AppModel.getInstance().liveEcmVin
+        if (anchored.isNotBlank() && liveVin.isNotBlank() && liveVin != anchored) {
+            Log.w(TAG, "VIN mismatch (ECM=$liveVin vs anchored=$anchored) — holding telemetry/odometer for anchored VIN until driver confirms switch")
+            return
+        }
+
         val liveOdoKm = snapshot.engineOdometer
         if (liveOdoKm != null && liveOdoKm > 0.0) {
             prefRepo.setDifferenceinOdo(liveOdoKm.toString())
@@ -67,7 +82,7 @@ object TelemetryUploadManager {
         if (now - lastUploadTime < UPLOAD_INTERVAL_MS) return
 
         // Use the ANCHORED VIN so telemetry binds to the same (driver-confirmed) truck as the logs.
-        val vin = prefRepo.getAnchoredVin().takeIf { it.isNotBlank() }
+        val vin = anchored.takeIf { it.isNotBlank() }
             ?: AppModel.getInstance().mPT30Vin?.takeIf { it.isNotBlank() && it != "n/a" }
             ?: AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { !it.isNullOrBlank() }
             ?: return

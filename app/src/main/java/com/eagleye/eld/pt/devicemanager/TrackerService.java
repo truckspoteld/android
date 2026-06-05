@@ -742,11 +742,10 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             if (te.mGeoloc.longitude != null) lon = te.mGeoloc.longitude.doubleValue();
         }
         boolean hasLocation = lat != 0.0 || lon != 0.0;
-        String vin = AppModel.getInstance().mPT30Vin;
-        if (vin == null || vin.isEmpty() || vin.equals("n/a")) {
-            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null)
-                vin = AppModel.getInstance().mVehicleInfo.VIN;
-        }
+        // Anchored (driver-confirmed) VIN — never the raw ECM VIN. Keeps the auto-log, its
+        // odometer/eng-hours and the backend-derived power-unit number on the confirmed truck
+        // even while an unconfirmed VIN change is being reported.
+        String vin = resolveVin();
 
         AddLogRequest logRequest = new AddLogRequest(
                 "on",
@@ -833,15 +832,10 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             hasTelemetryLocation = defaultLat != 0.0 || defaultLong != 0.0;
         }
 
-        String vin = AppModel.getInstance().mPT30Vin;
-        if (vin == null || vin.equals("n/a") || vin.isEmpty()) {
-            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null && !AppModel.getInstance().mVehicleInfo.VIN.isEmpty()) {
-                vin = AppModel.getInstance().mVehicleInfo.VIN;
-            }
-//            else {
-//               // vin = "1HGCM82633A004352";
-//            }
-        }
+        // Anchored (driver-confirmed) VIN — never the raw ECM VIN. Keeps engine on/off auto-logs,
+        // their odometer/eng-hours and the backend-derived power-unit number on the confirmed
+        // truck even while an unconfirmed VIN change is being reported.
+        String vin = resolveVin();
 
         AddLogRequest logRequest = new AddLogRequest(
                 currentState,

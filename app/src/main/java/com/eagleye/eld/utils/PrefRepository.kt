@@ -106,6 +106,13 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun setLastGoodOdometerVin(vin: String?) {
         PREF_LAST_GOOD_ODOMETER_VIN.put(vin ?: "")
     }
+    // Drop the never-decrease odometer floor so the next real reading re-baselines it. Call on a
+    // VIN re-anchor, a Set-Odometer calibration, or logout — otherwise a stale/too-high floor keeps
+    // suppressing the real (lower) ECM odometer for that VIN.
+    fun clearLastGoodOdometer() {
+        PREF_LAST_GOOD_ODOMETER_MILES.put("")
+        PREF_LAST_GOOD_ODOMETER_VIN.put("")
+    }
 
     fun setRemoveableIndex(index: Int) {
         PREF_REMOVEDINDEX.put(index)

@@ -226,6 +226,7 @@ class HomeFragment : Fragment(), OnClickListener {
         if (anchored.isEmpty()) {                                 // first connect → anchor silently
             prefRepository.setAnchoredVin(newVin)
             prefRepository.setLastKnownVin(newVin)
+            prefRepository.clearLastGoodOdometer()                // new anchor → re-baseline the odo floor
             return
         }
         if (newVin == anchored || vinChangeDialogShowing) return
@@ -240,6 +241,7 @@ class HomeFragment : Fragment(), OnClickListener {
                 prefRepository.setLastKnownVin(newVin)            // keep legacy field in sync (defensive)
                 prefRepository.setDifferenceinOdo("0")            // clear stale per-app offsets
                 prefRepository.setDifferenceinEnghours("0")
+                prefRepository.clearLastGoodOdometer()            // re-baseline the odo floor for the new VIN
                 vinChangeDialogShowing = false
                 updateDrivingButtonAvailability()
                 d.dismiss()
@@ -1983,6 +1985,7 @@ class HomeFragment : Fragment(), OnClickListener {
             // (and disconnected logs fall back to the assigned profile VIN) — no stale VIN across sessions.
             prefRepository.clearAnchoredVin()
             prefRepository.setLastKnownVin("")
+            prefRepository.clearLastGoodOdometer()
             prefRepository.setToken("")
             context?.let { ctx ->
                 val intent = Intent(ctx, LoginActivity::class.java)
@@ -2152,13 +2155,20 @@ class HomeFragment : Fragment(), OnClickListener {
                     android.widget.Toast.makeText(ctx, "Enter a valid odometer reading.", android.widget.Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                homeViewModel.calibrateOdometer(com.eagleye.eld.request.CalibrateOdometerRequest(vin, odo)) { ok ->
+                // Live ECM (km) read off the device now — sent so the backend can calibrate
+                // immediately without waiting for the separate telemetry upload.
+                val liveEcmKm = com.eagleye.eld.pt.devicemanager.AppModel.getInstance().dashboard?.engineOdometer
+                    ?.takeIf { it > 0.0 }
+                homeViewModel.calibrateOdometer(com.eagleye.eld.request.CalibrateOdometerRequest(vin, odo, liveEcmKm)) { ok ->
                     if (isAdded) android.widget.Toast.makeText(
                         requireContext(),
                         if (ok) "Odometer set to ${odo.toInt()}" else "Could not set odometer — try again.",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
-                    if (ok) prefRepository.setOdometerCalibrated(vin, true)
+                    if (ok) {
+                        prefRepository.setOdometerCalibrated(vin, true)
+                        prefRepository.clearLastGoodOdometer()   // re-baseline the odo floor to the just-set reading
+                    }
                 }
             }
             .setNegativeButton(if (autoPrompt) "Later" else "Cancel", null)

@@ -12,7 +12,9 @@ import com.eagleye.eld.databinding.ItemDvirReportBinding
 import com.eagleye.eld.models.DvirReport
 import java.util.Locale
 
-class DvirHistoryAdapter : RecyclerView.Adapter<DvirHistoryAdapter.DvirViewHolder>() {
+class DvirHistoryAdapter(
+    private val onItemClick: ((DvirReport) -> Unit)? = null
+) : RecyclerView.Adapter<DvirHistoryAdapter.DvirViewHolder>() {
 
     private val reports = mutableListOf<DvirReport>()
     private var lastAnimatedPosition = -1
@@ -31,6 +33,7 @@ class DvirHistoryAdapter : RecyclerView.Adapter<DvirHistoryAdapter.DvirViewHolde
 
     override fun onBindViewHolder(holder: DvirViewHolder, position: Int) {
         holder.bind(reports[position])
+        holder.itemView.setOnClickListener { onItemClick?.invoke(reports[position]) }
         if (position > lastAnimatedPosition) {
             YoYo.with(Techniques.FadeInDown)
                 .duration(500)

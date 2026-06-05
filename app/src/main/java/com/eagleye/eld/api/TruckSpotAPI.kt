@@ -191,7 +191,8 @@ interface TruckSpotAPI {
 
     @GET("api/v1/driver/dvir")
     suspend fun getDriverDVIRReports(
-        @Query("status") status: String? = null
+        @Query("status") status: String? = null,
+        @Query("fromdate") fromdate: String? = null
     ): Response<DvirListResponse>
 
     @GET("api/v1/driver/dvir/open")

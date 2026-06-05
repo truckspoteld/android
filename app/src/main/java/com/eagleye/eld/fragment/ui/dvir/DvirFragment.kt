@@ -20,6 +20,7 @@ import com.daimajia.androidanimations.library.Techniques
 import com.eagleye.eld.R
 import com.eagleye.eld.api.TruckSpotAPI
 import com.eagleye.eld.databinding.FragmentDvirBinding
+import com.eagleye.eld.models.DvirReport
 import com.eagleye.eld.models.HomeDataModel
 import com.eagleye.eld.request.DvirCreateRequest
 import com.eagleye.eld.utils.PrefRepository
@@ -69,7 +70,7 @@ class DvirFragment : Fragment() {
     }
 
     private fun setupRecycler() {
-        historyAdapter = DvirHistoryAdapter()
+        historyAdapter = DvirHistoryAdapter { report -> showDvirDetail(report) }
         binding.rvDvirHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = historyAdapter
@@ -282,7 +283,6 @@ class DvirFragment : Fragment() {
             binding.cvCondition,
             binding.cvChecklist,
             binding.cvSafety,
-            binding.etSignature,
             binding.btnSubmitDvir
         )
         
@@ -404,11 +404,11 @@ class DvirFragment : Fragment() {
     }
 
     private fun submitDvir() {
-        val signature = binding.etSignature.text?.toString()?.trim().orEmpty()
-        if (signature.isEmpty()) {
-            toast("Driver signature is required")
-            return
-        }
+        // The logged-in driver IS the signer — sign automatically with their name (no prompt).
+        // Fall back to username so the signature is never blank (the backend rejects an empty one).
+        val signature = prefRepository.getName().trim()
+            .ifEmpty { prefRepository.getUserName().trim() }
+            .ifEmpty { "Driver" }
 
         val hasDefects = !isSatisfactory
         val defects = binding.etDefects.text?.toString()?.trim().orEmpty()
@@ -469,7 +469,11 @@ class DvirFragment : Fragment() {
     private fun loadHistory() {
         lifecycleScope.launch {
             try {
-                val response = truckSpotAPI.getDriverDVIRReports()
+                // Apps show only the last 8 days of DVIRs (current day + 7 prior) — matches the ELD
+                // record-retention window. The carrier portal still keeps the full history.
+                val fromDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    LocalDate.now().minusDays(7).toString() else null
+                val response = truckSpotAPI.getDriverDVIRReports(fromdate = fromDate)
                 val items = if (response.isSuccessful && response.body()?.status == true) {
                     response.body()?.results?.reports.orEmpty()
                 } else {
@@ -482,6 +486,126 @@ class DvirFragment : Fragment() {
                 binding.swipeRefreshLayoutDvir.isRefreshing = false
             }
         }
+    }
+
+    // Inspector-ready DVIR report — the driver taps a history item to show a roadside inspector.
+    // Renders the full FMCSA §396.11/§396.13 record: vehicle, checklist, defects, driver
+    // signature, and the carrier review / next-driver acknowledgment.
+    private fun showDvirDetail(report: DvirReport) {
+        if (!isAdded) return
+        val ctx = requireContext()
+        fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+        val colMain = android.graphics.Color.parseColor("#16263F")
+        val colSub = android.graphics.Color.parseColor("#6B7A90")
+        val colAccent = android.graphics.Color.parseColor("#146BFF")
+        val colOk = android.graphics.Color.parseColor("#0D9369")
+        val colBad = android.graphics.Color.parseColor("#D94848")
+
+        val root = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(22), dp(20), dp(22), dp(8))
+        }
+        fun addText(text: String, size: Float, color: Int, bold: Boolean = false, topMargin: Int = 0) {
+            root.addView(android.widget.TextView(ctx).apply {
+                this.text = text
+                textSize = size
+                setTextColor(color)
+                if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+                (layoutParams ?: android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                )).also { lp ->
+                    layoutParams = (lp as android.widget.LinearLayout.LayoutParams).apply { setMargins(0, dp(topMargin), 0, 0) }
+                }
+            })
+        }
+        fun addSectionHeader(title: String) = addText(title.uppercase(Locale.US), 11f, colAccent, bold = true, topMargin = 16)
+        fun addRow(label: String, value: String?) {
+            val rowLp = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, dp(4), 0, 0) }
+            root.addView(android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                layoutParams = rowLp
+                addView(android.widget.TextView(ctx).apply {
+                    text = label; textSize = 13f; setTextColor(colSub)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                addView(android.widget.TextView(ctx).apply {
+                    text = if (value.isNullOrBlank()) "-" else value; textSize = 13f
+                    setTextColor(colMain); setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    textAlignment = android.view.View.TEXT_ALIGNMENT_VIEW_END
+                    layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f)
+                })
+            })
+        }
+        fun fmt(v: String?) = if (v.isNullOrBlank()) "-" else v.replace("T", " ").take(16)
+        fun pretty(v: String?): String {
+            if (v.isNullOrBlank()) return "-"
+            val t = v.replace("_", " ").trim()
+            return if (t.isEmpty()) "-" else t.substring(0, 1).uppercase(Locale.US) + t.substring(1)
+        }
+
+        val isSatisfactory = (report.has_defects != true) && report.vehicle_condition?.lowercase() != "has_defects"
+        val tripLabel = if (report.report_type == "post_trip") "Post-Trip" else "Pre-Trip"
+
+        addText("Driver Vehicle Inspection Report", 17f, colMain, bold = true)
+        addText("§396.11 / §396.13  ·  $tripLabel", 12f, colSub, topMargin = 2)
+        addText(if (isSatisfactory) "● SATISFACTORY" else "● DEFECTS NOTED", 13f, if (isSatisfactory) colOk else colBad, bold = true, topMargin = 10)
+
+        addSectionHeader("Details")
+        addRow("Date", report.report_date)
+        addRow("Vehicle / Unit", report.vehicle?.truck_no ?: report.vin_no)
+        addRow("VIN", report.vin_no)
+        addRow("Trailer", report.trailer_number)
+        addRow("Odometer", report.odometer)
+        addRow("Location", report.location)
+        addRow("Status", pretty(report.status))
+
+        val checklist = report.checklist
+        if (!checklist.isNullOrEmpty()) {
+            addSectionHeader("Inspection Checklist")
+            val labels = mapOf(
+                "service_brakes" to "Service Brakes", "parking_brake" to "Parking Brake",
+                "steering" to "Steering Mechanism", "lights_reflectors" to "Lighting Devices & Reflectors",
+                "tires" to "Tires", "horn" to "Horn", "wipers" to "Windshield Wipers",
+                "mirrors" to "Rear-Vision Mirrors", "coupling" to "Coupling Devices",
+                "wheels_rims" to "Wheels & Rims", "emergency_equipment" to "Emergency Equipment",
+                "exhaust" to "Exhaust System"
+            )
+            checklist.toSortedMap().forEach { (k, ok) ->
+                val label = labels[k] ?: pretty(k)
+                addText((if (ok) "✓  " else "✗  ") + label, 13f, if (ok) colOk else colBad, topMargin = 4)
+            }
+        }
+
+        if (!isSatisfactory) {
+            addSectionHeader("Defects")
+            addText(report.defects_description?.ifBlank { "(see checklist)" } ?: "(see checklist)", 13f, colMain, topMargin = 2)
+            addRow("Safe to operate", if (report.safe_to_operate == true) "Yes" else "No")
+        }
+
+        addSectionHeader("Driver Certification (§396.11)")
+        addText(report.driver_signature?.ifBlank { "-" } ?: "-", 18f, colMain, topMargin = 2)
+        addText("Signed" + if (!report.signed_at.isNullOrBlank()) " on ${fmt(report.signed_at)}" else "", 11f, colSub, topMargin = 2)
+
+        if (report.has_defects == true) {
+            addSectionHeader("Carrier Review & §396.13 Acknowledgment")
+            addRow("Review status", pretty(report.status))
+            addRow("Review notes", report.review_notes)
+            addRow("Reviewed at", if (!report.reviewed_at.isNullOrBlank()) fmt(report.reviewed_at) else "-")
+            addRow("Driver acknowledgment",
+                if (!report.driver_ack_signature.isNullOrBlank())
+                    report.driver_ack_signature + (if (!report.driver_ack_at.isNullOrBlank()) " (${fmt(report.driver_ack_at)})" else "")
+                else "Pending")
+        }
+
+        val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setView(scroll)
+            .setPositiveButton("Close") { d, _ -> d.dismiss() }
+            .show()
     }
 
     private fun setSubmitting(isSubmitting: Boolean) {

@@ -957,7 +957,8 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Signature & Submit -->
+                <!-- Submit. No signature field — the logged-in driver IS the signer, so the
+                     report is signed automatically with their name. -->
                 <EditText
                     android:id="@+id/etSignature"
                     android:layout_width="match_parent"
@@ -969,7 +970,8 @@
                     android:paddingHorizontal="16dp"
                     android:textColor="@color/home_text_main"
                     android:textColorHint="@color/home_text_sub"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:visibility="gone" />
 
                 <FrameLayout
                     android:layout_width="match_parent"

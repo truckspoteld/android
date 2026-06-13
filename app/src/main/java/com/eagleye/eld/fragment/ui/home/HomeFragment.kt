@@ -178,6 +178,9 @@ class HomeFragment : Fragment(), OnClickListener {
     // ECM-reported VIN after connect to catch "selected truck A but device is in truck B". Null
     // when the connection didn't come through the picker (e.g. silent auto-reconnect).
     private var pendingSelectedVin: String? = null
+    // Driver chose "Add a new truck" → skip VIN entry, scan/connect, then register whatever VIN the
+    // connected device reports as a pending truck.
+    private var pendingNewTruckMode = false
     var tmRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
@@ -190,9 +193,6 @@ class HomeFragment : Fragment(), OnClickListener {
                     if (vin != null) {
                         vinCheckedThisConnection = true
                         updateVehicleInfo()
-                        // Connected device's real VIN is known — verify it matches the truck the
-                        // driver picked in the selection sheet (no-op if they didn't use the picker).
-                        checkSelectedTruckVin(vin)
                     }
                 }
             }
@@ -229,6 +229,10 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun promptVinChange(newVin: String) {
         if (!isAdded) return
         if (!newVin.matches(Regex("^[A-Za-z0-9]{17}$"))) return   // ignore junk/partial VINs
+        // Truck-selection follow-through (covers BOTH PT-30 and PT-40, which funnel their VIN here):
+        // register a new truck if the driver chose "Add a new truck", or confirm the connected truck
+        // matches the one they picked. Fires once per connection; no-op for silent auto-reconnects.
+        onConnectedVinKnown(newVin)
         val anchored = prefRepository.getAnchoredVin()
         if (anchored.isEmpty()) {                                 // first connect → anchor silently
             prefRepository.setAnchoredVin(newVin)
@@ -1338,9 +1342,14 @@ class HomeFragment : Fragment(), OnClickListener {
                 .setTitle(if (trucks.isEmpty()) "No trucks yet — add one" else "Select your truck")
                 .setItems(labels.toTypedArray()) { _, which ->
                     if (which == labels.size - 1) {
-                        showAddTruckDialog()
+                        // New truck: no VIN entry — scan/connect, then register whatever VIN the
+                        // device reports as a pending truck.
+                        pendingNewTruckMode = true
+                        pendingSelectedVin = null
+                        proceedToDeviceScan()
                     } else {
                         pendingSelectedVin = trucks[which].vinNo  // remember intent → verified after connect
+                        pendingNewTruckMode = false
                         proceedToDeviceScan()
                     }
                 }
@@ -1354,57 +1363,36 @@ class HomeFragment : Fragment(), OnClickListener {
         startActivity(Intent(requireContext(), TrackerManagerActivity::class.java))
     }
 
-    private fun showAddTruckDialog() {
-        if (!isAdded) return
-        val ctx = requireContext()
-        val input = android.widget.EditText(ctx).apply {
-            hint = "VIN (17 characters)"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-            filters = arrayOf(android.text.InputFilter.LengthFilter(17), android.text.InputFilter.AllCaps())
-            // Prefill the VIN the ELD is already reporting, if any.
-            AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { it.length == 17 }?.let { setText(it) }
-        }
-        val container = android.widget.LinearLayout(ctx).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            val pad = (20 * ctx.resources.displayMetrics.density).toInt()
-            setPadding(pad, pad / 2, pad, 0)
-            addView(input)
-        }
-        MaterialAlertDialogBuilder(ctx)
-            .setTitle("Add a new truck")
-            .setMessage("Enter the truck's VIN. It's sent to your carrier for approval and you can drive now.")
-            .setView(container)
-            .setPositiveButton("Add & continue") { _, _ ->
-                val vin = input.text.toString().trim().uppercase()
-                if (!vin.matches(Regex("^[A-Z0-9]{17}$"))) {
-                    makeText(ctx, "VIN must be exactly 17 letters/numbers.", LENGTH_LONG).show()
-                    return@setPositiveButton
-                }
-                addNewTruck(vin)
+    // Called once the connected device reports its real VIN (via promptVinChange, which both PT-30
+    // and PT-40 funnel through). Routes the driver's truck-selection intent.
+    private fun onConnectedVinKnown(ecmVin: String?) {
+        val ecm = ecmVin?.trim()?.uppercase()?.takeIf { it.matches(Regex("^[A-Z0-9]{17}$")) } ?: return
+        when {
+            pendingNewTruckMode -> {
+                pendingNewTruckMode = false
+                pendingSelectedVin = null
+                registerConnectedTruckPending(ecm)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            pendingSelectedVin != null -> checkSelectedTruckVin(ecm)
+        }
     }
 
-    private fun addNewTruck(vin: String) {
+    // "Add a new truck": register the VIN the connected device reported as a pending truck (no VIN
+    // typing). Backend marks it is_added=0 → appears on the superadmin portal for approval. A 400
+    // "already exists" is expected/harmless if it's already registered.
+    private fun registerConnectedTruckPending(vin: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val ok = try {
                 val resp = homeViewModel.addVehicle(com.eagleye.eld.models.AddVehicleRequest(vinNo = vin))
-                if (!resp.isSuccessful) {
-                    Log.e(TAG, "addVehicle failed ${resp.code()}: ${resp.errorBody()?.string().orEmpty()}")
-                }
+                if (!resp.isSuccessful) Log.e(TAG, "addVehicle ${resp.code()}: ${resp.errorBody()?.string().orEmpty()}")
                 resp.isSuccessful
             } catch (e: Exception) {
-                Log.e(TAG, "addVehicle exception: ${e.message}")
+                Log.e(TAG, "registerConnectedTruckPending failed: ${e.message}")
                 false
             }
             if (!isAdded) return@launch
             if (ok) {
-                makeText(requireContext(), "Truck added — pending carrier approval. Connecting…", LENGTH_LONG).show()
-                pendingSelectedVin = vin  // verify the connected device matches what was added
-                proceedToDeviceScan()
-            } else {
-                makeText(requireContext(), "Couldn't add the truck. It may already exist — pick it from the list, or try again.", LENGTH_LONG).show()
+                makeText(requireContext(), "New truck $vin sent to your carrier for approval.", LENGTH_LONG).show()
             }
         }
     }

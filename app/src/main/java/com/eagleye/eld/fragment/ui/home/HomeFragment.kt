@@ -174,6 +174,10 @@ class HomeFragment : Fragment(), OnClickListener {
     private var lastLog: String = ""
 
     private var vinCheckedThisConnection = false
+    // VIN the driver picked (or added) in the truck-selection sheet. Compared once against the
+    // ECM-reported VIN after connect to catch "selected truck A but device is in truck B". Null
+    // when the connection didn't come through the picker (e.g. silent auto-reconnect).
+    private var pendingSelectedVin: String? = null
     var tmRefresh: BroadcastReceiver = object : BroadcastReceiver() {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun onReceive(context: Context, intent: Intent) {
@@ -186,6 +190,9 @@ class HomeFragment : Fragment(), OnClickListener {
                     if (vin != null) {
                         vinCheckedThisConnection = true
                         updateVehicleInfo()
+                        // Connected device's real VIN is known — verify it matches the truck the
+                        // driver picked in the selection sheet (no-op if they didn't use the picker).
+                        checkSelectedTruckVin(vin)
                     }
                 }
             }
@@ -1330,7 +1337,12 @@ class HomeFragment : Fragment(), OnClickListener {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(if (trucks.isEmpty()) "No trucks yet — add one" else "Select your truck")
                 .setItems(labels.toTypedArray()) { _, which ->
-                    if (which == labels.size - 1) showAddTruckDialog() else proceedToDeviceScan()
+                    if (which == labels.size - 1) {
+                        showAddTruckDialog()
+                    } else {
+                        pendingSelectedVin = trucks[which].vinNo  // remember intent → verified after connect
+                        proceedToDeviceScan()
+                    }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -1389,9 +1401,50 @@ class HomeFragment : Fragment(), OnClickListener {
             if (!isAdded) return@launch
             if (ok) {
                 makeText(requireContext(), "Truck added — pending carrier approval. Connecting…", LENGTH_LONG).show()
+                pendingSelectedVin = vin  // verify the connected device matches what was added
                 proceedToDeviceScan()
             } else {
                 makeText(requireContext(), "Couldn't add the truck. It may already exist — pick it from the list, or try again.", LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // Connected device's ECM VIN is the source of truth. If it differs from the truck the driver
+    // picked, don't switch silently — confirm. (Fires at most once per connection; no-op for
+    // silent auto-reconnects where the driver never used the picker.)
+    private fun checkSelectedTruckVin(ecmVin: String?) {
+        val selected = pendingSelectedVin ?: return
+        pendingSelectedVin = null  // check once
+        val ecm = ecmVin?.trim()?.uppercase()?.takeIf { it.matches(Regex("^[A-Z0-9]{17}$")) } ?: return
+        if (ecm.equals(selected.trim(), ignoreCase = true)) return  // matches the pick — nothing to do
+        if (!isAdded) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Different truck connected")
+            .setMessage(
+                "You selected VIN $selected, but the connected device reports VIN $ecm. " +
+                "Your logs will use the connected truck ($ecm). Continue with this truck?"
+            )
+            .setCancelable(false)
+            .setPositiveButton("Use this truck") { _, _ -> ensureVehiclePending(ecm) }
+            .setNegativeButton("Disconnect & reselect") { _, _ ->
+                val disconnectIntent = Intent(TrackerService.ACTION_DISCONNECT).apply {
+                    setPackage(requireContext().packageName)
+                    putExtra(TrackerService.EXTRA_SOURCE, TrackerService.SOURCE_NOTIFICATION)
+                }
+                requireContext().sendBroadcast(disconnectIntent)
+                showTruckSelectionDialog()
+            }
+            .show()
+    }
+
+    // Make sure the connected truck exists for the company. Creates it pending (is_added=0) if new;
+    // a 400 "already exists" is expected and harmless when it's already registered.
+    private fun ensureVehiclePending(vin: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                homeViewModel.addVehicle(com.eagleye.eld.models.AddVehicleRequest(vinNo = vin))
+            } catch (e: Exception) {
+                Log.e(TAG, "ensureVehiclePending failed: ${e.message}")
             }
         }
     }

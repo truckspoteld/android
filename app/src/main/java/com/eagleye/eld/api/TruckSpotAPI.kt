@@ -147,6 +147,14 @@ interface TruckSpotAPI {
         @Body request: PaperLogsEmailRequest
     ): Response<PaperLogsEmailResponse>
 
+    // Company vehicles (driver sees their company's APPROVED trucks) — for the truck-selection sheet.
+    @GET("api/v1/get_vehicles")
+    suspend fun getVehicles(): Response<com.eagleye.eld.models.GetVehiclesResponse>
+
+    // Driver adds a new truck from the cab — lands as pending approval (is_added=0) on the portal.
+    @POST("api/v1/add_vehicles")
+    suspend fun addVehicle(@Body body: com.eagleye.eld.models.AddVehicleRequest): Response<okhttp3.ResponseBody>
+
     @GET("api/v1/driver/codrivers")
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse>
 

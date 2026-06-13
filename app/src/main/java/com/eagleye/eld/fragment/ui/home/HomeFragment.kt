@@ -410,7 +410,9 @@ class HomeFragment : Fragment(), OnClickListener {
         binding.llBluetoothStatusPill.setOnClickListener {
             playClickAnimation(it)
             if (isNeedToconnect) {
-                startActivity(Intent(requireContext(), TrackerManagerActivity::class.java))
+                // Show the company truck list (VINs) + "Add a new truck" first, then continue into
+                // the existing device-scan flow unchanged.
+                showTruckSelectionDialog()
             } else {
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle("Bluetooth Disconnection")
@@ -1298,6 +1300,98 @@ class HomeFragment : Fragment(), OnClickListener {
             delay(1500)
             if (_binding != null) {
                 runCatching { homeViewModel.getHome(requireContext()) }
+            }
+        }
+    }
+
+    // ---- Truck selection: company VIN list + "Add a new truck", shown when the driver taps the
+    // connect pill (and is not already connected). Picking a truck — or adding a new one (pending
+    // approval) — then continues into the existing device-scan flow (TrackerManagerActivity),
+    // which is left untouched. ----
+    private fun showTruckSelectionDialog() {
+        if (_binding == null) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val vehicles: List<com.eagleye.eld.models.VehicleItem> = try {
+                val resp = homeViewModel.getVehicles()
+                if (resp.isSuccessful) resp.body()?.vehicles.orEmpty() else emptyList()
+            } catch (e: Exception) {
+                Log.e(TAG, "getVehicles failed: ${e.message}")
+                emptyList()
+            }
+            if (_binding == null || !isAdded) return@launch
+
+            val trucks = vehicles.filter { !it.vinNo.isNullOrBlank() }
+            val labels = trucks.map { v ->
+                val name = v.truckNo?.takeIf { it.isNotBlank() && !it.startsWith("AUTO-") }
+                if (name != null) "${v.vinNo}  (Truck $name)" else v.vinNo!!
+            }.toMutableList()
+            labels.add("➕  Add a new truck")
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(if (trucks.isEmpty()) "No trucks yet — add one" else "Select your truck")
+                .setItems(labels.toTypedArray()) { _, which ->
+                    if (which == labels.size - 1) showAddTruckDialog() else proceedToDeviceScan()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+    }
+
+    private fun proceedToDeviceScan() {
+        if (!isAdded) return
+        startActivity(Intent(requireContext(), TrackerManagerActivity::class.java))
+    }
+
+    private fun showAddTruckDialog() {
+        if (!isAdded) return
+        val ctx = requireContext()
+        val input = android.widget.EditText(ctx).apply {
+            hint = "VIN (17 characters)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            filters = arrayOf(android.text.InputFilter.LengthFilter(17), android.text.InputFilter.AllCaps())
+            // Prefill the VIN the ELD is already reporting, if any.
+            AppModel.getInstance().mVehicleInfo?.VIN?.takeIf { it.length == 17 }?.let { setText(it) }
+        }
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (20 * ctx.resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(input)
+        }
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Add a new truck")
+            .setMessage("Enter the truck's VIN. It's sent to your carrier for approval and you can drive now.")
+            .setView(container)
+            .setPositiveButton("Add & continue") { _, _ ->
+                val vin = input.text.toString().trim().uppercase()
+                if (!vin.matches(Regex("^[A-Z0-9]{17}$"))) {
+                    makeText(ctx, "VIN must be exactly 17 letters/numbers.", LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                addNewTruck(vin)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun addNewTruck(vin: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = try {
+                val resp = homeViewModel.addVehicle(com.eagleye.eld.models.AddVehicleRequest(vinNo = vin))
+                if (!resp.isSuccessful) {
+                    Log.e(TAG, "addVehicle failed ${resp.code()}: ${resp.errorBody()?.string().orEmpty()}")
+                }
+                resp.isSuccessful
+            } catch (e: Exception) {
+                Log.e(TAG, "addVehicle exception: ${e.message}")
+                false
+            }
+            if (!isAdded) return@launch
+            if (ok) {
+                makeText(requireContext(), "Truck added — pending carrier approval. Connecting…", LENGTH_LONG).show()
+                proceedToDeviceScan()
+            } else {
+                makeText(requireContext(), "Couldn't add the truck. It may already exist — pick it from the list, or try again.", LENGTH_LONG).show()
             }
         }
     }

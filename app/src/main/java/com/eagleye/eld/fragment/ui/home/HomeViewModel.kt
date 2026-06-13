@@ -88,6 +88,10 @@ class HomeViewModel @Inject constructor(
 
     suspend fun driverLogout() = try { truckSpotAPI.driverLogout() } catch (_: Exception) { null }
 
+    // Company truck list + add-new-truck (pending) for the truck-selection sheet.
+    suspend fun getVehicles() = truckSpotAPI.getVehicles()
+    suspend fun addVehicle(req: com.eagleye.eld.models.AddVehicleRequest) = truckSpotAPI.addVehicle(req)
+
     suspend fun getMyCodrivers(): Response<DriverCodriversResponse> = truckSpotAPI.getMyCodrivers()
 
     suspend fun getCodriverHos(codriverId: Int? = null) = truckSpotAPI.getCodriverHos(codriverId)

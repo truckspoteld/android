@@ -78,9 +78,15 @@ public class DeviceListAdapter extends BaseAdapter {
 				mListValues.add(new ExtendedBluetoothDevice(result));
 			} else {
 				device.name = result.getScanRecord() != null ? result.getScanRecord().getDeviceName() : null;
-				device.rssi = result.getRssi();
+				// Smooth RSSI (exponential moving average) so the list doesn't jump around
+				// from raw signal noise while the driver is trying to tap a row.
+				device.rssi = (int) Math.round(0.6 * device.rssi + 0.4 * result.getRssi());
 			}
 		}
+		// Closest device first: a stronger signal (higher/less-negative RSSI) means the
+		// tracker is physically nearer — almost always the truck the driver is sitting in.
+		// Lets the driver pick the right device when several trucks are broadcasting nearby.
+		java.util.Collections.sort(mListValues, (a, b) -> Integer.compare(b.rssi, a.rssi));
 		notifyDataSetChanged();
 	}
 

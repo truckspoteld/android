@@ -48,6 +48,11 @@ const val PREF_LAST_ENGINE_STATE = "PREF_LAST_ENGINE_STATE"
 // ELD Bluetooth device
 const val PREF_LAST_ELD_DEVICE_NAME = "PREF_LAST_ELD_DEVICE_NAME"
 const val PREF_LAST_ELD_DEVICE_ADDRESS = "PREF_LAST_ELD_DEVICE_ADDRESS"
+// VIN -> last connected tracker MAC (per-phone JSON map) so the scan can point the driver at the
+// right device for the truck they picked. PREF_SELECTED_TRUCK_DEVICE = the expected MAC for the
+// truck the driver just selected (set at selection, read by the scan screen, cleared after connect).
+const val PREF_TRUCK_DEVICE_MAP = "PREF_TRUCK_DEVICE_MAP"
+const val PREF_SELECTED_TRUCK_DEVICE = "PREF_SELECTED_TRUCK_DEVICE"
 const val PREF_JUST_LOGGED_IN = "PREF_JUST_LOGGED_IN"
 const val PREF_NEEDS_LOGIN_LOG = "PREF_NEEDS_LOGIN_LOG"
 const val PREF_PAYLOAD = "PREF_PAYLOAD"

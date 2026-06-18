@@ -50,9 +50,24 @@ public class DeviceListAdapter extends BaseAdapter {
 	private final ArrayList<ExtendedBluetoothDevice> mListBondedValues = new ArrayList<>();
 	private final ArrayList<ExtendedBluetoothDevice> mListValues = new ArrayList<>();
 	private final Context mContext;
+	// MAC of the tracker belonging to the truck the driver selected. When set, that device is pinned
+	// to the top of the scan list and badged "YOUR TRUCK" so the driver definitely picks the right one.
+	private String mExpectedAddress = "";
 
 	public DeviceListAdapter(final Context context) {
 		mContext = context;
+	}
+
+	/** Set the selected truck's tracker MAC ("" to clear). Pins + badges the matching scanned device. */
+	public void setExpectedAddress(final String address) {
+		mExpectedAddress = address == null ? "" : address;
+		notifyDataSetChanged();
+	}
+
+	private boolean isExpected(final ExtendedBluetoothDevice d) {
+		return !mExpectedAddress.isEmpty()
+			&& d.device != null
+			&& mExpectedAddress.equalsIgnoreCase(d.device.getAddress());
 	}
 
 	/**
@@ -83,10 +98,13 @@ public class DeviceListAdapter extends BaseAdapter {
 				device.rssi = (int) Math.round(0.6 * device.rssi + 0.4 * result.getRssi());
 			}
 		}
-		// Closest device first: a stronger signal (higher/less-negative RSSI) means the
-		// tracker is physically nearer — almost always the truck the driver is sitting in.
-		// Lets the driver pick the right device when several trucks are broadcasting nearby.
-		java.util.Collections.sort(mListValues, (a, b) -> Integer.compare(b.rssi, a.rssi));
+		// The selected truck's own tracker first (if present), then closest-by-signal. A stronger
+		// signal means the tracker is physically nearer — almost always the truck the driver is in.
+		java.util.Collections.sort(mListValues, (a, b) -> {
+			final boolean ea = isExpected(a), eb = isExpected(b);
+			if (ea != eb) return ea ? -1 : 1;            // the driver's selected truck pinned to top
+			return Integer.compare(b.rssi, a.rssi);       // otherwise closest-by-signal first
+		});
 		notifyDataSetChanged();
 	}
 
@@ -199,7 +217,15 @@ public class DeviceListAdapter extends BaseAdapter {
 			final ExtendedBluetoothDevice device = (ExtendedBluetoothDevice) getItem(position);
 			final ViewHolder holder = (ViewHolder) view.getTag();
 			final String name = device.name;
-			holder.name.setText(name != null ? name : mContext.getString(R.string.not_available));
+			final String shown = name != null ? name : mContext.getString(R.string.not_available);
+			if (isExpected(device)) {
+				// This is the tracker for the truck the driver selected — make it unmistakable.
+				holder.name.setText("✓ YOUR TRUCK — " + shown);
+				holder.name.setTextColor(0xFF1B8A3A); // green
+			} else {
+				holder.name.setText(shown);
+				holder.name.setTextColor(0xFF000000); // reset (recycled views)
+			}
 			holder.address.setText(device.device.getAddress());
 			if (!device.isBonded || device.rssi != ExtendedBluetoothDevice.NO_RSSI) {
 				final int rssiPercent = (int) (100.0f * (127.0f + device.rssi) / (127.0f + 20.0f));

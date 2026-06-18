@@ -77,6 +77,8 @@ public class ScannerFragment extends DialogFragment {
 	private BluetoothAdapter mBluetoothAdapter;
 	private OnDeviceSelectedListener mListener;
 	private DeviceListAdapter mAdapter;
+	// When true, the scan lists every nearby Bluetooth device instead of just PT trackers.
+	private boolean mScanAll = false;
 	private final Handler mHandler = new Handler();
 	private Button mScanButton;
 
@@ -162,8 +164,32 @@ public class ScannerFragment extends DialogFragment {
 		listview.setEmptyView(dialogView.findViewById(android.R.id.empty));
 		listview.setAdapter(mAdapter = new DeviceListAdapter(getActivity()));
 
+		// Pin + badge the tracker for the truck the driver selected (if this phone has paired with it).
+		try {
+			final String expected = new com.eagleye.eld.utils.PrefRepository(
+					getActivity().getApplicationContext()).getSelectedTruckDevice();
+			mAdapter.setExpectedAddress(expected);
+		} catch (Exception ignored) {}
+
 		builder.setTitle(R.string.scanner_title);
+		// "Scan all" toggle — by default we list trackers only; this shows every nearby Bluetooth
+		// device, as an escape hatch when the expected tracker isn't found or another is needed.
+		builder.setNeutralButton("Scan all", null);
 		final AlertDialog dialog = builder.setView(dialogView).create();
+		dialog.setOnShowListener(d -> {
+			final android.widget.Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+			if (neutral != null) {
+				neutral.setOnClickListener(v -> {
+					mScanAll = !mScanAll;
+					neutral.setText(mScanAll ? "Trackers only" : "Scan all");
+					Toast.makeText(getActivity(),
+							mScanAll ? "Showing all Bluetooth devices" : "Showing trackers only",
+							Toast.LENGTH_SHORT).show();
+					stopScan();
+					startScan();
+				});
+			}
+		});
 		listview.setOnItemClickListener((parent, view, position, id) -> {
 			stopScan();
 			dialog.dismiss();
@@ -262,7 +288,10 @@ public class ScannerFragment extends DialogFragment {
 				.setUseHardwareBatchingIfSupported(false)
 				.build();
 		final List<ScanFilter> filters = new ArrayList<>();
-		filters.add(new ScanFilter.Builder().setServiceUuid(mUuid).build());
+		// Default: trackers only (filter by the PT service UUID). "Scan all" → no filter, every device.
+		if (!mScanAll) {
+			filters.add(new ScanFilter.Builder().setServiceUuid(mUuid).build());
+		}
 		scanner.startScan(filters, settings, scanCallback);
 
 		mIsScanning = true;

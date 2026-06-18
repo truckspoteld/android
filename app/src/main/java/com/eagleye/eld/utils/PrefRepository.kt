@@ -394,6 +394,30 @@ class PrefRepository @Inject constructor(@ApplicationContext val context: Contex
     fun getLastEldDeviceName(): String = PREF_LAST_ELD_DEVICE_NAME.getString()
     fun getLastEldDeviceAddress(): String = PREF_LAST_ELD_DEVICE_ADDRESS.getString()
 
+    // --- VIN -> tracker device (per-phone), for "show the driver which device is their truck" ---
+    private fun truckDeviceMap(): MutableMap<String, String> = try {
+        val s = PREF_TRUCK_DEVICE_MAP.getString()
+        if (s.isBlank()) mutableMapOf()
+        else Gson().fromJson(s, object : com.google.gson.reflect.TypeToken<MutableMap<String, String>>() {}.type)
+    } catch (e: Exception) { mutableMapOf() }
+
+    /** Remember which physical tracker (MAC) a VIN connected through, so we can point the driver at it next time. */
+    fun rememberTruckDevice(vin: String?, address: String?) {
+        if (vin.isNullOrBlank() || address.isNullOrBlank()) return
+        val map = truckDeviceMap()
+        map[vin.trim().uppercase()] = address
+        PREF_TRUCK_DEVICE_MAP.put(Gson().toJson(map))
+    }
+
+    /** The MAC last seen for this VIN, or "" if this phone has never connected to that truck. */
+    fun getTruckDeviceAddress(vin: String?): String =
+        if (vin.isNullOrBlank()) "" else truckDeviceMap()[vin.trim().uppercase()].orEmpty()
+
+    /** The expected tracker MAC for the truck the driver just picked (drives the scan-list highlight). */
+    fun setSelectedTruckDevice(address: String) = PREF_SELECTED_TRUCK_DEVICE.put(address)
+    fun getSelectedTruckDevice(): String = PREF_SELECTED_TRUCK_DEVICE.getString()
+    fun clearSelectedTruckDevice() = PREF_SELECTED_TRUCK_DEVICE.put("")
+
     fun setEldConnected(connected: Boolean) = pref.edit().putBoolean("pref_eld_connected", connected).apply()
     fun isEldConnected(): Boolean = pref.getBoolean("pref_eld_connected", false)
 

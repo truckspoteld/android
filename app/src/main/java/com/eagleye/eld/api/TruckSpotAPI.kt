@@ -147,9 +147,10 @@ interface TruckSpotAPI {
         @Body request: PaperLogsEmailRequest
     ): Response<PaperLogsEmailResponse>
 
-    // Company vehicles (driver sees their company's APPROVED trucks) — for the truck-selection sheet.
+    // Company vehicles for the truck-selection sheet. include_pending=1 also returns the driver's own
+    // not-yet-approved trucks (is_added=0) so a just-added truck doesn't vanish until a superadmin approves it.
     @GET("api/v1/get_vehicles")
-    suspend fun getVehicles(): Response<com.eagleye.eld.models.GetVehiclesResponse>
+    suspend fun getVehicles(@retrofit2.http.Query("include_pending") includePending: Int = 1): Response<com.eagleye.eld.models.GetVehiclesResponse>
 
     // Driver adds a new truck from the cab — lands as pending approval (is_added=0) on the portal.
     @POST("api/v1/add_vehicles")

@@ -1334,7 +1334,9 @@ class HomeFragment : Fragment(), OnClickListener {
             val trucks = vehicles.filter { !it.vinNo.isNullOrBlank() }
             val labels = trucks.map { v ->
                 val name = v.truckNo?.takeIf { it.isNotBlank() && !it.startsWith("AUTO-") }
-                if (name != null) "${v.vinNo}  (Truck $name)" else v.vinNo!!
+                val base = if (name != null) "${v.vinNo}  (Truck $name)" else v.vinNo!!
+                // Pending trucks (is_added=0) are shown too, tagged so the driver knows they await approval.
+                if (v.isAdded == 0) "$base  — pending approval" else base
             }.toMutableList()
             labels.add("➕  Add a new truck")
 
@@ -1346,10 +1348,13 @@ class HomeFragment : Fragment(), OnClickListener {
                         // device reports as a pending truck.
                         pendingNewTruckMode = true
                         pendingSelectedVin = null
+                        prefRepository.clearSelectedTruckDevice()
                         proceedToDeviceScan()
                     } else {
                         pendingSelectedVin = trucks[which].vinNo  // remember intent → verified after connect
                         pendingNewTruckMode = false
+                        // Point the scan at this truck's known tracker, if we've connected to it on this phone before.
+                        prefRepository.setSelectedTruckDevice(prefRepository.getTruckDeviceAddress(trucks[which].vinNo))
                         proceedToDeviceScan()
                     }
                 }
@@ -1367,6 +1372,10 @@ class HomeFragment : Fragment(), OnClickListener {
     // and PT-40 funnel through). Routes the driver's truck-selection intent.
     private fun onConnectedVinKnown(ecmVin: String?) {
         val ecm = ecmVin?.trim()?.uppercase()?.takeIf { it.matches(Regex("^[A-Z0-9]{17}$")) } ?: return
+        // Remember which physical tracker (MAC) this VIN connected through, so next time the driver
+        // picks this truck the scan can point straight at its device. Then clear the one-shot pick.
+        prefRepository.rememberTruckDevice(ecm, prefRepository.getLastEldDeviceAddress())
+        prefRepository.clearSelectedTruckDevice()
         when {
             pendingNewTruckMode -> {
                 pendingNewTruckMode = false

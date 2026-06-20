@@ -1505,7 +1505,11 @@ class HomeFragment : Fragment(), OnClickListener {
             time = point.time.orEmpty(),
             connection_status = "disconnected",
             datetime = point.datetime.orEmpty(),
-            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 }
+            codriverid = prefRepository.getCoDriverId().takeIf { it > 0 },
+            // Mark CLAIMED driving (d/on) as origin 4 so the backend login-session gate admits it
+            // (the driver pressed "accept" = permission). Engine on/off stay unmarked → if they
+            // predate the login they're dropped, matching iOS.
+            eventrecordorigin = if (mode == TRUCK_MODE_DRIVING || mode == TRUCK_MODE_ON) 4 else null
         )
         context?.let { homeViewModel.logUser(logRequest, it) }
     }

@@ -19,7 +19,10 @@ data class AddLogRequest @JvmOverloads constructor(
     val connection_status: String = "",
     var discreption: String = "",
     val datetime: String = "",
-    val codriverid: Int? = null
+    val codriverid: Int? = null,
+    // FMCSA eventrecordorigin (4 = assumed-from-unidentified). Set for driver-CLAIMED
+    // recovered driving so the backend login-session gate lets it through (the prompt = permission).
+    val eventrecordorigin: Int? = null
 )
 //{
 //    "error": "You can only log 'on' during the first 15 minutes after reset.",

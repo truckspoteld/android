@@ -1217,6 +1217,20 @@ class HomeFragment : Fragment(), OnClickListener {
     private fun maybeShowDisconnectedDrivingMilesDialog(rawMiles: String?) {
         if (!isAdded || _binding == null) return
 
+        // Only offer stored gap driving to the SAME driver who was logged in when it occurred.
+        // A different / freshly-logged-in driver must NOT inherit a prior session's ECM driving —
+        // discard it (leave it unidentified for the correct driver) instead of back-dating it onto
+        // this driver's record. Mirrors the iOS fix.
+        val driverAtGap = prefRepository.getDriverIdAtDisconnect()
+        val currentDriver = prefRepository.getDriverId()
+        if (driverAtGap != 0 && driverAtGap != currentDriver) {
+            prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+            prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
+            prefRepository.clearPendingEnginePeriods()
+            prefRepository.clearDriverIdAtDisconnect()
+            return
+        }
+
         val pendingSegments = readPendingDisconnectedDrivingSegments()
         val milesCovered = rawMiles?.trim()?.toDoubleOrNull() ?: 0.0
 

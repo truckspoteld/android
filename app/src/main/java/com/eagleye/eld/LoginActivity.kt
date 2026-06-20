@@ -250,6 +250,17 @@ class LoginActivity : AppCompatActivity() {
                             prefRepository.setToken(token!!)
                         }
 
+                        // New session (fresh login OR co-driver role swap): never inherit a prior
+                        // session's stored gap driving or stale odometer/eng-hour offset. Otherwise a
+                        // freshly-logged-in / switched-in driver can get another session's ECM driving
+                        // back-dated onto his record. Mirrors the iOS fix.
+                        prefRepository.clearDriverIdAtDisconnect()
+                        prefRepository.clearPendingDisconnectedDrivingMilesDialog()
+                        prefRepository.clearPendingDisconnectedDrivingSegmentsJson()
+                        prefRepository.clearPendingEnginePeriods()
+                        prefRepository.setDifferenceinOdo("0")
+                        prefRepository.setDifferenceinEnghours("0")
+
                         results.company_timezone?.let { tz ->
                             if (tz.isNotBlank()) prefRepository.setTimeZone(tz)
                         }

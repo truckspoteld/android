@@ -144,6 +144,40 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
     private long stoppedSinceMs = -1L;
     private static final long STOPPED_DURATION_BEFORE_ON_MS = 5 * 60 * 1000L; // 5 min
     private static final int DRIVE_THRESHOLD_KMH = 8;
+
+    // Real-movement guard (parity with iOS): auto-DRIVE only counts if backed by ACTUAL movement —
+    // odometer advanced OR GPS shifted >80m between consecutive readings. A stale/jitter speed on a
+    // frozen odometer + unchanged location must not log phantom Drive.
+    private static final double MOVEMENT_DISPLACEMENT_METERS = 80.0d;
+    private double lastMotionOdometerKm = -1.0d;
+    private Double lastMotionLat = null;
+    private Double lastMotionLon = null;
+
+    /** Great-circle distance in metres between two lat/long points (movement guard). */
+    private static double metersBetween(double lat1, double lon1, double lat2, double lon2) {
+        double r = 6_371_000.0d;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /** True when the connected ECM reports a real VIN different from the driver-confirmed anchor —
+     *  i.e. an UNCONFIRMED truck change. While true, no auto-logging: nothing should land on a truck
+     *  the driver hasn't acknowledged (parity with iOS). HomeFragment's blocking dialog re-anchors. */
+    private boolean isLiveVinMismatch() {
+        if (prefRepository == null) prefRepository = new PrefRepository(this);
+        String live = AppModel.getInstance().mPT30Vin;
+        if (live == null || live.equals("n/a") || live.isEmpty()) {
+            if (AppModel.getInstance().mVehicleInfo != null && AppModel.getInstance().mVehicleInfo.VIN != null) {
+                live = AppModel.getInstance().mVehicleInfo.VIN;
+            }
+        }
+        if (live == null || !live.matches("^[A-Za-z0-9]{17}$")) return false; // no real live VIN → can't be a mismatch
+        String anchored = prefRepository.getAnchoredVin();
+        return anchored != null && !anchored.isEmpty() && !anchored.equals(live);
+    }
     private int pendingReconnectStoredEventsCount = 0;
     private int receivedReconnectStoredEventsCount = 0;
     private double pendingReconnectBaselineOdometerKm = 0.0d;
@@ -355,7 +389,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
         String location = mTm.mGeoloc.latitude + "," + mTm.mGeoloc.longitude;
         prefRepository = new PrefRepository(this);
 
-        if (prefRepository.getLogTimeDifference() > 3600000 && mTm.mGeoloc.speed > 7) { //
+        if (prefRepository.getLogTimeDifference() > 3600000 && mTm.mGeoloc.speed > 7 && !isLiveVinMismatch()) { //
             String mode = "d";
             AddLogRequest logRequest = new AddLogRequest(
                     mode,
@@ -382,15 +416,40 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
             }).start();
         }
 
+        // Real-movement detection (parity with iOS): did the truck ACTUALLY move since the last
+        // reading? Real driving advances the odometer or shifts GPS position; a stale/jitter speed
+        // on a frozen odometer + unchanged location does neither. When no movement data exists, fall
+        // back to allowing (no regression).
+        double curOdoKm = parseNonNegative(mTm.mOdometer);
+        boolean odoAdvanced = curOdoKm > 0 && lastMotionOdometerKm > 0 && curOdoKm > lastMotionOdometerKm + 0.01d;
+        boolean gpsKnown = false, gpsMoved = false;
+        Double curLat = (mTm.mGeoloc != null && mTm.mGeoloc.latitude != null) ? mTm.mGeoloc.latitude.doubleValue() : null;
+        Double curLon = (mTm.mGeoloc != null && mTm.mGeoloc.longitude != null) ? mTm.mGeoloc.longitude.doubleValue() : null;
+        boolean haveGps = curLat != null && curLon != null && (curLat != 0.0d || curLon != 0.0d);
+        if (haveGps && lastMotionLat != null && lastMotionLon != null) {
+            gpsKnown = true;
+            gpsMoved = metersBetween(lastMotionLat, lastMotionLon, curLat, curLon) >= MOVEMENT_DISPLACEMENT_METERS;
+        }
+        boolean haveMovementData = curOdoKm > 0 || gpsKnown;
+        boolean movementConfirmed = !haveMovementData || odoAdvanced || gpsMoved;
+        if (curOdoKm > 0) lastMotionOdometerKm = curOdoKm;
+        if (haveGps) {
+            lastMotionLat = curLat;
+            lastMotionLon = curLon;
+        }
+
         // Real-time background auto-DRIVE — fires even when the app is minimized, so the
         // driver no longer has to open the app and press Drive when the truck starts moving.
         // (The pre-existing block above only triggers after a >1h log gap; the foreground
         // HomeFragment auto-drive doesn't run while backgrounded.) Gated on isEcmBusLive
-        // (engine/ECM on) so GPS jitter while parked with the engine OFF can't log phantom Drive.
+        // (engine/ECM on) AND real movement (odometer/GPS) so a stale/jitter speed on a frozen
+        // odometer can't log phantom Drive (parity with iOS).
         if (!"d".equals(prefRepository.getMode())
                 && mTm.mGeoloc != null && mTm.mGeoloc.speed != null
                 && mTm.mGeoloc.speed >= DRIVE_THRESHOLD_KMH
-                && isEcmBusLive) {
+                && isEcmBusLive
+                && movementConfirmed
+                && !isLiveVinMismatch()) {
             prefRepository.setMode("d");
             AddLogRequest driveLog = new AddLogRequest(
                     "d",
@@ -707,6 +766,8 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     private void handleStopToOnCheck(TelemetryEvent mTm) {
         if (prefRepository == null) prefRepository = new PrefRepository(this);
+        // Truck-change block: don't auto-switch Drive→On while the connected truck is unconfirmed.
+        if (isLiveVinMismatch()) return;
         String currentMode = prefRepository.getMode();
         if (!"d".equals(currentMode)) {
             stoppedSinceMs = -1L;

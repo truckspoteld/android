@@ -46,6 +46,7 @@ class LogAdaptor  (
     private val fragmentManager: FragmentManager, 
     private val contect : Context,
     private val timeZone: String = "PST",
+    private val onAnnotate: ((GetLogsByDateResponse.Results.UserLog) -> Unit)? = null,
     private val onLongClick: ((GetLogsByDateResponse.Results.UserLog) -> Unit)? = null
 ) :
     RecyclerView.Adapter<LogAdaptor.ViewHolder>() {
@@ -108,7 +109,8 @@ class LogAdaptor  (
         viewHolder.itemView.setOnClickListener {
             playClickAnimation(it)
             if (modeValue == "login" || modeValue == "logout" || modeValue == "certification" || normalizedEngineMode.isNotEmpty()) {
-                // No action for system/other logs
+                // System/other log: not editable, but a direct tap can still add/edit its annotation.
+                onAnnotate?.invoke(userLog)
             } else {
                 val modalFragment = LogModalFragment(userLog)
                 modalFragment.show(fragmentManager, "LogModalFragment")

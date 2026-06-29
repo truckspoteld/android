@@ -57,6 +57,13 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
         val editTextEngineHours = view.findViewById<EditText>(R.id.editTextenginehours)
         editTextEngineHours.setText(userLog.eng_hours)
 
+        // Annotation / remark — prefill the existing user annotation (blank for the system tags so the
+        // field doesn't start with "yard"/"personal"/"Intermediate log" as if it were a remark).
+        val editTextAnnotation = view.findViewById<EditText>(R.id.editTextAnnotation)
+        val rawAnnotation = (userLog.discreption?.toString() ?: "").trim()
+        editTextAnnotation.setText(
+            if (rawAnnotation in listOf("yard", "personal", "Intermediate log")) "" else rawAnnotation
+        )
 
         val btnEdit = view.findViewById<Button>(R.id.btnEdit)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
@@ -71,6 +78,7 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
             val updatedLocation = editTextLocation.text.toString()
             val updatedOdometer = editTextOdometer.text.toString()
             val updatedEngineHours = editTextEngineHours.text.toString()
+            val updatedAnnotation = editTextAnnotation.text.toString().trim()
 
             // Create an UpdatedLogData object
             val updatedLogData = updateLogRequest(
@@ -82,7 +90,8 @@ class LogModalFragment(private val userLog: GetLogsByDateResponse.Results.UserLo
                 updatedEngineHours,
                 updatedTime,
                 updatedLocation,
-                1
+                1,
+                remark = if (updatedAnnotation.isEmpty()) null else updatedAnnotation
             )
 
             try {

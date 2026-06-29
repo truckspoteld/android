@@ -820,7 +820,16 @@ class LogsFragment : Fragment() {
 
                     binding.eldPlot.graph.invalidate()
                     
-                    binding.eventLogRv.adapter = LogAdaptor(logs, childFragmentManager, requireContext(), timeZone) { log ->
+                    binding.eventLogRv.adapter = LogAdaptor(
+                        logs, childFragmentManager, requireContext(), timeZone,
+                        onAnnotate = { log ->
+                            // Direct tap on a non-editable (system) log → add/edit its annotation.
+                            if (!isReviewMode) {
+                                selectedLog = log
+                                showActionDialog("Add Remark")
+                            }
+                        }
+                    ) { log ->
                         if (!isReviewMode) {
                             selectedLog = log
                             binding.fabLogReport.isEnabled = true

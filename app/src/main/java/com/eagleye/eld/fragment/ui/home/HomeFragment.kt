@@ -2218,10 +2218,18 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.d(TAG, "Vehicle is running, unable to click")
             return
         }
-        // if (TRUCK_MODE_YARD != homeViewModel.trackingMode.get()!! || isEmptyList) {
-            mediaPlayer.start()
-            updateModeChange(hrs_MODE_YARD, TRUCK_MODE_YARD, "yard")
-        // }
+        // Yard Move is a special FMCSA status — confirm before logging so an accidental tap can't
+        // silently log it (driver-reported "went into Yard Move without pressing it").
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Switch to Yard Move?")
+            .setMessage("Yard Move is a special on-duty status for moving the truck within a yard. Confirm only if you intend to log it.")
+            .setPositiveButton("Yard Move") { d, _ ->
+                d.dismiss()
+                mediaPlayer.start()
+                updateModeChange(hrs_MODE_YARD, TRUCK_MODE_YARD, "yard")
+            }
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .show()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -2396,10 +2404,18 @@ class HomeFragment : Fragment(), OnClickListener {
             Log.d(TAG, "Vehicle is running, unable to click")
             return
         }
-        // if (TRUCK_MODE_PERSONAL != homeViewModel.trackingMode.get()!! || isEmptyList) {
-            mediaPlayer.start()
-            updateModeChange(hrs_MODE_PERSONAL, TRUCK_MODE_PERSONAL, "personal")
-        // }
+        // Personal Conveyance is a special FMCSA status — confirm before logging so an accidental
+        // tap can't silently log it.
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Switch to Personal Conveyance?")
+            .setMessage("Personal Conveyance is a special off-duty status. Confirm only if you intend to log it.")
+            .setPositiveButton("Personal Conveyance") { d, _ ->
+                d.dismiss()
+                mediaPlayer.start()
+                updateModeChange(hrs_MODE_PERSONAL, TRUCK_MODE_PERSONAL, "personal")
+            }
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .show()
     }
 
     private fun isClickable(): Boolean {

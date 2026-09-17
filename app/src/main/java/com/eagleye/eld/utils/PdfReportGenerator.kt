@@ -258,7 +258,7 @@ class PdfReportGenerator(private val context: Context) {
         
         // Left: EaglEye brand name
         val brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f)
-        val logoCell = PdfPCell(Phrase("TruckSpot", brandFont))
+        val logoCell = PdfPCell(Phrase("Eagleye ELD", brandFont))
         logoCell.border = Rectangle.NO_BORDER
         logoCell.horizontalAlignment = Element.ALIGN_LEFT
         logoCell.verticalAlignment = Element.ALIGN_MIDDLE

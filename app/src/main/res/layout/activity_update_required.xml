@@ -35,7 +35,7 @@
         android:id="@+id/updateMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="A newer version of TruckSpot ELD is required. Please update to continue."
+        android:text="A newer version of Eagleye ELD is required. Please update to continue."
         android:textColor="@color/login_text_gray"
         android:textSize="15sp"
         android:gravity="center"

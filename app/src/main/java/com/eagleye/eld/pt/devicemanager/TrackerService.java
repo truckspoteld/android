@@ -282,7 +282,7 @@ public class TrackerService extends BleProfileService implements TrackerManagerC
 
     @Override
     protected boolean shouldAutoConnect() {
-        return true;
+        return false;
     }
 
     @Override
